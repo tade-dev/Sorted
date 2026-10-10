@@ -80,7 +80,9 @@ export async function extractCatalogue(
       jsonSchema: CATALOGUE_JSON_SCHEMA,
       system: CATALOGUE_SYSTEM,
       images: images.map((i) => toDataUri(i.buffer, i.mime)),
-      temperature: 0.2,
+      // No temperature: gpt-5.5 only accepts the default. The spec's 0.2 for
+      // extraction is not expressible on this model, and the determinism it
+      // was reaching for is carried by the strict json_schema instead.
     },
     transport,
     model,

@@ -12,6 +12,15 @@ export type StructuredCall<T> = {
   system: string;
   text?: string;
   images?: string[];
+  /**
+   * Leave unset unless the model is known to accept it.
+   *
+   * gpt-5.5 — the pinned vision model — rejects any non-default temperature
+   * outright ("does not support 0.2 with this model"), which failed every real
+   * extraction while the unit tests, which inject a fake transport, stayed
+   * green. Week 3's reply and nudge drafting want 0.7 and will hit the same
+   * wall; check against the live model before setting it.
+   */
   temperature?: number;
 };
 
