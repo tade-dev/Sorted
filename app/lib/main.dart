@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,23 +6,13 @@ import 'core/theme/sorted_colors.dart';
 import 'core/theme/sorted_shape.dart';
 import 'core/theme/sorted_theme.dart';
 import 'firebase_options.dart';
+import 'providers/seller_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: SortedApp()));
 }
-
-/// Signs the seller in anonymously, which is what "instant demo seller, no
-/// login" means in practice: a judge opens the hosted build and is already a
-/// seller, with their own uid scoping their data away from every other judge.
-final sellerIdProvider = FutureProvider<String>((ref) async {
-  final auth = FirebaseAuth.instance;
-  final existing = auth.currentUser;
-  if (existing != null) return existing.uid;
-  final credential = await auth.signInAnonymously();
-  return credential.user!.uid;
-});
 
 class SortedApp extends StatelessWidget {
   const SortedApp({super.key});
