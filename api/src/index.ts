@@ -1,3 +1,10 @@
+// Loads api/.env before loadEnv() reads process.env, so the service runs
+// locally with nothing exported by hand. Values containing JSON or quotes
+// survive this; sourcing the file from a shell mangles them. On Render the
+// file is absent and the dashboard's variables are already in the
+// environment, so this is a no-op there.
+import 'dotenv/config';
+
 import { createApp } from './app.js';
 import { loadEnv } from './env.js';
 import { adminTokenVerifier, initFirebase } from './firebase.js';
