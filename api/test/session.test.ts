@@ -41,6 +41,7 @@ function app() {
       if (token === 'good-token') return { uid: 'seller-a' };
       throw new Error('rejected');
     },
+    transport: async () => ({ content: '{}' }),
   });
 }
 

@@ -3,10 +3,17 @@ import type { Firestore } from 'firebase-admin/firestore';
 import type { Env } from './env.js';
 import { ApiError, errorHandler } from './lib/errors.js';
 import type { TokenVerifier } from './lib/auth.js';
+import type { ChatTransport } from './ai/client.js';
+import { catalogueRouter } from './routes/catalogue.js';
 import { healthRouter } from './routes/health.js';
 import { sessionRouter } from './routes/session.js';
 
-export type AppDeps = { env: Env; db: Firestore; verify: TokenVerifier };
+export type AppDeps = {
+  env: Env;
+  db: Firestore;
+  verify: TokenVerifier;
+  transport: ChatTransport;
+};
 
 export function createApp(deps: AppDeps): express.Express {
   const app = express();
@@ -19,6 +26,15 @@ export function createApp(deps: AppDeps): express.Express {
 
   app.use('/v1', healthRouter(deps.env));
   app.use('/v1', sessionRouter({ db: deps.db, verify: deps.verify }));
+  app.use(
+    '/v1',
+    catalogueRouter({
+      db: deps.db,
+      verify: deps.verify,
+      transport: deps.transport,
+      model: deps.env.OPENAI_VISION_MODEL,
+    }),
+  );
 
   app.use((_req, _res, next) => {
     next(new ApiError(404, 'NOT_FOUND', 'Route not found.'));

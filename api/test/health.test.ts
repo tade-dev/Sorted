@@ -19,6 +19,7 @@ const deps = {
   env,
   db: {} as never,
   verify: async () => ({ uid: 'seller-a' }),
+  transport: async () => ({ content: '{}' }),
 };
 
 describe('GET /v1/health', () => {
