@@ -30,8 +30,20 @@ way that contradicts this.
 
 ## PayPal
 
-- Sandbox business/buyer accounts: TBC
-- Webhook id: not yet created (needs the live URL above)
+- Sandbox REST app credentials in `api/.env`; verified 2026-10-11 by obtaining an
+  OAuth2 token from `api-m.sandbox.paypal.com`.
+- Webhook id: **not yet created.** No webhook is registered on the app
+  (`GET /v1/notifications/webhooks` returns an empty list). `PAYPAL_WEBHOOK_ID`
+  is the placeholder `pending`, which is harmless until week 4 — nothing reads
+  it before signature verification exists.
+- Webhook URL to register:
+  `https://sorted-api-a4zo.onrender.com/v1/webhooks/paypal`
+- **Event names verified against the sandbox** (the spec flagged these as
+  unconfirmed). All seven exist among the 205 the sandbox offers:
+  `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`,
+  `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.PENDING`,
+  `PAYMENT.CAPTURE.REFUNDED`, `INVOICING.INVOICE.PAID`,
+  `INVOICING.INVOICE.CANCELLED`.
 
 ## OpenAI
 
@@ -54,6 +66,19 @@ price: it was the cheapest and fastest, and silently wrong about money.
 All four resolved "sat 10th oct" to `2026-10-10` correctly (a real Saturday).
 Vision + strict structured output confirmed working on the Chat Completions
 API with `response_format: { type: 'json_schema', strict: true }`.
+
+## Local development
+
+Run the API with `cd api && npm run dev` (or `npm start` after `npm run build`).
+It loads `api/.env` itself via dotenv — do not source that file from a shell,
+which mangles `FIREBASE_SERVICE_ACCOUNT_JSON` because the value is raw JSON.
+That variable must be the whole service-account file **on one line**.
+
+Verified 2026-10-11 against the live project: `/v1/session/bootstrap` seeds
+Ola's Bakehouse with 5 products, `/v1/catalogue/products` creates, and
+re-saving the same name in a different case is skipped by the duplicate guard.
+`/v1/catalogue/extract` read three products with correct prices and variant
+deltas from a photo of priced stock.
 
 ## Still unverified
 
