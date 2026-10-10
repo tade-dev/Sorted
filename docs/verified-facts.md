@@ -32,12 +32,13 @@ way that contradicts this.
 
 - Sandbox REST app credentials in `api/.env`; verified 2026-10-11 by obtaining an
   OAuth2 token from `api-m.sandbox.paypal.com`.
-- Webhook id: **not yet created.** No webhook is registered on the app
-  (`GET /v1/notifications/webhooks` returns an empty list). `PAYPAL_WEBHOOK_ID`
-  is the placeholder `pending`, which is harmless until week 4 — nothing reads
-  it before signature verification exists.
-- Webhook URL to register:
-  `https://sorted-api-a4zo.onrender.com/v1/webhooks/paypal`
+- **Webhook id: `5M496008FY912943W`** (registered 2026-10-11, confirmed via
+  `GET /v1/notifications/webhooks`).
+- Webhook URL: `https://sorted-api-a4zo.onrender.com/v1/webhooks/paypal`
+- Subscribed to 77 event types, which is broader than needed. All seven the
+  design relies on are included. Week 4's handler must ignore unknown types
+  rather than erroring on them, or the extra 70 become noise in the failure
+  counter.
 - **Event names verified against the sandbox** (the spec flagged these as
   unconfirmed). All seven exist among the 205 the sandbox offers:
   `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`,
