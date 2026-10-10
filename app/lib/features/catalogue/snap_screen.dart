@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../providers/catalogue_providers.dart';
@@ -68,7 +69,7 @@ class _SnapScreenState extends ConsumerState<SnapScreen> {
       await ref.read(extractionControllerProvider.notifier).extract(_photos);
       if (mounted) context.go('/catalogue/review');
     } catch (e) {
-      if (mounted) setState(() { _busy = false; _notice = '$e'; });
+      if (mounted) setState(() { _busy = false; _notice = describeApiError(e); });
     }
   }
 

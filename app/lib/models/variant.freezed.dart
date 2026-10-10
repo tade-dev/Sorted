@@ -16,6 +16,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Variant {
 
+/// Empty on a candidate: ids are assigned by the backend at save time via
+/// uniqueSlugs, so `/catalogue/extract` sends variants without one.
  String get id; String get axis; String get label; int get priceDeltaMinor; bool get active;
 /// Create a copy of Variant
 /// with the given fields replaced by the non-null parameter values.
@@ -219,10 +221,12 @@ return $default(_that.id,_that.axis,_that.label,_that.priceDeltaMinor,_that.acti
 @JsonSerializable()
 
 class _Variant implements Variant {
-  const _Variant({required this.id, required this.axis, required this.label, required this.priceDeltaMinor, this.active = true});
+  const _Variant({this.id = '', required this.axis, required this.label, required this.priceDeltaMinor, this.active = true});
   factory _Variant.fromJson(Map<String, dynamic> json) => _$VariantFromJson(json);
 
-@override final  String id;
+/// Empty on a candidate: ids are assigned by the backend at save time via
+/// uniqueSlugs, so `/catalogue/extract` sends variants without one.
+@override@JsonKey() final  String id;
 @override final  String axis;
 @override final  String label;
 @override final  int priceDeltaMinor;

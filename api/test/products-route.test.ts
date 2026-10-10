@@ -130,6 +130,23 @@ describe('PATCH /v1/catalogue/products/:productId', () => {
       .send({ basePriceMinor: 1 });
     expect(res.status).toBe(401);
   });
+
+  it('400s when only the price is sent and a STORED variant turns it negative', async () => {
+    // The guard only ran when price and variants arrived together, so dropping
+    // the price alone stored an effective -GBP 4.00 that week 3 would total.
+    const id = await create();
+    await db.doc(`sellers/seller-a/products/${id}`).update({
+      variants: [{ id: 'big', axis: 'size', label: 'big', priceDeltaMinor: -500, active: true }],
+    });
+
+    const res = await request(app())
+      .patch(`/v1/catalogue/products/${id}`)
+      .set('Authorization', 'Bearer good')
+      .send({ basePriceMinor: 100 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_FAILED');
+  });
 });
 
 describe('DELETE /v1/catalogue/products/:productId', () => {

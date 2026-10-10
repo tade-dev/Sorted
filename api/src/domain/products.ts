@@ -43,12 +43,20 @@ export type ProductInput = z.infer<typeof productInputSchema>;
  * price, so colliding slugs get a numeric suffix.
  */
 export function uniqueSlugs(labels: string[]): string[] {
-  const seen = new Map<string, number>();
+  const used = new Set<string>();
   return labels.map((label, index) => {
     const base = slugify(label) || `variant-${index + 1}`;
-    const count = (seen.get(base) ?? 0) + 1;
-    seen.set(base, count);
-    return count === 1 ? base : `${base}-${count}`;
+    let candidate = base;
+    // Keep counting until the slug is genuinely free. A plain counter is not
+    // enough: "Box of 6 2" slugifies to box-of-6-2, which is also the suffix a
+    // second "box of 6" would take, and the two variants would share an id.
+    let n = 1;
+    while (used.has(candidate)) {
+      n += 1;
+      candidate = `${base}-${n}`;
+    }
+    used.add(candidate);
+    return candidate;
   });
 }
 
@@ -61,12 +69,16 @@ export async function saveProducts(
 ): Promise<{ created: string[]; skippedDuplicates: string[] }> {
   const collection = db.collection(`sellers/${sellerId}/products`);
 
-  const existing = await collection.where('active', '==', true).get();
+  // A transaction, not a read-then-batch. "Add 3 products" has no in-flight
+  // guard, so a double tap fires two requests before either finishes; both
+  // would otherwise see an empty catalogue and both write. Reading the query
+  // inside the transaction makes the loser retry and see the winner's rows.
+  return db.runTransaction(async (tx) => {
+  const existing = await tx.get(collection.where('active', '==', true));
   const taken = new Set(existing.docs.map((d) => normalise(d.data().name as string)));
 
   const created: string[] = [];
   const skippedDuplicates: string[] = [];
-  const batch = db.batch();
 
   for (const input of inputs) {
     const key = normalise(input.name);
@@ -79,7 +91,7 @@ export async function saveProducts(
     const ref = collection.doc();
     const slugs = uniqueSlugs(input.variants.map((v) => v.label));
 
-    batch.set(ref, {
+    tx.set(ref, {
       id: ref.id,
       name: input.name.trim(),
       description: input.description,
@@ -103,6 +115,6 @@ export async function saveProducts(
     created.push(ref.id);
   }
 
-  if (created.length > 0) await batch.commit();
-  return { created, skippedDuplicates };
+    return { created, skippedDuplicates };
+  });
 }

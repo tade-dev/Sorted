@@ -31,13 +31,16 @@ const _unpriced = ProductCandidate(
 
 class _FakeApi implements CatalogueApi {
   Object? saved;
+  List<String> skipped = <String>[];
+  Object? throwOnSave;
   @override
   Future<Map<String, dynamic>> extract(List<({List<int> bytes, String filename})> f) async =>
       {'candidates': []};
   @override
   Future<Map<String, dynamic>> saveProducts(Object body) async {
     saved = body;
-    return {'created': ['p1'], 'skippedDuplicates': <String>[]};
+    if (throwOnSave != null) throw throwOnSave!;
+    return {'created': ['p1'], 'skippedDuplicates': skipped};
   }
 }
 
@@ -117,6 +120,27 @@ void main() {
     expect(button.enabled, isTrue);
   });
 
+  testWidgets('the price field survives typing it one character at a time', (tester) async {
+    // A seller typing "45.00" sends five change events. The field used to be
+    // rendered only while needsPrice was true, and the first character cleared
+    // that flag, so the field vanished and GBP 4.00 was locked in. The old
+    // test passed only because enterText delivers the whole string at once.
+    await tester.pumpWidget(_host(const [_unpriced]));
+    await tester.pumpAndSettle();
+
+    for (final soFar in ['4', '45', '45.', '45.0', '45.00']) {
+      expect(
+        find.byType(TextField),
+        findsOneWidget,
+        reason: 'price field disappeared after typing "$soFar"',
+      );
+      await tester.enterText(find.byType(TextField), soFar);
+      await tester.pump();
+    }
+
+    expect(find.textContaining('45.00'), findsWidgets);
+  });
+
   testWidgets('says so plainly when the photo had nothing in it', (tester) async {
     // A selfie or an empty worktop must not show a blank confirm screen.
     await tester.pumpWidget(_host(const []));
@@ -134,5 +158,49 @@ void main() {
     expect(api.saved, isNotNull);
     // And it leaves the review screen rather than stranding the seller on it.
     expect(find.text('catalogue landed'), findsOneWidget);
+  });
+
+  testWidgets('discarding a candidate removes it from the list', (tester) async {
+    // The plan promised "discard what is wrong"; nothing called discard(), so
+    // a misread product could only be saved, not removed.
+    await tester.pumpWidget(_host(const [_priced, _unpriced]));
+    await tester.pumpAndSettle();
+    expect(find.text('Cinnamon buns'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Remove Cinnamon buns'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cinnamon buns'), findsNothing);
+    expect(find.text('Lemon drizzle cake'), findsOneWidget);
+  });
+
+  testWidgets('tells the seller which products were already in the catalogue',
+      (tester) async {
+    // skippedDuplicates was returned by the API and dropped by the UI, so a
+    // seller re-snapping a shelf saw fewer rows and no explanation.
+    final api = _FakeApi()..skipped = ['Lemon drizzle cake'];
+    await tester.pumpWidget(_host(const [_priced], api: api));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+
+    expect(find.textContaining('Lemon drizzle cake'), findsWidgets);
+    expect(find.textContaining('not added again'), findsOneWidget);
+  });
+
+  testWidgets('shows the API message when saving fails, and stays put',
+      (tester) async {
+    final api = _FakeApi()
+      ..throwOnSave = ArgumentError('Those products could not be saved.');
+    await tester.pumpWidget(_host(const [_priced], api: api));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+
+    expect(find.textContaining('could not be saved'), findsOneWidget);
+    // Still on Review, not stranded on a half-finished navigation.
+    expect(find.text('catalogue landed'), findsNothing);
   });
 }

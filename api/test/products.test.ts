@@ -43,6 +43,17 @@ describe('uniqueSlugs', () => {
     ]);
   });
 
+  it('does not collide a numeric suffix with a real slug', () => {
+    // The model generates these labels. "Box of 6 2" slugifies to box-of-6-2,
+    // which is exactly what the suffix for a second "box of 6" produces, so
+    // two variants would share an id and one price would be lost.
+    // The exact suffix is an implementation detail; distinctness is the
+    // invariant, because the id is what a price is looked up by.
+    const slugs = uniqueSlugs(['Box of 6', 'box of 6', 'Box of 6 2']);
+    expect(new Set(slugs).size).toBe(3);
+    expect(slugs[0]).toBe('box-of-6');
+  });
+
   it('never returns an empty slug', () => {
     expect(uniqueSlugs(['!!!', '???'])).toEqual(['variant-1', 'variant-2']);
   });
@@ -118,6 +129,17 @@ describe('saveProducts', () => {
 
     const second = await saveProducts(db, 'seller-a', [cake]);
     expect(second.created).toHaveLength(1);
+  });
+
+  it('is race-safe: two concurrent saves of the same product write it once', async () => {
+    // "Add 3 products" has no in-flight guard, so a double tap fires two POSTs
+    // before either finishes. Read-then-write lets both see an empty catalogue.
+    await Promise.all([
+      saveProducts(db, 'seller-a', [cake]),
+      saveProducts(db, 'seller-a', [cake]),
+    ]);
+    const snap = await db.collection('sellers/seller-a/products').get();
+    expect(snap.size).toBe(1);
   });
 
   it('writes several products in one call', async () => {

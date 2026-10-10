@@ -43,3 +43,25 @@ class ApiClient {
     return res.data ?? <String, dynamic>{};
   }
 }
+
+/// Turns a thrown error into something a seller can act on.
+///
+/// Dio's own toString is "DioException [bad response]: ... status code of 400",
+/// which tells a seller nothing. The API already sends a plain-English message
+/// in `{ error: { message } }` — use it when it is there.
+String describeApiError(Object error) {
+  if (error is DioException) {
+    final body = error.response?.data;
+    if (body is Map && body['error'] is Map) {
+      final message = (body['error'] as Map)['message'];
+      if (message is String && message.isNotEmpty) return message;
+    }
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return 'Sorted could not reach the server. Check your connection and try again.';
+    }
+    return 'Something went wrong talking to the server. Please try again.';
+  }
+  if (error is ArgumentError) return error.message.toString();
+  return 'Something went wrong. Please try again.';
+}

@@ -11,3 +11,22 @@ String formatGbp(int minor) {
   );
   return '${negative ? '-' : ''}£$grouped.$pence';
 }
+
+/// Parses what a seller types into integer pence, or null if it is not a GBP
+/// amount. Mirrors the backend's parseGbp so the two cannot disagree.
+///
+/// Strict on purpose. The permissive version — strip commas, parse a double —
+/// turned "32,50" into £3,250.00, a hundredfold overcharge from the way much
+/// of Europe writes a decimal point, and silently rounded "32.456" up.
+int? parseGbpInput(String input) {
+  final trimmed = input.trim();
+  final match = RegExp(r'^£?(\d{1,3}(?:,\d{3})*|\d+)(?:\.(\d{1,2}))?$')
+      .firstMatch(trimmed);
+  if (match == null) return null;
+
+  final pounds = int.tryParse(match.group(1)!.replaceAll(',', ''));
+  if (pounds == null) return null;
+
+  final fraction = (match.group(2) ?? '').padRight(2, '0');
+  return pounds * 100 + int.parse(fraction);
+}

@@ -30,13 +30,18 @@ void main() {
   });
 
   test('parses candidates from the extract response', () async {
+    // EXACTLY what POST /v1/catalogue/extract returns. Variants carry no `id`:
+    // ids are assigned by the backend at save time via uniqueSlugs. An earlier
+    // version of this fixture invented one, so the model could require `id`
+    // and every real extraction with a variant threw while tests stayed green.
     api.extractResponse = {
       'candidates': [
         {
           'tempId': 't1', 'name': 'Lemon drizzle cake', 'description': 'Zesty.',
           'basePriceMinor': 3200,
           'variants': [
-            {'id': '8-inch', 'axis': 'size', 'label': '8 inch', 'priceDeltaMinor': 0},
+            {'axis': 'size', 'label': '8 inch', 'priceDeltaMinor': 0},
+            {'axis': 'size', 'label': '10 inch', 'priceDeltaMinor': 1000},
           ],
           'confidence': 0.9, 'ambiguities': <Map<String, dynamic>>[],
         },
@@ -45,6 +50,7 @@ void main() {
     final out = await repo.extract([]);
     expect(out.single.name, 'Lemon drizzle cake');
     expect(out.single.needsPrice, isFalse);
+    expect(out.single.variants.map((v) => v.label), ['8 inch', '10 inch']);
   });
 
   test('a candidate with a null price reports needsPrice', () async {

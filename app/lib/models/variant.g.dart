@@ -7,7 +7,7 @@ part of 'variant.dart';
 // **************************************************************************
 
 _Variant _$VariantFromJson(Map<String, dynamic> json) => _Variant(
-  id: json['id'] as String,
+  id: json['id'] as String? ?? '',
   axis: json['axis'] as String,
   label: json['label'] as String,
   priceDeltaMinor: (json['priceDeltaMinor'] as num).toInt(),

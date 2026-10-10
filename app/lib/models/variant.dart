@@ -6,7 +6,9 @@ part 'variant.g.dart';
 @freezed
 abstract class Variant with _$Variant {
   const factory Variant({
-    required String id,
+    /// Empty on a candidate: ids are assigned by the backend at save time via
+    /// uniqueSlugs, so `/catalogue/extract` sends variants without one.
+    @Default('') String id,
     required String axis,
     required String label,
     required int priceDeltaMinor,

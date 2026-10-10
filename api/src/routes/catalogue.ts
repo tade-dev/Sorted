@@ -16,28 +16,13 @@ import {
 import { applyDelta } from '../domain/money.js';
 
 const saveBodySchema = z.object({ products: z.array(productInputSchema).min(1).max(20) });
-const patchBodySchema = z
-  .object({
-    name: z.string().min(1).max(60).optional(),
-    description: z.string().max(240).optional(),
-    basePriceMinor: z.number().int().nonnegative().optional(),
-    depositMinor: z.number().int().nonnegative().nullable().optional(),
-    variants: z.array(variantInputSchema).max(12).optional(),
-  })
-  .superRefine((patch, ctx) => {
-    if (patch.basePriceMinor === undefined || patch.variants === undefined) return;
-    for (const [i, variant] of patch.variants.entries()) {
-      try {
-        applyDelta(patch.basePriceMinor, variant.priceDeltaMinor);
-      } catch {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['variants', i, 'priceDeltaMinor'],
-          message: `"${variant.label}" would make the price negative`,
-        });
-      }
-    }
-  });
+const patchBodySchema = z.object({
+  name: z.string().min(1).max(60).optional(),
+  description: z.string().max(240).optional(),
+  basePriceMinor: z.number().int().nonnegative().optional(),
+  depositMinor: z.number().int().nonnegative().nullable().optional(),
+  variants: z.array(variantInputSchema).max(12).optional(),
+});
 
 const MAX_IMAGES = 5;
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -129,6 +114,32 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
     try {
       const snap = await ref.get();
       if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such product.')); return; }
+
+      // Validate the patch MERGED OVER the stored product, not on its own.
+      // Sending only basePriceMinor used to skip the check entirely, so a
+      // price could be dropped below a stored variant's discount and persist
+      // an effective negative price that week 3 would total.
+      const stored = snap.data() as {
+        basePriceMinor: number;
+        variants?: { label: string; priceDeltaMinor: number }[];
+      };
+      const effectiveBase = parsed.data.basePriceMinor ?? stored.basePriceMinor;
+      const effectiveVariants = parsed.data.variants ?? stored.variants ?? [];
+      for (const variant of effectiveVariants) {
+        try {
+          applyDelta(effectiveBase, variant.priceDeltaMinor);
+        } catch {
+          next(
+            new ApiError(
+              400,
+              'VALIDATION_FAILED',
+              `"${variant.label}" would make the price negative.`,
+            ),
+          );
+          return;
+        }
+      }
+
       await ref.update({ ...parsed.data, updatedAt: FieldValue.serverTimestamp() });
       res.json({ product: (await ref.get()).data() });
     } catch (err) { next(err); }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/api_client.dart';
 import '../../core/money.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
@@ -75,16 +76,7 @@ class ReviewScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              PrimaryButton(
-                label: 'Add $count ${count == 1 ? 'product' : 'products'}',
-                onPressed: blocked
-                    ? null
-                    : () async {
-                        await ref.read(catalogueRepositoryProvider).save(candidates);
-                        ref.read(extractionControllerProvider.notifier).clear();
-                        if (context.mounted) context.go('/catalogue');
-                      },
-              ),
+              _SaveButton(candidates: candidates, blocked: blocked),
             ],
           ),
         ),
@@ -93,14 +85,39 @@ class ReviewScreen extends ConsumerWidget {
   }
 }
 
-class _CandidateCard extends ConsumerWidget {
+class _CandidateCard extends ConsumerStatefulWidget {
   const _CandidateCard({required this.candidate});
   final ProductCandidate candidate;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CandidateCard> createState() => _CandidateCardState();
+}
+
+class _CandidateCardState extends ConsumerState<_CandidateCard> {
+  late final bool _startedWithoutPrice = widget.candidate.needsPrice;
+  final _priceController = TextEditingController();
+  bool _invalid = false;
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  void _onPriceChanged(String raw) {
+    final pence = parseGbpInput(raw);
+    setState(() => _invalid = raw.trim().isNotEmpty && pence == null);
+    if (pence == null) return;
+    ref
+        .read(extractionControllerProvider.notifier)
+        .setPrice(widget.candidate.tempId, pence);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
+    final candidate = widget.candidate;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -112,23 +129,37 @@ class _CandidateCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(candidate.name, style: text.titleLarge),
+          Row(
+            children: [
+              Expanded(child: Text(candidate.name, style: text.titleLarge)),
+              IconButton(
+                tooltip: 'Remove ${candidate.name}',
+                icon: const Icon(Icons.close),
+                onPressed: () => ref
+                    .read(extractionControllerProvider.notifier)
+                    .discard(candidate.tempId),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          if (candidate.needsPrice)
+          // Once a card starts without a price it keeps its field, even after
+          // the first keystroke sets one. Rendering on candidate.needsPrice
+          // made the field vanish after one character, locking in GBP 4.00 for
+          // a seller who meant to type 45.00.
+          if (_startedWithoutPrice)
             WarningCard(
               message: candidate.ambiguities.isNotEmpty
                   ? candidate.ambiguities.first.question
                   : "Couldn't read a price. Add one to save.",
               child: TextField(
+                controller: _priceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(prefixText: '£ ', hintText: '0.00'),
-                onChanged: (raw) {
-                  final pounds = double.tryParse(raw.replaceAll(',', ''));
-                  if (pounds == null || pounds < 0) return;
-                  ref
-                      .read(extractionControllerProvider.notifier)
-                      .setPrice(candidate.tempId, (pounds * 100).round());
-                },
+                decoration: InputDecoration(
+                  prefixText: '£ ',
+                  hintText: '0.00',
+                  errorText: _invalid ? 'Enter an amount like 45.00' : null,
+                ),
+                onChanged: _onPriceChanged,
               ),
             )
           else
@@ -148,6 +179,59 @@ class _CandidateCard extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Owns its own in-flight state so a double tap cannot fire two saves, and
+/// reports what the API skipped instead of silently dropping it.
+class _SaveButton extends ConsumerStatefulWidget {
+  const _SaveButton({required this.candidates, required this.blocked});
+  final List<ProductCandidate> candidates;
+  final bool blocked;
+
+  @override
+  ConsumerState<_SaveButton> createState() => _SaveButtonState();
+}
+
+class _SaveButtonState extends ConsumerState<_SaveButton> {
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      final result =
+          await ref.read(catalogueRepositoryProvider).save(widget.candidates);
+      ref.read(extractionControllerProvider.notifier).clear();
+
+      if (result.skippedDuplicates.isNotEmpty) {
+        final names = result.skippedDuplicates.join(', ');
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Already in your catalogue, so not added again: $names'),
+          ),
+        );
+      }
+      router.go('/catalogue');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(
+        SnackBar(content: Text(describeApiError(e))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.candidates.length;
+    return PrimaryButton(
+      label: _saving
+          ? 'Saving…'
+          : 'Add $count ${count == 1 ? 'product' : 'products'}',
+      onPressed: widget.blocked || _saving ? null : _save,
     );
   }
 }
