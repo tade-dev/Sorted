@@ -1,0 +1,11 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Without this, toJson() leaves nested models as objects rather than
+          # maps, so Model.fromJson(model.toJson()) throws a cast error. Every
+          # model here nests (Product has variants, ProductCandidate has
+          # variants and ambiguities, week 3's Order has line items), so it is
+          # set once globally rather than annotated per class.
+          explicit_to_json: true
