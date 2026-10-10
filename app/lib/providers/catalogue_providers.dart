@@ -1,13 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/api_client.dart';
-import '../core/env.dart';
 import '../data/catalogue_repository.dart';
 import '../models/product.dart';
 import '../models/product_candidate.dart';
+import 'api_provider.dart';
 import 'seller_provider.dart';
-
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(baseUrl: apiBaseUrl));
 
 final catalogueRepositoryProvider = Provider<CatalogueRepository>(
   (ref) => CatalogueRepository(api: HttpCatalogueApi(ref.watch(apiClientProvider))),

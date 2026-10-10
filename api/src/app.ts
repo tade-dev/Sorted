@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { Env } from './env.js';
@@ -18,6 +19,23 @@ export type AppDeps = {
 export function createApp(deps: AppDeps): express.Express {
   const app = express();
   app.disable('x-powered-by');
+
+  // The Flutter web build is served from a different origin to this API, so
+  // without CORS the browser blocks every call and the hosted demo cannot
+  // reach its own backend.
+  //
+  // Any origin is allowed on purpose. Every protected route authenticates with
+  // a Firebase ID token in the Authorization header, never a cookie, so there
+  // are no ambient credentials for another site to ride on and nothing to
+  // gain by calling this from elsewhere.
+  app.use(
+    cors({
+      origin: true,
+      methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+      maxAge: 86_400,
+    }),
+  );
 
   // NOTE: the PayPal webhook route (week 4) must be mounted BEFORE this
   // JSON parser with express.raw(), because signature verification needs
