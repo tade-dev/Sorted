@@ -20,6 +20,11 @@ const order = {
 } as unknown as OrderDoc;
 
 describe.skipIf(!ready)('createPayPalOrder against the real sandbox', () => {
+  // Vitest still runs this callback when the suite is skipped, and loadEnv
+  // throws on an empty key. Leave before that so `vitest run` stays quiet
+  // on a machine with no .env.
+  if (!ready) return;
+
   const env = loadEnv({
     NODE_ENV: 'test',
     PAYPAL_CLIENT_ID: id!, PAYPAL_CLIENT_SECRET: secret!, PAYPAL_WEBHOOK_ID: 'x',

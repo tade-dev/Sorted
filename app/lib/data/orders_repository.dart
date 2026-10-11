@@ -18,9 +18,12 @@ class HttpOrdersApi implements OrdersApi {
   final ApiClient _client;
 
   @override
-  Future<Map<String, dynamic>> draftFromImage(List<int> bytes, String filename) =>
-      _client.postImages('/v1/orders/draft', [(bytes: bytes, filename: filename)],
-          field: 'image');
+  Future<Map<String, dynamic>> draftFromImage(
+    List<int> bytes,
+    String filename,
+  ) => _client.postImages('/v1/orders/draft', [
+    (bytes: bytes, filename: filename),
+  ], field: 'image');
 
   @override
   Future<Map<String, dynamic>> draftFromText(String text) =>
@@ -51,9 +54,11 @@ class OrdersRepository {
       .orderBy('createdAt', descending: true)
       .limit(50)
       .snapshots()
-      .map((snap) => snap.docs
-          .map((d) => Order.fromJson({...d.data(), 'id': d.id}))
-          .toList());
+      .map(
+        (snap) => snap.docs
+            .map((d) => Order.fromJson({...d.data(), 'id': d.id}))
+            .toList(),
+      );
 
   Order? _readOrder(Map<String, dynamic> json) {
     final raw = json['order'];
@@ -79,20 +84,29 @@ class OrdersRepository {
     int? depositMinor,
     String? buyerName,
     String? fulfilmentDate,
+    String? fulfilmentMode,
+    List<String>? resolvedFields,
   }) async {
     // Built as one list: two collection-ifs both writing 'lineItems' would
     // silently drop the first, so a call changing a variant AND a quantity
     // would lose the variant.
     final edits = <Map<String, dynamic>>[
-      if (variantFor != null) {'id': variantFor.$1, 'variantIds': variantFor.$2},
+      if (variantFor != null)
+        {'id': variantFor.$1, 'variantIds': variantFor.$2},
       if (qtyFor != null && qtyLineId != null) {'id': qtyLineId, 'qty': qtyFor},
     ];
+    final fulfilment = <String, dynamic>{
+      'date': ?fulfilmentDate,
+      'mode': ?fulfilmentMode,
+    };
 
     final body = <String, dynamic>{
       if (edits.isNotEmpty) 'lineItems': edits,
       'depositMinor': ?depositMinor,
       'buyerName': ?buyerName,
-      if (fulfilmentDate != null) 'fulfilment': {'date': fulfilmentDate},
+      if (fulfilment.isNotEmpty) 'fulfilment': fulfilment,
+      if (resolvedFields != null && resolvedFields.isNotEmpty)
+        'resolvedAmbiguities': resolvedFields,
     };
     final json = await api.resolve(orderId, body);
     return Order.fromJson(json['order'] as Map<String, dynamic>);
@@ -102,9 +116,7 @@ class OrdersRepository {
     if (order.isBlocked) {
       throw ArgumentError(order.blockingAmbiguities.first.question);
     }
-    final json = await api.confirm(order.id, {
-      'depositMinor': ?depositMinor,
-    });
+    final json = await api.confirm(order.id, {'depositMinor': ?depositMinor});
     return Order.fromJson(json['order'] as Map<String, dynamic>);
   }
 

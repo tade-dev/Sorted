@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { requireEmulator } from './emulator-guard.js';
 import request from 'supertest';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
@@ -17,7 +18,8 @@ const env = loadEnv({
 });
 
 let db: Firestore;
-beforeAll(() => {
+beforeAll(async () => {
+  await requireEmulator();
   if (getApps().length === 0) initializeApp({ projectId: 'sorted-orders-route-test' });
   db = getFirestore();
 });
@@ -203,6 +205,57 @@ describe('POST /v1/orders/:orderId/resolve', () => {
 
     expect(res.body.order.ambiguities).toHaveLength(0);
     expect(res.body.order.subtotalMinor).toBe(4200);
+  });
+
+  it('clears a missing date once the seller picks one', async () => {
+    const undated = {
+      ...jess,
+      fulfilment: { mode: 'collection', date: null, notes: null },
+      ambiguities: [{
+        field: 'fulfilment.date', kind: 'missing',
+        question: "They didn't say which day.", options: [], blocking: true,
+      }],
+    };
+    const created = await request(appWith(undated))
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .field('text', 'three lemon drizzles');
+    expect(created.body.order.ambiguities).toHaveLength(1);
+    expect(created.body.order.ambiguities[0].blocking).toBe(true);
+
+    const res = await request(appWith(undated))
+      .post(`/v1/orders/${created.body.order.id}/resolve`)
+      .set('Authorization', 'Bearer good')
+      .send({ fulfilment: { date: '2026-10-18' } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.fulfilment.date).toBe('2026-10-18');
+    expect(res.body.order.ambiguities).toHaveLength(0);
+  });
+
+  it('does not let a missing buyer name block, and records the name when given', async () => {
+    const unnamed = {
+      ...jess,
+      buyerName: null,
+      ambiguities: [{
+        field: 'buyerName', kind: 'missing',
+        question: 'Who is the cake for?', options: [], blocking: true,
+      }],
+    };
+    const created = await request(appWith(unnamed))
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .field('text', 'three lemon drizzles');
+    expect(created.body.order.ambiguities[0].blocking).toBe(false);
+
+    const res = await request(appWith(unnamed))
+      .post(`/v1/orders/${created.body.order.id}/resolve`)
+      .set('Authorization', 'Bearer good')
+      .send({ buyerName: 'Jess M', resolvedAmbiguities: ['buyerName'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.buyerName).toBe('Jess M');
+    expect(res.body.order.ambiguities).toHaveLength(0);
   });
 
   it('404s for an order that does not exist', async () => {

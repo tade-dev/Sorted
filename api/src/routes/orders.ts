@@ -18,6 +18,11 @@ import { createPayPalOrder } from '../paypal/orders.js';
 import type { PayPalFetch } from '../paypal/client.js';
 import { draftReply, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
+import {
+  applyBlockingPolicy,
+  stillOpen,
+  type AmbiguityPatch,
+} from '../domain/ambiguities.js';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/heic']);
@@ -56,6 +61,9 @@ const resolveBodySchema = z.object({
       }),
     )
     .optional(),
+  // Spec field: the seller has answered these, including "no deposit" and
+  // free-text questions that are not a line, a name, or a date.
+  resolvedAmbiguities: z.array(z.string().min(1)).optional(),
 });
 
 function toBrief(products: StoredProduct[]): CatalogueBrief {
@@ -88,20 +96,6 @@ function repriceLine(
     unitPriceMinor,
     lineTotalMinor: multiplyMinor(unitPriceMinor, line.qty),
   };
-}
-
-/** An ambiguity is answered once the field it points at has a value. */
-function stillOpen(
-  ambiguity: OrderDoc['ambiguities'][number],
-  lines: OrderDoc['lineItems'],
-): boolean {
-  const match = /^lineItems\[(\d+)\]\.(\w+)$/.exec(ambiguity.field);
-  if (!match) return true;
-  const line = lines[Number(match[1])];
-  if (!line) return true;
-  if (match[2] === 'variantIds') return line.variantIds.length === 0;
-  if (match[2] === 'productId') return line.productId === null;
-  return true;
 }
 
 const confirmBodySchema = z.object({
@@ -238,18 +232,62 @@ export function ordersRouter(deps: OrdersDeps): Router {
         subtotal,
         patch.depositMinor === undefined ? order.depositMinor : patch.depositMinor,
       );
+      const fulfilment = patch.fulfilment
+        ? {
+            mode: patch.fulfilment.mode ?? order.fulfilment.mode,
+            date:
+              patch.fulfilment.date !== undefined
+                ? patch.fulfilment.date
+                : order.fulfilment.date,
+            notes:
+              patch.fulfilment.notes !== undefined
+                ? patch.fulfilment.notes
+                : order.fulfilment.notes,
+          }
+        : order.fulfilment;
+      const buyerName = patch.buyerName !== undefined ? patch.buyerName : order.buyerName;
+      const buyerHandle = patch.buyerHandle !== undefined ? patch.buyerHandle : order.buyerHandle;
+      const buyerEmail = patch.buyerEmail !== undefined ? patch.buyerEmail : order.buyerEmail;
 
-      const ambiguities = order.ambiguities.filter((a) => stillOpen(a, lines));
+      const ambiguityPatch: AmbiguityPatch = {};
+      if (patch.lineItems) {
+        ambiguityPatch.lineItems = patch.lineItems.map((edit) => {
+          const item: { id: string; qty?: number } = { id: edit.id };
+          if (edit.qty !== undefined) item.qty = edit.qty;
+          return item;
+        });
+      }
+      if (patch.depositMinor !== undefined) ambiguityPatch.depositMinor = patch.depositMinor;
+      if (patch.resolvedAmbiguities) {
+        ambiguityPatch.resolvedAmbiguities = patch.resolvedAmbiguities;
+      }
+
+      const ambiguities = order.ambiguities
+        .filter((a) =>
+          stillOpen(
+            a,
+            {
+              lineItems: lines,
+              buyerName,
+              buyerHandle,
+              buyerEmail,
+              fulfilment,
+              depositMinor: amounts.depositMinor,
+            },
+            ambiguityPatch,
+          ),
+        )
+        .map(applyBlockingPolicy);
 
       const updated = {
         ...order,
         lineItems: lines,
         ...amounts,
         ambiguities,
-        ...(patch.buyerName !== undefined ? { buyerName: patch.buyerName } : {}),
-        ...(patch.buyerHandle !== undefined ? { buyerHandle: patch.buyerHandle } : {}),
-        ...(patch.buyerEmail !== undefined ? { buyerEmail: patch.buyerEmail } : {}),
-        ...(patch.fulfilment ? { fulfilment: { ...order.fulfilment, ...patch.fulfilment } } : {}),
+        buyerName,
+        buyerHandle,
+        buyerEmail,
+        fulfilment,
       };
 
       await ref.update({ ...updated, updatedAt: FieldValue.serverTimestamp() });

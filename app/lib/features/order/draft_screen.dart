@@ -26,6 +26,44 @@ int? _lineIndexFor(Ambiguity ambiguity) {
   return match == null ? null : int.tryParse(match.group(1)!);
 }
 
+bool _isDateField(String field) =>
+    field == 'date' ||
+    field == 'fulfilment' ||
+    field == 'fulfillment' ||
+    field == 'collectionDate' ||
+    field == 'deliveryDate' ||
+    field.endsWith('.date');
+
+bool _isBuyerNameField(String field) =>
+    field == 'buyerName' || field == 'buyer' || field == 'customerName';
+
+bool _isModeField(String field) =>
+    field == 'fulfilment.mode' || field == 'fulfillment.mode';
+
+/// Questions that are not attached to a line. A missing date lives here;
+/// the line cards never saw it, so Create looked disabled for no reason.
+List<Ambiguity> _looseAmbiguities(Order order) {
+  final loose = <Ambiguity>[];
+  for (final ambiguity in order.ambiguities) {
+    if (ambiguity.resolved) continue;
+    final index = _lineIndexFor(ambiguity);
+    final onLine =
+        index != null && index >= 0 && index < order.lineItems.length;
+    if (!onLine) loose.add(ambiguity);
+  }
+  return loose;
+}
+
+String _whyNot(Order order) {
+  if (order.blockingAmbiguities.isNotEmpty) {
+    return order.blockingAmbiguities.first.question;
+  }
+  if (order.lineItems.any((line) => line.isUnmatched)) {
+    return 'Something in that message is not in your catalogue.';
+  }
+  return 'There is nothing to charge yet.';
+}
+
 /// Written as a loop rather than `.firstOrNull`, which is a package:collection
 /// extension and not part of dart:core.
 Ambiguity? _ambiguityForLine(Order order, int index) {
@@ -102,6 +140,74 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
     return ref
         .read(ordersRepositoryProvider)
         .resolve(order.id, qtyFor: qty, qtyLineId: line.id);
+  }
+
+  Future<Order> _sendLoose(Order order, Ambiguity ambiguity, String label) {
+    final repo = ref.read(ordersRepositoryProvider);
+    final fields = [ambiguity.field];
+    if (_isDateField(ambiguity.field)) {
+      if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(label)) {
+        throw ArgumentError('Choose a date.');
+      }
+      return repo.resolve(
+        order.id,
+        fulfilmentDate: label,
+        resolvedFields: fields,
+      );
+    }
+    if (_isBuyerNameField(ambiguity.field)) {
+      return repo.resolve(order.id, buyerName: label, resolvedFields: fields);
+    }
+    if (_isModeField(ambiguity.field)) {
+      final lower = label.toLowerCase();
+      final mode = lower.contains('deliver')
+          ? 'delivery'
+          : lower.contains('collect')
+          ? 'collection'
+          : null;
+      if (mode != null) {
+        return repo.resolve(
+          order.id,
+          fulfilmentMode: mode,
+          resolvedFields: fields,
+        );
+      }
+    }
+    return repo.resolve(order.id, resolvedFields: fields);
+  }
+
+  Future<void> _answerLoose(
+    Order order,
+    Ambiguity ambiguity,
+    String label,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final updated = await _sendLoose(order, ambiguity, label);
+      if (!mounted) return;
+      ref.read(draftControllerProvider.notifier).replace(updated);
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pickDate(Order order, Ambiguity ambiguity) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 366)),
+    );
+    if (picked == null || !mounted) return;
+    final iso =
+        '${picked.year.toString().padLeft(4, '0')}-'
+        '${picked.month.toString().padLeft(2, '0')}-'
+        '${picked.day.toString().padLeft(2, '0')}';
+    await _answerLoose(order, ambiguity, iso);
   }
 
   Future<void> _setQty(Order order, LineItem line, int qty) async {
@@ -215,6 +321,18 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
               Expanded(
                 child: ListView(
                   children: [
+                    for (final ambiguity in _looseAmbiguities(order)) ...[
+                      _LooseCard(
+                        ambiguity: ambiguity,
+                        busy: _busy,
+                        onAnswer: (label) =>
+                            _answerLoose(order, ambiguity, label),
+                        onPickDate: _isDateField(ambiguity.field)
+                            ? () => _pickDate(order, ambiguity)
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     if (order.lineItems.isEmpty)
                       const _Surface(
                         child: Padding(
@@ -290,7 +408,16 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
                     style: text.bodySmall,
                   ),
                 ),
-              const SizedBox(height: 12),
+              if (!_canCreate(order)) ...[
+                Text(
+                  _whyNot(order),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodySmall?.copyWith(color: c.warningText),
+                ),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 4),
               PrimaryButton(
                 label: _busy ? 'Creating the link…' : 'Create PayPal link',
                 icon: Icons.link_outlined,
@@ -301,6 +428,98 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LooseCard extends StatefulWidget {
+  const _LooseCard({
+    required this.ambiguity,
+    required this.busy,
+    required this.onAnswer,
+    this.onPickDate,
+  });
+
+  final Ambiguity ambiguity;
+  final bool busy;
+  final void Function(String label) onAnswer;
+  final VoidCallback? onPickDate;
+
+  @override
+  State<_LooseCard> createState() => _LooseCardState();
+}
+
+class _LooseCardState extends State<_LooseCard> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ambiguity = widget.ambiguity;
+    final showText =
+        ambiguity.options.isEmpty && !_isDateField(ambiguity.field);
+
+    return WarningCard(
+      message: ambiguity.question,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (ambiguity.options.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final option in ambiguity.options)
+                  SelectableChip(
+                    label: option,
+                    selected: false,
+                    onTap: widget.busy ? () {} : () => widget.onAnswer(option),
+                  ),
+              ],
+            ),
+          if (widget.onPickDate != null) ...[
+            if (ambiguity.options.isNotEmpty) const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: widget.busy ? null : widget.onPickDate,
+              child: const Text('Choose a date'),
+            ),
+          ],
+          if (showText) ...[
+            TextField(
+              key: Key('ambiguity-text-${ambiguity.field}'),
+              controller: _controller,
+              enabled: !widget.busy,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                hintText: _isBuyerNameField(ambiguity.field)
+                    ? 'Their name'
+                    : 'Your answer',
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (value) {
+                final trimmed = value.trim();
+                if (trimmed.isEmpty || widget.busy) return;
+                widget.onAnswer(trimmed);
+              },
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: widget.busy || _controller.text.trim().isEmpty
+                    ? null
+                    : () => widget.onAnswer(_controller.text.trim()),
+                child: const Text('Save'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

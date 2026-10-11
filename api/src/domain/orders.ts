@@ -1,5 +1,6 @@
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import type { Ambiguity } from '../ai/schemas.js';
+import { applyBlockingPolicy, ambiguityBlocks } from './ambiguities.js';
 import { ApiError } from '../lib/errors.js';
 import { assertMinor, sumMinor } from './money.js';
 import type { MatchedLine, StoredProduct } from './match_catalogue.js';
@@ -61,7 +62,7 @@ export function computeAmounts(
 }
 
 export function blockingAmbiguities(ambiguities: Ambiguity[]): Ambiguity[] {
-  return ambiguities.filter((a) => a.blocking && !(a as { resolved?: boolean }).resolved);
+  return ambiguities.filter(ambiguityBlocks);
 }
 
 const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
@@ -138,7 +139,7 @@ export async function createDraftOrder(
     ...amounts,
     currency: 'GBP',
     fulfilment: input.fulfilment,
-    ambiguities: input.ambiguities,
+    ambiguities: input.ambiguities.map(applyBlockingPolicy),
     paypalOrderId: null,
     approvalUrl: null,
     paypalCaptureId: null,

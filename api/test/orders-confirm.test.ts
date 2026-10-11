@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { requireEmulator } from './emulator-guard.js';
 import request from 'supertest';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
@@ -19,7 +20,8 @@ const env = loadEnv({
 });
 
 let db: Firestore;
-beforeAll(() => {
+beforeAll(async () => {
+  await requireEmulator();
   if (getApps().length === 0) initializeApp({ projectId: 'sorted-confirm-test' });
   db = getFirestore();
 });
@@ -137,6 +139,59 @@ describe('POST /v1/orders/:orderId/confirm', () => {
     expect(res.body.error.code).toBe('ORDER_STATE_INVALID');
     const stored = await db.doc(`sellers/seller-a/orders/${id}`).get();
     expect(stored.data()!.status).toBe('draft');
+  });
+
+  it('refuses while the collection date is unanswered, then allows it once picked', async () => {
+    const undated = {
+      ...parsed,
+      fulfilment: { mode: 'collection', date: null, notes: null },
+      ambiguities: [{
+        field: 'fulfilment.date', kind: 'missing',
+        question: "They didn't say which day.", options: [], blocking: true,
+      }],
+    };
+    const app = appWith(undated);
+    const id = await draft(app);
+
+    const blocked = await request(app)
+      .post(`/v1/orders/${id}/confirm`)
+      .set('Authorization', 'Bearer good')
+      .send({});
+    expect(blocked.status).toBe(409);
+    expect(blocked.body.error.details.unresolved).toEqual(['fulfilment.date']);
+
+    const resolved = await request(app)
+      .post(`/v1/orders/${id}/resolve`)
+      .set('Authorization', 'Bearer good')
+      .send({ fulfilment: { date: '2026-10-18' } });
+    expect(resolved.status).toBe(200);
+    expect(resolved.body.order.ambiguities).toHaveLength(0);
+
+    const res = await request(app)
+      .post(`/v1/orders/${id}/confirm`)
+      .set('Authorization', 'Bearer good')
+      .send({});
+    expect(res.status).toBe(200);
+  });
+
+  it('does not refuse confirm when the only open question is the buyer name', async () => {
+    const unnamed = {
+      ...parsed,
+      buyerName: null,
+      ambiguities: [{
+        field: 'buyerName', kind: 'missing',
+        question: 'Who is the cake for?', options: [], blocking: true,
+      }],
+    };
+    const app = appWith(unnamed);
+    const id = await draft(app);
+
+    const res = await request(app)
+      .post(`/v1/orders/${id}/confirm`)
+      .set('Authorization', 'Bearer good')
+      .send({});
+    expect(res.status).toBe(200);
+    expect(res.body.order.buyerName).toBeNull();
   });
 
   it('leaves the order a draft when PayPal rejects it', async () => {

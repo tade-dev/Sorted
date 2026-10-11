@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { requireEmulator } from './emulator-guard.js';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { productInputSchema, saveProducts, uniqueSlugs } from '../src/domain/products.js';
@@ -7,7 +8,8 @@ process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
 process.env.METADATA_SERVER_DETECTION = 'none';
 
 let db: Firestore;
-beforeAll(() => {
+beforeAll(async () => {
+  await requireEmulator();
   if (getApps().length === 0) initializeApp({ projectId: 'sorted-products-test' });
   db = getFirestore();
 });

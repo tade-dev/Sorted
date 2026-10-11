@@ -180,7 +180,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining("didn't say which size"), findsOneWidget);
+    expect(find.textContaining("didn't say which size"), findsWidgets);
     expect(find.text('8 inch'), findsOneWidget);
     expect(find.text('10 inch'), findsOneWidget);
     expect(find.text('Size needed'), findsOneWidget);
@@ -334,6 +334,86 @@ void main() {
     expect(find.textContaining('£20.00'), findsWidgets);
     expect(find.textContaining('£36.00'), findsWidgets);
     expect(find.text('Deposit now'), findsOneWidget);
+  });
+
+  testWidgets('shows a missing date and says why the link is off', (
+    tester,
+  ) async {
+    final order = _order().copyWith(
+      fulfilment: const Fulfilment(mode: 'collection'),
+      ambiguities: const [
+        Ambiguity(
+          field: 'fulfilment.date',
+          kind: 'missing',
+          question: "They didn't say which day.",
+          options: ['2026-10-18'],
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(order));
+    await tester.pumpAndSettle();
+    expect(find.textContaining("didn't say which day"), findsWidgets);
+    expect(find.text('Choose a date'), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+      isFalse,
+    );
+  });
+
+  testWidgets('picking a date sends it to the API', (tester) async {
+    final api = _FakeApi();
+    final order = _order().copyWith(
+      fulfilment: const Fulfilment(mode: 'collection'),
+      ambiguities: const [
+        Ambiguity(
+          field: 'fulfilment.date',
+          kind: 'missing',
+          question: "They didn't say which day.",
+          options: ['2026-10-18'],
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(order, api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2026-10-18'));
+    await tester.pumpAndSettle();
+
+    final body = api.lastResolveBody! as Map<String, dynamic>;
+    expect(body['fulfilment'], {'date': '2026-10-18'});
+    expect(body['resolvedAmbiguities'], ['fulfilment.date']);
+  });
+
+  testWidgets('a missing buyer name does not disable the link', (tester) async {
+    final api = _FakeApi();
+    final order = _order().copyWith(
+      buyerName: null,
+      ambiguities: const [
+        Ambiguity(
+          field: 'buyerName',
+          kind: 'missing',
+          question: 'Who is the cake for?',
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(order, api: api));
+    await tester.pumpAndSettle();
+    expect(find.text('Who is the cake for?'), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+      isTrue,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('ambiguity-text-buyerName')),
+      'Jess M',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final body = api.lastResolveBody! as Map<String, dynamic>;
+    expect(body['buyerName'], 'Jess M');
+    expect(body['resolvedAmbiguities'], ['buyerName']);
   });
 
   testWidgets('shows a loader until the draft is ready', (tester) async {

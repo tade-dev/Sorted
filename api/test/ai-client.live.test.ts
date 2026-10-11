@@ -10,6 +10,11 @@ const model = envFile.match(/^OPENAI_VISION_MODEL=(.+)$/m)?.[1]?.trim();
 const ready = Boolean(key) && Boolean(model) && model !== 'pending';
 
 describe.skipIf(!ready)('generateStructured against the real model', () => {
+  // Vitest still runs this callback when the suite is skipped, and loadEnv
+  // throws on an empty key. Leave before that so `vitest run` stays quiet
+  // on a machine with no .env.
+  if (!ready) return;
+
   const env = loadEnv({
     NODE_ENV: 'test',
     PAYPAL_CLIENT_ID: 'x', PAYPAL_CLIENT_SECRET: 'x', PAYPAL_WEBHOOK_ID: 'x',

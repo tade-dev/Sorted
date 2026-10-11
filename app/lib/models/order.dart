@@ -14,7 +14,8 @@ abstract class Fulfilment with _$Fulfilment {
     String? notes,
   }) = _Fulfilment;
 
-  factory Fulfilment.fromJson(Map<String, dynamic> json) => _$FulfilmentFromJson(json);
+  factory Fulfilment.fromJson(Map<String, dynamic> json) =>
+      _$FulfilmentFromJson(json);
 }
 
 @freezed
@@ -43,11 +44,28 @@ abstract class Order with _$Order {
 
   factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);
 
-  List<Ambiguity> get blockingAmbiguities =>
-      ambiguities.where((a) => a.blocking && !a.resolved).toList();
+  /// A missing name, handle, or note does not change the price. The spec
+  /// leaves those nullable, so they must not disable the payment link.
+  static const _optionalIdentity = {
+    'buyerName',
+    'buyerHandle',
+    'buyerEmail',
+    'buyer',
+    'customerName',
+    'channel',
+    'fulfilment.notes',
+    'fulfillment.notes',
+  };
+
+  List<Ambiguity> get blockingAmbiguities => ambiguities
+      .where(
+        (a) =>
+            a.blocking && !a.resolved && !_optionalIdentity.contains(a.field),
+      )
+      .toList();
 
   /// The seller cannot create a link while the AI is still unsure of
-  /// something that changes what the buyer pays.
+  /// something that changes what the buyer pays, or of the collection date.
   bool get isBlocked => blockingAmbiguities.isNotEmpty;
 
   bool get hasLink => (approvalUrl ?? '').isNotEmpty;

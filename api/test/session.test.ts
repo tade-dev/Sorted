@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { requireEmulator } from './emulator-guard.js';
 import request from 'supertest';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
@@ -21,7 +22,8 @@ const env = loadEnv({
 
 let db: Firestore;
 
-beforeAll(() => {
+beforeAll(async () => {
+  await requireEmulator();
   if (getApps().length === 0) {
     initializeApp({ projectId: 'sorted-session-test' });
   }

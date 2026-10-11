@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, it } from 'vitest';
+import { requireEmulator } from './emulator-guard.js';
 import {
   assertFails,
   assertSucceeds,
@@ -11,6 +12,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
+  await requireEmulator();
   testEnv = await initializeTestEnvironment({
     projectId: 'sorted-rules-test',
     firestore: {
