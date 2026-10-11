@@ -6,6 +6,8 @@ import 'features/catalogue/catalogue_screen.dart';
 import 'features/catalogue/review_screen.dart';
 import 'features/catalogue/snap_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/order/intake_screen.dart';
+import 'features/order/reading_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -18,6 +20,8 @@ final appRouter = GoRouter(
       ],
     ),
     GoRoute(path: '/catalogue/snap', builder: (_, _) => const SnapScreen()),
+    GoRoute(path: '/order/new', builder: (_, _) => const IntakeScreen()),
+    GoRoute(path: '/order/reading', builder: (_, _) => const ReadingScreen()),
     GoRoute(path: '/catalogue/review', builder: (_, _) => const ReviewScreen()),
   ],
 );
@@ -42,7 +46,7 @@ class _NavShell extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: c.primary,
         foregroundColor: Colors.white,
-        onPressed: () => context.push('/catalogue/snap'),
+        onPressed: () => context.push('/order/new'),
         child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
