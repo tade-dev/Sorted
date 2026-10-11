@@ -76,6 +76,13 @@ describe('assertTransition', () => {
   it('allows draft to cancelled', () => {
     expect(() => assertTransition('draft', 'cancelled')).not.toThrow();
   });
+
+  it('allows the payment steps, and not a return from paid', () => {
+    expect(() => assertTransition('link_sent', 'processing')).not.toThrow();
+    expect(() => assertTransition('processing', 'paid')).not.toThrow();
+    expect(() => assertTransition('pending', 'link_sent')).not.toThrow();
+    expect(() => assertTransition('paid', 'link_sent')).toThrow();
+  });
 });
 
 describe('loadProducts', () => {

@@ -3,7 +3,7 @@ import { ApiError } from '../lib/errors.js';
 
 export type PayPalFetch = (
   path: string,
-  init: { method: string; body?: unknown; requestId?: string },
+  init: { method: string; body?: unknown; rawBody?: string; requestId?: string },
 ) => Promise<unknown>;
 
 /** Refresh this long before the token actually expires. */
@@ -49,7 +49,13 @@ export function makePayPalClient(env: Env, now: () => number = Date.now): PayPal
         'Content-Type': 'application/json',
         ...(init.requestId ? { 'PayPal-Request-Id': init.requestId } : {}),
       },
-      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      // rawBody is the exact bytes. Webhook verification embeds the original
+      // event, and re-stringifying it would change the signature.
+      ...(init.rawBody !== undefined
+        ? { body: init.rawBody }
+        : init.body === undefined
+          ? {}
+          : { body: JSON.stringify(init.body) }),
     });
 
     if (!res.ok) {

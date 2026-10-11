@@ -5,7 +5,15 @@ import { ApiError } from '../lib/errors.js';
 import { assertMinor, sumMinor } from './money.js';
 import type { MatchedLine, StoredProduct } from './match_catalogue.js';
 
-export type OrderStatus = 'draft' | 'link_sent' | 'paid' | 'cancelled' | 'expired';
+export type OrderStatus =
+  | 'draft'
+  | 'link_sent'
+  | 'processing'
+  | 'pending'
+  | 'declined'
+  | 'paid'
+  | 'cancelled'
+  | 'expired';
 
 export type OrderDoc = {
   id: string;
@@ -67,14 +75,18 @@ export function blockingAmbiguities(ambiguities: Ambiguity[]): Ambiguity[] {
 
 const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
   draft: ['link_sent', 'cancelled'],
-  link_sent: ['paid', 'cancelled', 'expired'],
+  // processing / pending / declined are interim. Paid is only the capture webhook.
+  link_sent: ['processing', 'pending', 'declined', 'paid', 'cancelled', 'expired'],
+  processing: ['pending', 'declined', 'paid', 'link_sent', 'cancelled', 'expired'],
+  pending: ['processing', 'declined', 'paid', 'link_sent', 'cancelled', 'expired'],
+  declined: ['link_sent', 'processing', 'pending', 'paid', 'cancelled', 'expired'],
   paid: [],
   cancelled: [],
   expired: [],
 };
 
 export function assertTransition(from: OrderStatus, to: OrderStatus): void {
-  if (!ALLOWED[from].includes(to)) {
+  if (!ALLOWED[from]?.includes(to)) {
     throw new ApiError(
       409,
       'ORDER_STATE_INVALID',

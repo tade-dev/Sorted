@@ -18,6 +18,73 @@ const _tones = [
   ('Formal', 'formal'),
 ];
 
+class _PayBanner {
+  const _PayBanner(this.label, this.icon, this.background, this.foreground);
+  final String label;
+  final IconData icon;
+  final Color Function(SortedColors colors) background;
+  final Color Function(SortedColors colors) foreground;
+}
+
+_PayBanner _payBanner(Order order) {
+  final who = order.buyerName ?? 'them';
+  return switch (order.status) {
+    'paid' => _PayBanner(
+      '$who paid',
+      Icons.check_circle,
+      (c) => c.successTint,
+      (c) => c.success,
+    ),
+    'pending' => _PayBanner(
+      'Payment is pending with PayPal',
+      Icons.schedule,
+      (c) => c.warningTint,
+      (c) => c.warningText,
+    ),
+    'processing' => _PayBanner(
+      'Confirming the payment with PayPal',
+      Icons.schedule,
+      (c) => c.warningTint,
+      (c) => c.warningText,
+    ),
+    'declined' => _PayBanner(
+      'Payment declined. Ask $who to try the link again.',
+      Icons.error_outline,
+      (c) => c.warningTint,
+      (c) => c.warningText,
+    ),
+    _ => _PayBanner(
+      'Waiting for $who to pay',
+      Icons.schedule,
+      (c) => c.warningTint,
+      (c) => c.warningText,
+    ),
+  };
+}
+
+/// Prefer the Firestore copy when it has arrived, so a paid webhook flips
+/// this screen. Keep a reply that exists only in memory until the write lands.
+Order _shown(WidgetRef ref, Order local) {
+  Order? match;
+  ref
+      .watch(ordersProvider)
+      .when(
+        data: (orders) {
+          for (final order in orders) {
+            if (order.id == local.id) match = order;
+          }
+        },
+        error: (_, _) {},
+        loading: () {},
+      );
+  final live = match;
+  if (live == null) return local;
+  return live.copyWith(
+    draftedReply: live.draftedReply ?? local.draftedReply,
+    approvalUrl: live.approvalUrl ?? local.approvalUrl,
+  );
+}
+
 class ReplyScreen extends ConsumerStatefulWidget {
   const ReplyScreen({super.key});
 
@@ -88,10 +155,12 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
 
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
-    final order = state.order;
+    // The draft holds the reply we just wrote. The order list is a Firestore
+    // listener, so a webhook that marks it paid shows up here without polling.
+    final order = _shown(ref, state.order);
     // If the draft failed, the link alone still gets the seller paid.
     final toCopy = order.draftedReply ?? order.approvalUrl ?? '';
-    final who = order.buyerName ?? 'them';
+    final banner = _payBanner(order);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reply ready')),
@@ -236,22 +305,22 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: c.warningTint,
+                          color: banner.background(c),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              Icons.schedule,
+                              banner.icon,
                               size: 20,
-                              color: c.warningText,
+                              color: banner.foreground(c),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Waiting for $who to pay',
+                                banner.label,
                                 style: text.bodyMedium?.copyWith(
-                                  color: c.warningText,
+                                  color: banner.foreground(c),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

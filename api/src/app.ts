@@ -10,6 +10,7 @@ import { catalogueRouter } from './routes/catalogue.js';
 import { ordersRouter } from './routes/orders.js';
 import { healthRouter } from './routes/health.js';
 import { sessionRouter } from './routes/session.js';
+import { webhooksRouter } from './routes/webhooks.js';
 
 export type AppDeps = {
   env: Env;
@@ -40,9 +41,13 @@ export function createApp(deps: AppDeps): express.Express {
     }),
   );
 
-  // NOTE: the PayPal webhook route (week 4) must be mounted BEFORE this
-  // JSON parser with express.raw(), because signature verification needs
-  // the unparsed body.
+  // Signature verification needs the unparsed body, so this route is mounted
+  // with express.raw() before the global JSON parser.
+  app.use(
+    '/v1',
+    webhooksRouter({ env: deps.env, db: deps.db, paypal: deps.paypal }),
+  );
+
   app.use(express.json({ limit: '1mb' }));
 
   app.use('/v1', healthRouter(deps.env));

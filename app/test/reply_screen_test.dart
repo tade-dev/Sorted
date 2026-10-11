@@ -51,9 +51,16 @@ class _StubController extends DraftController {
   DraftState build() => DraftReady(_order);
 }
 
-Widget _host(Order order, {_FakeApi? api}) => ProviderScope(
+Widget _host(
+  Order order, {
+  _FakeApi? api,
+  Stream<List<Order>>? orders,
+}) => ProviderScope(
   overrides: [
     draftControllerProvider.overrideWith(() => _StubController(order)),
+    ordersProvider.overrideWith(
+      (ref) => orders ?? Stream.value(const <Order>[]),
+    ),
     if (api != null)
       ordersRepositoryProvider.overrideWithValue(OrdersRepository(api: api)),
   ],
@@ -134,6 +141,28 @@ void main() {
     await tester.pumpWidget(_host(_sent()));
     await tester.pumpAndSettle();
     expect(find.textContaining('Waiting'), findsWidgets);
+  });
+
+  testWidgets('flips to paid when the live order does', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        _sent(),
+        orders: Stream<List<Order>>.multi((controller) {
+          controller.add([_sent()]);
+          Future<void>.delayed(const Duration(milliseconds: 30), () {
+            controller.add([_sent().copyWith(status: 'paid')]);
+          });
+        }),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Waiting for Jess M to pay'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 30));
+    await tester.pump();
+
+    expect(find.text('Jess M paid'), findsOneWidget);
+    expect(find.text('Waiting for Jess M to pay'), findsNothing);
   });
 
   testWidgets('offers the link alone when the draft failed', (tester) async {
