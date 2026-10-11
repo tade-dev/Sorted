@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Ambiguity {
 
- String get field; String get kind; String get question; List<String> get options; bool get blocking;
+ String get field; String get kind; String get question; List<String> get options; bool get blocking; bool get resolved;
 /// Create a copy of Ambiguity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $AmbiguityCopyWith<Ambiguity> get copyWith => _$AmbiguityCopyWithImpl<Ambiguity>
 @override
 bool operator ==(Object other) {
   final _this = this as Ambiguity;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Ambiguity&&(identical(other.field, _this.field) || other.field == _this.field)&&(identical(other.kind, _this.kind) || other.kind == _this.kind)&&(identical(other.question, _this.question) || other.question == _this.question)&&const DeepCollectionEquality().equals(other.options, _this.options)&&(identical(other.blocking, _this.blocking) || other.blocking == _this.blocking));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Ambiguity&&(identical(other.field, _this.field) || other.field == _this.field)&&(identical(other.kind, _this.kind) || other.kind == _this.kind)&&(identical(other.question, _this.question) || other.question == _this.question)&&const DeepCollectionEquality().equals(other.options, _this.options)&&(identical(other.blocking, _this.blocking) || other.blocking == _this.blocking)&&(identical(other.resolved, _this.resolved) || other.resolved == _this.resolved));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Ambiguity;
-  return Object.hash(runtimeType,_this.field,_this.kind,_this.question,const DeepCollectionEquality().hash(_this.options),_this.blocking);
+  return Object.hash(runtimeType,_this.field,_this.kind,_this.question,const DeepCollectionEquality().hash(_this.options),_this.blocking,_this.resolved);
 }
 
 @override
 String toString() {
   final _this = this as Ambiguity;
-  return 'Ambiguity(field: ${_this.field}, kind: ${_this.kind}, question: ${_this.question}, options: ${_this.options}, blocking: ${_this.blocking})';
+  return 'Ambiguity(field: ${_this.field}, kind: ${_this.kind}, question: ${_this.question}, options: ${_this.options}, blocking: ${_this.blocking}, resolved: ${_this.resolved})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $AmbiguityCopyWith<$Res>  {
   factory $AmbiguityCopyWith(Ambiguity value, $Res Function(Ambiguity) _then) = _$AmbiguityCopyWithImpl;
 @useResult
 $Res call({
- String field, String kind, String question, List<String> options, bool blocking
+ String field, String kind, String question, List<String> options, bool blocking, bool resolved
 });
 
 
@@ -71,13 +71,14 @@ class _$AmbiguityCopyWithImpl<$Res>
 
 /// Create a copy of Ambiguity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? field = null,Object? kind = null,Object? question = null,Object? options = null,Object? blocking = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? field = null,Object? kind = null,Object? question = null,Object? options = null,Object? blocking = null,Object? resolved = null,}) {
   return _then(Ambiguity(
 field: null == field ? _self.field : field // ignore: cast_nullable_to_non_nullable
 as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as String,question: null == question ? _self.question : question // ignore: cast_nullable_to_non_nullable
 as String,options: null == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
 as List<String>,blocking: null == blocking ? _self.blocking : blocking // ignore: cast_nullable_to_non_nullable
+as bool,resolved: null == resolved ? _self.resolved : resolved // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String field,  String kind,  String question,  List<String> options,  bool blocking)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String field,  String kind,  String question,  List<String> options,  bool blocking,  bool resolved)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Ambiguity() when $default != null:
-return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking);case _:
+return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking,_that.resolved);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocki
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String field,  String kind,  String question,  List<String> options,  bool blocking)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String field,  String kind,  String question,  List<String> options,  bool blocking,  bool resolved)  $default,) {final _that = this;
 switch (_that) {
 case _Ambiguity():
-return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking);case _:
+return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking,_that.resolved);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocki
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String field,  String kind,  String question,  List<String> options,  bool blocking)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String field,  String kind,  String question,  List<String> options,  bool blocking,  bool resolved)?  $default,) {final _that = this;
 switch (_that) {
 case _Ambiguity() when $default != null:
-return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking);case _:
+return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocking,_that.resolved);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.field,_that.kind,_that.question,_that.options,_that.blocki
 @JsonSerializable()
 
 class _Ambiguity implements Ambiguity {
-  const _Ambiguity({required this.field, required this.kind, required this.question,  List<String> options = const <String>[], this.blocking = true}): _options = options;
+  const _Ambiguity({required this.field, required this.kind, required this.question,  List<String> options = const <String>[], this.blocking = true, this.resolved = false}): _options = options;
   factory _Ambiguity.fromJson(Map<String, dynamic> json) => _$AmbiguityFromJson(json);
 
 @override final  String field;
@@ -233,6 +234,7 @@ class _Ambiguity implements Ambiguity {
 }
 
 @override@JsonKey() final  bool blocking;
+@override@JsonKey() final  bool resolved;
 
 /// Create a copy of Ambiguity
 /// with the given fields replaced by the non-null parameter values.
@@ -247,18 +249,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ambiguity&&(identical(other.field, field) || other.field == field)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.question, question) || other.question == question)&&const DeepCollectionEquality().equals(other.options, _options)&&(identical(other.blocking, blocking) || other.blocking == blocking));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ambiguity&&(identical(other.field, field) || other.field == field)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.question, question) || other.question == question)&&const DeepCollectionEquality().equals(other.options, _options)&&(identical(other.blocking, blocking) || other.blocking == blocking)&&(identical(other.resolved, resolved) || other.resolved == resolved));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,field,kind,question,const DeepCollectionEquality().hash(_options),blocking);
+    return Object.hash(runtimeType,field,kind,question,const DeepCollectionEquality().hash(_options),blocking,resolved);
 }
 
 @override
 String toString() {
-    return 'Ambiguity(field: $field, kind: $kind, question: $question, options: $options, blocking: $blocking)';
+    return 'Ambiguity(field: $field, kind: $kind, question: $question, options: $options, blocking: $blocking, resolved: $resolved)';
 }
 
 
@@ -269,7 +271,7 @@ abstract mixin class _$AmbiguityCopyWith<$Res> implements $AmbiguityCopyWith<$Re
   factory _$AmbiguityCopyWith(_Ambiguity value, $Res Function(_Ambiguity) _then) = __$AmbiguityCopyWithImpl;
 @override @useResult
 $Res call({
- String field, String kind, String question, List<String> options, bool blocking
+ String field, String kind, String question, List<String> options, bool blocking, bool resolved
 });
 
 
@@ -286,13 +288,14 @@ class __$AmbiguityCopyWithImpl<$Res>
 
 /// Create a copy of Ambiguity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? field = null,Object? kind = null,Object? question = null,Object? options = null,Object? blocking = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? field = null,Object? kind = null,Object? question = null,Object? options = null,Object? blocking = null,Object? resolved = null,}) {
   return _then(_Ambiguity(
 field: null == field ? _self.field : field // ignore: cast_nullable_to_non_nullable
 as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as String,question: null == question ? _self.question : question // ignore: cast_nullable_to_non_nullable
 as String,options: null == options ? _self._options : options // ignore: cast_nullable_to_non_nullable
 as List<String>,blocking: null == blocking ? _self.blocking : blocking // ignore: cast_nullable_to_non_nullable
+as bool,resolved: null == resolved ? _self.resolved : resolved // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

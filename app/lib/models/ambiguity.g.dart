@@ -14,6 +14,7 @@ _Ambiguity _$AmbiguityFromJson(Map<String, dynamic> json) => _Ambiguity(
       (json['options'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
   blocking: json['blocking'] as bool? ?? true,
+  resolved: json['resolved'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$AmbiguityToJson(_Ambiguity instance) =>
@@ -23,4 +24,5 @@ Map<String, dynamic> _$AmbiguityToJson(_Ambiguity instance) =>
       'question': instance.question,
       'options': instance.options,
       'blocking': instance.blocking,
+      'resolved': instance.resolved,
     };

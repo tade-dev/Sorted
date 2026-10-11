@@ -12,6 +12,7 @@ abstract class Ambiguity with _$Ambiguity {
     required String question,
     @Default(<String>[]) List<String> options,
     @Default(true) bool blocking,
+    @Default(false) bool resolved,
   }) = _Ambiguity;
 
   factory Ambiguity.fromJson(Map<String, dynamic> json) => _$AmbiguityFromJson(json);
