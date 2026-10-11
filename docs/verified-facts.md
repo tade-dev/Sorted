@@ -81,6 +81,23 @@ re-saving the same name in a different case is skipped by the duplicate guard.
 `/v1/catalogue/extract` read three products with correct prices and variant
 deltas from a photo of priced stock.
 
+## PayPal Orders v2 (verified 2026-10-11 by creating a real sandbox order)
+
+Probe order `0T205248PF7108544`, GBP 56.00, two line items.
+
+- Request used `payment_source.paypal.experience_context` (brand_name, locale
+  en-GB, user_action PAY_NOW, shipping_preference NO_SHIPPING, return/cancel
+  urls), `intent: CAPTURE`, and `custom_id: "<sellerId>:<orderId>"`.
+- **Response status is `PAYER_ACTION_REQUIRED`**, not `CREATED`. The spec
+  assumed CREATED; that is what the older `application_context` style returns.
+- **The approval link is `links[rel="payer-action"]`**, not `approve`. The spec
+  hedged "payer-action|approve"; with this request shape only payer-action is
+  present.
+- Its href is `https://www.sandbox.paypal.com/checkoutnow?token=<ORDER_ID>`,
+  which matches the link shown on `docs/design/screens/Reply.dc.html`.
+- `amount.breakdown.item_total` must equal the sum of the items or PayPal
+  rejects the order.
+
 ## Still unverified
 
 - Whether `region: frankfurt` in `api/render.yaml` actually applied, or Render
