@@ -14,6 +14,7 @@ const deps = {
   db: {} as never,
   verify: async () => ({ uid: 'seller-a' }),
   transport: async () => ({ content: '{}' }),
+  paypal: async () => ({}),
 };
 
 // The Flutter web build is served from a different origin to the API, so

@@ -9,6 +9,7 @@ import { createApp } from './app.js';
 import { loadEnv } from './env.js';
 import { adminTokenVerifier, initFirebase } from './firebase.js';
 import { makeOpenAiTransport } from './ai/client.js';
+import { makePayPalClient } from './paypal/client.js';
 
 // Firestore's gRPC layer creates its client lazily in the background, so a
 // credential failure surfaces as an unhandled rejection outside any request's
@@ -27,6 +28,7 @@ createApp({
   db,
   verify: adminTokenVerifier(auth),
   transport: makeOpenAiTransport(env),
+  paypal: makePayPalClient(env),
 }).listen(env.PORT, () => {
   console.log(`sorted api listening on :${env.PORT} (${env.PAYPAL_ENV})`);
 });

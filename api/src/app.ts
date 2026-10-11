@@ -5,6 +5,7 @@ import type { Env } from './env.js';
 import { ApiError, errorHandler } from './lib/errors.js';
 import type { TokenVerifier } from './lib/auth.js';
 import type { ChatTransport } from './ai/client.js';
+import type { PayPalFetch } from './paypal/client.js';
 import { catalogueRouter } from './routes/catalogue.js';
 import { ordersRouter } from './routes/orders.js';
 import { healthRouter } from './routes/health.js';
@@ -15,6 +16,7 @@ export type AppDeps = {
   db: Firestore;
   verify: TokenVerifier;
   transport: ChatTransport;
+  paypal: PayPalFetch;
 };
 
 export function createApp(deps: AppDeps): express.Express {
@@ -61,6 +63,7 @@ export function createApp(deps: AppDeps): express.Express {
       db: deps.db,
       verify: deps.verify,
       transport: deps.transport,
+      paypal: deps.paypal,
       model: deps.env.OPENAI_VISION_MODEL,
     }),
   );

@@ -35,7 +35,7 @@ const jess = {
 function appWith(payload: unknown) {
   const transport: ChatTransport = async () => ({ content: JSON.stringify(payload) });
   return createApp({
-    env, db, transport,
+    env, db, transport, paypal: async () => ({}),
     verify: async (t: string) => {
       if (t === 'good') return { uid: 'seller-a' };
       throw new Error('no');

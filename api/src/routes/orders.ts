@@ -14,6 +14,10 @@ import {
   type OrderDoc,
 } from '../domain/orders.js';
 import { sumMinor, multiplyMinor, applyDelta } from '../domain/money.js';
+import { createPayPalOrder } from '../paypal/orders.js';
+import type { PayPalFetch } from '../paypal/client.js';
+import { draftReply, type ReplyTone } from '../ai/draft_reply.js';
+import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/heic']);
@@ -100,8 +104,16 @@ function stillOpen(
   return true;
 }
 
+const confirmBodySchema = z.object({
+  depositMinor: z.number().int().nonnegative().nullable().optional(),
+});
+const regenerateBodySchema = z.object({
+  tone: z.enum(['friendly', 'short', 'formal']).default('friendly'),
+});
+
 export type OrdersDeps = {
   db: Firestore;
+  paypal: PayPalFetch;
   verify: TokenVerifier;
   transport: ChatTransport;
   model: string;
@@ -242,6 +254,137 @@ export function ordersRouter(deps: OrdersDeps): Router {
 
       await ref.update({ ...updated, updatedAt: FieldValue.serverTimestamp() });
       res.json({ order: updated });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/orders/:orderId/confirm', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = confirmBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That request is not valid.', parsed.error.format()));
+      return;
+    }
+
+    const sellerId = req.sellerId!;
+    const ref = deps.db.doc(`sellers/${sellerId}/orders/${req.params.orderId}`);
+
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+
+      const order = snap.data() as OrderDoc;
+      assertTransition(order.status, 'link_sent');
+
+      const open = blockingAmbiguities(order.ambiguities);
+      if (open.length > 0) {
+        next(
+          new ApiError(
+            409,
+            'ORDER_STATE_INVALID',
+            open[0]!.question,
+            { unresolved: open.map((a) => a.field) },
+          ),
+        );
+        return;
+      }
+
+      const amounts = computeAmounts(
+        order.subtotalMinor,
+        parsed.data.depositMinor === undefined ? order.depositMinor : parsed.data.depositMinor,
+      );
+      const priced: OrderDoc = { ...order, ...amounts };
+
+      // Nothing is written until PayPal has accepted the order, so a rejection
+      // leaves the seller's draft exactly as it was to retry.
+      const { paypalOrderId, approvalUrl } = await createPayPalOrder(
+        priced,
+        sellerId,
+        deps.paypal,
+      );
+
+      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
+      const personaTone = (sellerSnap.data()?.personaTone as string | undefined) ?? '';
+
+      let draftedReply: string | null = null;
+      try {
+        draftedReply = await draftReply(
+          { order: priced, personaTone, approvalUrl, tone: 'friendly' },
+          deps.transport,
+          deps.model,
+        );
+      } catch {
+        // The link is the thing that matters. A failed draft must not lose it.
+        draftedReply = null;
+      }
+
+      const updated: OrderDoc = {
+        ...priced,
+        status: 'link_sent',
+        paypalOrderId,
+        approvalUrl,
+        draftedReply,
+      };
+
+      await ref.update({
+        ...updated,
+        linkSentAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      res.json({ order: updated });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/orders/:orderId/reply/regenerate', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = regenerateBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That tone is not one Sorted knows.'));
+      return;
+    }
+
+    const sellerId = req.sellerId!;
+    const ref = deps.db.doc(`sellers/${sellerId}/orders/${req.params.orderId}`);
+
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+
+      const order = snap.data() as OrderDoc;
+      if (!order.approvalUrl) {
+        next(new ApiError(409, 'ORDER_STATE_INVALID', 'That order has no payment link yet.'));
+        return;
+      }
+
+      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
+      const draftedReply = await draftReply(
+        {
+          order,
+          personaTone: (sellerSnap.data()?.personaTone as string | undefined) ?? '',
+          approvalUrl: order.approvalUrl,
+          tone: parsed.data.tone as ReplyTone,
+        },
+        deps.transport,
+        deps.model,
+      );
+
+      await ref.update({ draftedReply, updatedAt: FieldValue.serverTimestamp() });
+      res.json({ draftedReply });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/orders', requireSeller(deps.verify), async (req, res, next) => {
+    try {
+      const snap = await deps.db
+        .collection(`sellers/${req.sellerId}/orders`)
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get();
+      res.json({ orders: snap.docs.map((d) => d.data()), nextCursor: null });
     } catch (err) {
       next(err);
     }

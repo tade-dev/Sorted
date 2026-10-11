@@ -36,6 +36,8 @@ function app() {
       throw new Error('no');
     },
     transport: async () => ({ content: '{}' }),
+    paypal: async () => ({}),
+  paypal: async () => ({}),
   });
 }
 

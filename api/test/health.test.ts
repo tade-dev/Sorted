@@ -20,6 +20,7 @@ const deps = {
   db: {} as never,
   verify: async () => ({ uid: 'seller-a' }),
   transport: async () => ({ content: '{}' }),
+  paypal: async () => ({}),
 };
 
 describe('GET /v1/health', () => {

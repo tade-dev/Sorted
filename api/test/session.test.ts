@@ -42,6 +42,8 @@ function app() {
       throw new Error('rejected');
     },
     transport: async () => ({ content: '{}' }),
+    paypal: async () => ({}),
+  paypal: async () => ({}),
   });
 }
 
