@@ -6,8 +6,10 @@ import 'features/catalogue/catalogue_screen.dart';
 import 'features/catalogue/review_screen.dart';
 import 'features/catalogue/snap_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/order/draft_screen.dart';
 import 'features/order/intake_screen.dart';
 import 'features/order/reading_screen.dart';
+import 'features/order/reply_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -16,19 +18,27 @@ final appRouter = GoRouter(
       builder: (context, state, child) => _NavShell(child: child),
       routes: [
         GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+        GoRoute(
+          path: '/orders',
+          builder: (_, _) =>
+              const Center(child: Text('Orders arrive in week 4')),
+        ),
         GoRoute(path: '/catalogue', builder: (_, _) => const CatalogueScreen()),
       ],
     ),
     GoRoute(path: '/catalogue/snap', builder: (_, _) => const SnapScreen()),
     GoRoute(path: '/order/new', builder: (_, _) => const IntakeScreen()),
     GoRoute(path: '/order/reading', builder: (_, _) => const ReadingScreen()),
+    GoRoute(path: '/order/draft', builder: (_, _) => const DraftScreen()),
+    GoRoute(path: '/order/reply', builder: (_, _) => const ReplyScreen()),
     GoRoute(path: '/catalogue/review', builder: (_, _) => const ReviewScreen()),
   ],
 );
 
 /// Home, Orders, a raised centre action, Catalogue, Settings — the five slots
-/// from DESIGN.md. Orders and Settings land in later plans; their tabs are
-/// present but inert so the bar does not change shape later.
+/// from DESIGN.md. Settings lands in a later plan; its tab is present but
+/// inert so the bar does not change shape later. Orders is a placeholder
+/// until that list is built.
 class _NavShell extends StatelessWidget {
   const _NavShell({required this.child});
   final Widget child;
@@ -54,14 +64,25 @@ class _NavShell extends StatelessWidget {
         selectedIndex: index < 0 ? 0 : index,
         onDestinationSelected: (i) {
           final target = _tabs[i];
-          // Orders and Settings arrive in later plans.
-          if (target == '/' || target == '/catalogue') context.go(target);
+          // Settings arrives in a later plan.
+          if (target == '/' || target == '/orders' || target == '/catalogue') {
+            context.go(target);
+          }
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
-          NavigationDestination(icon: Icon(Icons.grid_view_outlined), label: 'Catalogue'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            label: 'Orders',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.grid_view_outlined),
+            label: 'Catalogue',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            label: 'Settings',
+          ),
         ],
       ),
     );
