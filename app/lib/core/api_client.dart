@@ -27,17 +27,32 @@ class ApiClient {
 
   Future<Map<String, dynamic>> postImages(
     String path,
-    List<({List<int> bytes, String filename})> files,
-  ) async {
+    List<({List<int> bytes, String filename})> files, {
+    String field = 'images',
+  }) async {
     final form = FormData();
     for (final f in files) {
       form.files.add(
-        MapEntry('images', MultipartFile.fromBytes(f.bytes, filename: f.filename)),
+        MapEntry(field, MultipartFile.fromBytes(f.bytes, filename: f.filename)),
       );
     }
     final res = await _dio.post<Map<String, dynamic>>(
       path,
       data: form,
+      options: await _authed(),
+    );
+    return res.data ?? <String, dynamic>{};
+  }
+
+  /// multipart with no file, because /orders/draft accepts either an image or
+  /// a text field on the same endpoint.
+  Future<Map<String, dynamic>> postForm(
+    String path,
+    Map<String, String> fields,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      path,
+      data: FormData.fromMap(fields),
       options: await _authed(),
     );
     return res.data ?? <String, dynamic>{};
