@@ -292,7 +292,10 @@ as String?,
 /// @nodoc
 mixin _$Order {
 
- String get id; String get status; String? get buyerName; String? get buyerHandle; String? get buyerEmail; String get channel; List<LineItem> get lineItems; int get subtotalMinor; int? get depositMinor; int get amountDueMinor; String get currency; Fulfilment get fulfilment; List<Ambiguity> get ambiguities; String? get paypalOrderId; String? get approvalUrl; String? get draftedReply; String get sourceKind;
+ String get id; String get status; String? get buyerName; String? get buyerHandle; String? get buyerEmail; String get channel; List<LineItem> get lineItems; int get subtotalMinor; int? get depositMinor; int get amountDueMinor; String get currency; Fulfilment get fulfilment; List<Ambiguity> get ambiguities; String? get paypalOrderId; String? get approvalUrl; String? get draftedReply; String get sourceKind;/// When the draft was written. The timeline's first entry.
+@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? get createdAt;@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? get updatedAt;/// When the checkout link was created. Null until confirm.
+@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? get linkSentAt;/// Set only when a capture completes. Null on every earlier status.
+@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? get paidAt;
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -306,20 +309,20 @@ $OrderCopyWith<Order> get copyWith => _$OrderCopyWithImpl<Order>(this as Order, 
 @override
 bool operator ==(Object other) {
   final _this = this as Order;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Order&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.buyerName, _this.buyerName) || other.buyerName == _this.buyerName)&&(identical(other.buyerHandle, _this.buyerHandle) || other.buyerHandle == _this.buyerHandle)&&(identical(other.buyerEmail, _this.buyerEmail) || other.buyerEmail == _this.buyerEmail)&&(identical(other.channel, _this.channel) || other.channel == _this.channel)&&const DeepCollectionEquality().equals(other.lineItems, _this.lineItems)&&(identical(other.subtotalMinor, _this.subtotalMinor) || other.subtotalMinor == _this.subtotalMinor)&&(identical(other.depositMinor, _this.depositMinor) || other.depositMinor == _this.depositMinor)&&(identical(other.amountDueMinor, _this.amountDueMinor) || other.amountDueMinor == _this.amountDueMinor)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.fulfilment, _this.fulfilment) || other.fulfilment == _this.fulfilment)&&const DeepCollectionEquality().equals(other.ambiguities, _this.ambiguities)&&(identical(other.paypalOrderId, _this.paypalOrderId) || other.paypalOrderId == _this.paypalOrderId)&&(identical(other.approvalUrl, _this.approvalUrl) || other.approvalUrl == _this.approvalUrl)&&(identical(other.draftedReply, _this.draftedReply) || other.draftedReply == _this.draftedReply)&&(identical(other.sourceKind, _this.sourceKind) || other.sourceKind == _this.sourceKind));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Order&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.buyerName, _this.buyerName) || other.buyerName == _this.buyerName)&&(identical(other.buyerHandle, _this.buyerHandle) || other.buyerHandle == _this.buyerHandle)&&(identical(other.buyerEmail, _this.buyerEmail) || other.buyerEmail == _this.buyerEmail)&&(identical(other.channel, _this.channel) || other.channel == _this.channel)&&const DeepCollectionEquality().equals(other.lineItems, _this.lineItems)&&(identical(other.subtotalMinor, _this.subtotalMinor) || other.subtotalMinor == _this.subtotalMinor)&&(identical(other.depositMinor, _this.depositMinor) || other.depositMinor == _this.depositMinor)&&(identical(other.amountDueMinor, _this.amountDueMinor) || other.amountDueMinor == _this.amountDueMinor)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.fulfilment, _this.fulfilment) || other.fulfilment == _this.fulfilment)&&const DeepCollectionEquality().equals(other.ambiguities, _this.ambiguities)&&(identical(other.paypalOrderId, _this.paypalOrderId) || other.paypalOrderId == _this.paypalOrderId)&&(identical(other.approvalUrl, _this.approvalUrl) || other.approvalUrl == _this.approvalUrl)&&(identical(other.draftedReply, _this.draftedReply) || other.draftedReply == _this.draftedReply)&&(identical(other.sourceKind, _this.sourceKind) || other.sourceKind == _this.sourceKind)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt)&&(identical(other.linkSentAt, _this.linkSentAt) || other.linkSentAt == _this.linkSentAt)&&(identical(other.paidAt, _this.paidAt) || other.paidAt == _this.paidAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Order;
-  return Object.hash(runtimeType,_this.id,_this.status,_this.buyerName,_this.buyerHandle,_this.buyerEmail,_this.channel,const DeepCollectionEquality().hash(_this.lineItems),_this.subtotalMinor,_this.depositMinor,_this.amountDueMinor,_this.currency,_this.fulfilment,const DeepCollectionEquality().hash(_this.ambiguities),_this.paypalOrderId,_this.approvalUrl,_this.draftedReply,_this.sourceKind);
+  return Object.hashAll([runtimeType,_this.id,_this.status,_this.buyerName,_this.buyerHandle,_this.buyerEmail,_this.channel,const DeepCollectionEquality().hash(_this.lineItems),_this.subtotalMinor,_this.depositMinor,_this.amountDueMinor,_this.currency,_this.fulfilment,const DeepCollectionEquality().hash(_this.ambiguities),_this.paypalOrderId,_this.approvalUrl,_this.draftedReply,_this.sourceKind,_this.createdAt,_this.updatedAt,_this.linkSentAt,_this.paidAt]);
 }
 
 @override
 String toString() {
   final _this = this as Order;
-  return 'Order(id: ${_this.id}, status: ${_this.status}, buyerName: ${_this.buyerName}, buyerHandle: ${_this.buyerHandle}, buyerEmail: ${_this.buyerEmail}, channel: ${_this.channel}, lineItems: ${_this.lineItems}, subtotalMinor: ${_this.subtotalMinor}, depositMinor: ${_this.depositMinor}, amountDueMinor: ${_this.amountDueMinor}, currency: ${_this.currency}, fulfilment: ${_this.fulfilment}, ambiguities: ${_this.ambiguities}, paypalOrderId: ${_this.paypalOrderId}, approvalUrl: ${_this.approvalUrl}, draftedReply: ${_this.draftedReply}, sourceKind: ${_this.sourceKind})';
+  return 'Order(id: ${_this.id}, status: ${_this.status}, buyerName: ${_this.buyerName}, buyerHandle: ${_this.buyerHandle}, buyerEmail: ${_this.buyerEmail}, channel: ${_this.channel}, lineItems: ${_this.lineItems}, subtotalMinor: ${_this.subtotalMinor}, depositMinor: ${_this.depositMinor}, amountDueMinor: ${_this.amountDueMinor}, currency: ${_this.currency}, fulfilment: ${_this.fulfilment}, ambiguities: ${_this.ambiguities}, paypalOrderId: ${_this.paypalOrderId}, approvalUrl: ${_this.approvalUrl}, draftedReply: ${_this.draftedReply}, sourceKind: ${_this.sourceKind}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt}, linkSentAt: ${_this.linkSentAt}, paidAt: ${_this.paidAt})';
 }
 
 
@@ -330,7 +333,7 @@ abstract mixin class $OrderCopyWith<$Res>  {
   factory $OrderCopyWith(Order value, $Res Function(Order) _then) = _$OrderCopyWithImpl;
 @useResult
 $Res call({
- String id, String status, String? buyerName, String? buyerHandle, String? buyerEmail, String channel, List<LineItem> lineItems, int subtotalMinor, int? depositMinor, int amountDueMinor, String currency, Fulfilment fulfilment, List<Ambiguity> ambiguities, String? paypalOrderId, String? approvalUrl, String? draftedReply, String sourceKind
+ String id, String status, String? buyerName, String? buyerHandle, String? buyerEmail, String channel, List<LineItem> lineItems, int subtotalMinor, int? depositMinor, int amountDueMinor, String currency, Fulfilment fulfilment, List<Ambiguity> ambiguities, String? paypalOrderId, String? approvalUrl, String? draftedReply, String sourceKind,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? createdAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? updatedAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? linkSentAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? paidAt
 });
 
 
@@ -347,7 +350,7 @@ class _$OrderCopyWithImpl<$Res>
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? buyerName = freezed,Object? buyerHandle = freezed,Object? buyerEmail = freezed,Object? channel = null,Object? lineItems = null,Object? subtotalMinor = null,Object? depositMinor = freezed,Object? amountDueMinor = null,Object? currency = null,Object? fulfilment = null,Object? ambiguities = null,Object? paypalOrderId = freezed,Object? approvalUrl = freezed,Object? draftedReply = freezed,Object? sourceKind = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? buyerName = freezed,Object? buyerHandle = freezed,Object? buyerEmail = freezed,Object? channel = null,Object? lineItems = null,Object? subtotalMinor = null,Object? depositMinor = freezed,Object? amountDueMinor = null,Object? currency = null,Object? fulfilment = null,Object? ambiguities = null,Object? paypalOrderId = freezed,Object? approvalUrl = freezed,Object? draftedReply = freezed,Object? sourceKind = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? linkSentAt = freezed,Object? paidAt = freezed,}) {
   return _then(Order(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -366,7 +369,11 @@ as List<Ambiguity>,paypalOrderId: freezed == paypalOrderId ? _self.paypalOrderId
 as String?,approvalUrl: freezed == approvalUrl ? _self.approvalUrl : approvalUrl // ignore: cast_nullable_to_non_nullable
 as String?,draftedReply: freezed == draftedReply ? _self.draftedReply : draftedReply // ignore: cast_nullable_to_non_nullable
 as String?,sourceKind: null == sourceKind ? _self.sourceKind : sourceKind // ignore: cast_nullable_to_non_nullable
-as String,
+as String,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,linkSentAt: freezed == linkSentAt ? _self.linkSentAt : linkSentAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,paidAt: freezed == paidAt ? _self.paidAt : paidAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 /// Create a copy of Order
@@ -460,10 +467,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? createdAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? updatedAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? linkSentAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? paidAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Order() when $default != null:
-return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind);case _:
+return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind,_that.createdAt,_that.updatedAt,_that.linkSentAt,_that.paidAt);case _:
   return orElse();
 
 }
@@ -481,10 +488,10 @@ return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.bu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? createdAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? updatedAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? linkSentAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? paidAt)  $default,) {final _that = this;
 switch (_that) {
 case _Order():
-return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind);case _:
+return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind,_that.createdAt,_that.updatedAt,_that.linkSentAt,_that.paidAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -501,10 +508,10 @@ return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.bu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String? buyerName,  String? buyerHandle,  String? buyerEmail,  String channel,  List<LineItem> lineItems,  int subtotalMinor,  int? depositMinor,  int amountDueMinor,  String currency,  Fulfilment fulfilment,  List<Ambiguity> ambiguities,  String? paypalOrderId,  String? approvalUrl,  String? draftedReply,  String sourceKind, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? createdAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? updatedAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? linkSentAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)  DateTime? paidAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Order() when $default != null:
-return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind);case _:
+return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.buyerEmail,_that.channel,_that.lineItems,_that.subtotalMinor,_that.depositMinor,_that.amountDueMinor,_that.currency,_that.fulfilment,_that.ambiguities,_that.paypalOrderId,_that.approvalUrl,_that.draftedReply,_that.sourceKind,_that.createdAt,_that.updatedAt,_that.linkSentAt,_that.paidAt);case _:
   return null;
 
 }
@@ -516,7 +523,7 @@ return $default(_that.id,_that.status,_that.buyerName,_that.buyerHandle,_that.bu
 @JsonSerializable()
 
 class _Order extends Order {
-  const _Order({required this.id, this.status = 'draft', this.buyerName, this.buyerHandle, this.buyerEmail, this.channel = 'unknown',  List<LineItem> lineItems = const <LineItem>[], this.subtotalMinor = 0, this.depositMinor, this.amountDueMinor = 0, this.currency = 'GBP', this.fulfilment = const Fulfilment(),  List<Ambiguity> ambiguities = const <Ambiguity>[], this.paypalOrderId, this.approvalUrl, this.draftedReply, this.sourceKind = 'screenshot'}): _lineItems = lineItems,_ambiguities = ambiguities,super._();
+  const _Order({required this.id, this.status = 'draft', this.buyerName, this.buyerHandle, this.buyerEmail, this.channel = 'unknown',  List<LineItem> lineItems = const <LineItem>[], this.subtotalMinor = 0, this.depositMinor, this.amountDueMinor = 0, this.currency = 'GBP', this.fulfilment = const Fulfilment(),  List<Ambiguity> ambiguities = const <Ambiguity>[], this.paypalOrderId, this.approvalUrl, this.draftedReply, this.sourceKind = 'screenshot', @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) this.createdAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) this.updatedAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) this.linkSentAt, @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) this.paidAt}): _lineItems = lineItems,_ambiguities = ambiguities,super._();
   factory _Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);
 
 @override final  String id;
@@ -548,6 +555,13 @@ class _Order extends Order {
 @override final  String? approvalUrl;
 @override final  String? draftedReply;
 @override@JsonKey() final  String sourceKind;
+/// When the draft was written. The timeline's first entry.
+@override@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) final  DateTime? createdAt;
+@override@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) final  DateTime? updatedAt;
+/// When the checkout link was created. Null until confirm.
+@override@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) final  DateTime? linkSentAt;
+/// Set only when a capture completes. Null on every earlier status.
+@override@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) final  DateTime? paidAt;
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
@@ -562,18 +576,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Order&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.buyerName, buyerName) || other.buyerName == buyerName)&&(identical(other.buyerHandle, buyerHandle) || other.buyerHandle == buyerHandle)&&(identical(other.buyerEmail, buyerEmail) || other.buyerEmail == buyerEmail)&&(identical(other.channel, channel) || other.channel == channel)&&const DeepCollectionEquality().equals(other.lineItems, _lineItems)&&(identical(other.subtotalMinor, subtotalMinor) || other.subtotalMinor == subtotalMinor)&&(identical(other.depositMinor, depositMinor) || other.depositMinor == depositMinor)&&(identical(other.amountDueMinor, amountDueMinor) || other.amountDueMinor == amountDueMinor)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.fulfilment, fulfilment) || other.fulfilment == fulfilment)&&const DeepCollectionEquality().equals(other.ambiguities, _ambiguities)&&(identical(other.paypalOrderId, paypalOrderId) || other.paypalOrderId == paypalOrderId)&&(identical(other.approvalUrl, approvalUrl) || other.approvalUrl == approvalUrl)&&(identical(other.draftedReply, draftedReply) || other.draftedReply == draftedReply)&&(identical(other.sourceKind, sourceKind) || other.sourceKind == sourceKind));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Order&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.buyerName, buyerName) || other.buyerName == buyerName)&&(identical(other.buyerHandle, buyerHandle) || other.buyerHandle == buyerHandle)&&(identical(other.buyerEmail, buyerEmail) || other.buyerEmail == buyerEmail)&&(identical(other.channel, channel) || other.channel == channel)&&const DeepCollectionEquality().equals(other.lineItems, _lineItems)&&(identical(other.subtotalMinor, subtotalMinor) || other.subtotalMinor == subtotalMinor)&&(identical(other.depositMinor, depositMinor) || other.depositMinor == depositMinor)&&(identical(other.amountDueMinor, amountDueMinor) || other.amountDueMinor == amountDueMinor)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.fulfilment, fulfilment) || other.fulfilment == fulfilment)&&const DeepCollectionEquality().equals(other.ambiguities, _ambiguities)&&(identical(other.paypalOrderId, paypalOrderId) || other.paypalOrderId == paypalOrderId)&&(identical(other.approvalUrl, approvalUrl) || other.approvalUrl == approvalUrl)&&(identical(other.draftedReply, draftedReply) || other.draftedReply == draftedReply)&&(identical(other.sourceKind, sourceKind) || other.sourceKind == sourceKind)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.linkSentAt, linkSentAt) || other.linkSentAt == linkSentAt)&&(identical(other.paidAt, paidAt) || other.paidAt == paidAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,status,buyerName,buyerHandle,buyerEmail,channel,const DeepCollectionEquality().hash(_lineItems),subtotalMinor,depositMinor,amountDueMinor,currency,fulfilment,const DeepCollectionEquality().hash(_ambiguities),paypalOrderId,approvalUrl,draftedReply,sourceKind);
+    return Object.hashAll([runtimeType,id,status,buyerName,buyerHandle,buyerEmail,channel,const DeepCollectionEquality().hash(_lineItems),subtotalMinor,depositMinor,amountDueMinor,currency,fulfilment,const DeepCollectionEquality().hash(_ambiguities),paypalOrderId,approvalUrl,draftedReply,sourceKind,createdAt,updatedAt,linkSentAt,paidAt]);
 }
 
 @override
 String toString() {
-    return 'Order(id: $id, status: $status, buyerName: $buyerName, buyerHandle: $buyerHandle, buyerEmail: $buyerEmail, channel: $channel, lineItems: $lineItems, subtotalMinor: $subtotalMinor, depositMinor: $depositMinor, amountDueMinor: $amountDueMinor, currency: $currency, fulfilment: $fulfilment, ambiguities: $ambiguities, paypalOrderId: $paypalOrderId, approvalUrl: $approvalUrl, draftedReply: $draftedReply, sourceKind: $sourceKind)';
+    return 'Order(id: $id, status: $status, buyerName: $buyerName, buyerHandle: $buyerHandle, buyerEmail: $buyerEmail, channel: $channel, lineItems: $lineItems, subtotalMinor: $subtotalMinor, depositMinor: $depositMinor, amountDueMinor: $amountDueMinor, currency: $currency, fulfilment: $fulfilment, ambiguities: $ambiguities, paypalOrderId: $paypalOrderId, approvalUrl: $approvalUrl, draftedReply: $draftedReply, sourceKind: $sourceKind, createdAt: $createdAt, updatedAt: $updatedAt, linkSentAt: $linkSentAt, paidAt: $paidAt)';
 }
 
 
@@ -584,7 +598,7 @@ abstract mixin class _$OrderCopyWith<$Res> implements $OrderCopyWith<$Res> {
   factory _$OrderCopyWith(_Order value, $Res Function(_Order) _then) = __$OrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String status, String? buyerName, String? buyerHandle, String? buyerEmail, String channel, List<LineItem> lineItems, int subtotalMinor, int? depositMinor, int amountDueMinor, String currency, Fulfilment fulfilment, List<Ambiguity> ambiguities, String? paypalOrderId, String? approvalUrl, String? draftedReply, String sourceKind
+ String id, String status, String? buyerName, String? buyerHandle, String? buyerEmail, String channel, List<LineItem> lineItems, int subtotalMinor, int? depositMinor, int amountDueMinor, String currency, Fulfilment fulfilment, List<Ambiguity> ambiguities, String? paypalOrderId, String? approvalUrl, String? draftedReply, String sourceKind,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? createdAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? updatedAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? linkSentAt,@JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson) DateTime? paidAt
 });
 
 
@@ -601,7 +615,7 @@ class __$OrderCopyWithImpl<$Res>
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? buyerName = freezed,Object? buyerHandle = freezed,Object? buyerEmail = freezed,Object? channel = null,Object? lineItems = null,Object? subtotalMinor = null,Object? depositMinor = freezed,Object? amountDueMinor = null,Object? currency = null,Object? fulfilment = null,Object? ambiguities = null,Object? paypalOrderId = freezed,Object? approvalUrl = freezed,Object? draftedReply = freezed,Object? sourceKind = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? buyerName = freezed,Object? buyerHandle = freezed,Object? buyerEmail = freezed,Object? channel = null,Object? lineItems = null,Object? subtotalMinor = null,Object? depositMinor = freezed,Object? amountDueMinor = null,Object? currency = null,Object? fulfilment = null,Object? ambiguities = null,Object? paypalOrderId = freezed,Object? approvalUrl = freezed,Object? draftedReply = freezed,Object? sourceKind = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? linkSentAt = freezed,Object? paidAt = freezed,}) {
   return _then(_Order(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -620,7 +634,11 @@ as List<Ambiguity>,paypalOrderId: freezed == paypalOrderId ? _self.paypalOrderId
 as String?,approvalUrl: freezed == approvalUrl ? _self.approvalUrl : approvalUrl // ignore: cast_nullable_to_non_nullable
 as String?,draftedReply: freezed == draftedReply ? _self.draftedReply : draftedReply // ignore: cast_nullable_to_non_nullable
 as String?,sourceKind: null == sourceKind ? _self.sourceKind : sourceKind // ignore: cast_nullable_to_non_nullable
-as String,
+as String,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,linkSentAt: freezed == linkSentAt ? _self.linkSentAt : linkSentAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,paidAt: freezed == paidAt ? _self.paidAt : paidAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

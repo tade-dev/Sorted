@@ -10,6 +10,8 @@ import 'features/order/draft_screen.dart';
 import 'features/order/intake_screen.dart';
 import 'features/order/reading_screen.dart';
 import 'features/order/reply_screen.dart';
+import 'features/orders/order_detail_screen.dart';
+import 'features/orders/orders_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -18,11 +20,7 @@ final appRouter = GoRouter(
       builder: (context, state, child) => _NavShell(child: child),
       routes: [
         GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
-        GoRoute(
-          path: '/orders',
-          builder: (_, _) =>
-              const Center(child: Text('Orders arrive in week 4')),
-        ),
+        GoRoute(path: '/orders', builder: (_, _) => const OrdersScreen()),
         GoRoute(path: '/catalogue', builder: (_, _) => const CatalogueScreen()),
       ],
     ),
@@ -32,13 +30,18 @@ final appRouter = GoRouter(
     GoRoute(path: '/order/draft', builder: (_, _) => const DraftScreen()),
     GoRoute(path: '/order/reply', builder: (_, _) => const ReplyScreen()),
     GoRoute(path: '/catalogue/review', builder: (_, _) => const ReviewScreen()),
+    GoRoute(
+      path: '/orders/:orderId',
+      builder: (_, state) =>
+          OrderDetailScreen(orderId: state.pathParameters['orderId']!),
+    ),
   ],
 );
 
 /// Home, Orders, a raised centre action, Catalogue, Settings — the five slots
 /// from DESIGN.md. Settings lands in a later plan; its tab is present but
-/// inert so the bar does not change shape later. Orders is a placeholder
-/// until that list is built.
+/// inert so the bar does not change shape later. Order detail sits above the
+/// shell, so the tab bar is not on that screen.
 class _NavShell extends StatelessWidget {
   const _NavShell({required this.child});
   final Widget child;

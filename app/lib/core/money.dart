@@ -12,6 +12,14 @@ String formatGbp(int minor) {
   return '${negative ? '-' : ''}£$grouped.$pence';
 }
 
+/// The orders list drops a trailing ".00", the way the order cards are drawn.
+/// Anything with pence stays exact, so a £20.50 deposit is not shown as £21.
+String formatGbpCompact(int minor) {
+  final full = formatGbp(minor);
+  if (full.endsWith('.00')) return full.substring(0, full.length - 3);
+  return full;
+}
+
 /// Parses what a seller types into integer pence, or null if it is not a GBP
 /// amount. Mirrors the backend's parseGbp so the two cannot disagree.
 ///

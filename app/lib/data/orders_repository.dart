@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 
 import '../core/api_client.dart';
 import '../models/order.dart';
+import '../models/payment_event.dart';
 
 /// Named so tests can fake it without Dio or a live token.
 abstract class OrdersApi {
@@ -59,6 +60,41 @@ class OrdersRepository {
             .map((d) => Order.fromJson({...d.data(), 'id': d.id}))
             .toList(),
       );
+
+  /// One order, live. Missing documents emit null rather than an error so the
+  /// detail screen can say the order is not here.
+  Stream<Order?> watchOrder(String sellerId, String orderId) =>
+      FirebaseFirestore.instance
+          .doc('sellers/$sellerId/orders/$orderId')
+          .snapshots()
+          .map((snap) {
+            final data = snap.data();
+            if (!snap.exists || data == null) return null;
+            return Order.fromJson({...data, 'id': snap.id});
+          });
+
+  /// Webhook and reconcile rows. Sorted here so a missing `receivedAt` does
+  /// not drop the event the way an `orderBy` query would.
+  Stream<List<PaymentEvent>> watchPaymentEvents(
+    String sellerId,
+    String orderId,
+  ) => FirebaseFirestore.instance
+      .collection('sellers/$sellerId/orders/$orderId/paymentEvents')
+      .snapshots()
+      .map((snap) {
+        final events = snap.docs
+            .map((d) => PaymentEvent.fromMap({...d.data(), 'id': d.id}))
+            .toList();
+        events.sort((a, b) {
+          final at = a.receivedAt ?? a.processedAt;
+          final bt = b.receivedAt ?? b.processedAt;
+          if (at == null && bt == null) return 0;
+          if (at == null) return 1;
+          if (bt == null) return -1;
+          return at.compareTo(bt);
+        });
+        return events;
+      });
 
   Order? _readOrder(Map<String, dynamic> json) {
     final raw = json['order'];

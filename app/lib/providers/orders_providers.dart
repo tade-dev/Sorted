@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../data/orders_repository.dart';
 import '../models/order.dart';
+import '../models/payment_event.dart';
 import 'api_provider.dart';
 import 'seller_provider.dart';
 
@@ -17,6 +18,24 @@ final ordersProvider = StreamProvider<List<Order>>((ref) {
   if (sellerId == null) return const Stream<List<Order>>.empty();
   return ref.watch(ordersRepositoryProvider).watchOrders(sellerId);
 });
+
+/// The open order. A Firestore listener, so a capture that lands while this
+/// screen is up flips the slip to Paid without a refresh.
+final orderByIdProvider = StreamProvider.family<Order?, String>((ref, orderId) {
+  final sellerId = ref.watch(sellerIdProvider).value;
+  if (sellerId == null) return const Stream<Order?>.empty();
+  return ref.watch(ordersRepositoryProvider).watchOrder(sellerId, orderId);
+});
+
+final paymentEventsProvider = StreamProvider.family<List<PaymentEvent>, String>(
+  (ref, orderId) {
+    final sellerId = ref.watch(sellerIdProvider).value;
+    if (sellerId == null) return const Stream<List<PaymentEvent>>.empty();
+    return ref
+        .watch(ordersRepositoryProvider)
+        .watchPaymentEvents(sellerId, orderId);
+  },
+);
 
 sealed class DraftState {
   const DraftState();
@@ -55,8 +74,9 @@ class DraftController extends Notifier<DraftState> {
   Future<void> fromText(String text) =>
       _run(() => ref.read(ordersRepositoryProvider).draftFromText(text));
 
-  Future<void> fromImage(List<int> bytes, String filename) =>
-      _run(() => ref.read(ordersRepositoryProvider).draftFromImage(bytes, filename));
+  Future<void> fromImage(List<int> bytes, String filename) => _run(
+    () => ref.read(ordersRepositoryProvider).draftFromImage(bytes, filename),
+  );
 
   Future<void> _run(Future<Order?> Function() call) async {
     state = const DraftReading(0);
@@ -87,5 +107,6 @@ class DraftController extends Notifier<DraftState> {
   void clear() => state = const DraftIdle();
 }
 
-final draftControllerProvider =
-    NotifierProvider<DraftController, DraftState>(DraftController.new);
+final draftControllerProvider = NotifierProvider<DraftController, DraftState>(
+  DraftController.new,
+);

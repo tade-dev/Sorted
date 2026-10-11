@@ -9,6 +9,15 @@ void main() {
       expect(formatGbp(0), '£0.00');
       expect(formatGbp(123456), '£1,234.56');
     });
+
+    test('drops a trailing .00 for the orders list', () {
+      expect(formatGbpCompact(5600), '£56');
+      expect(formatGbpCompact(2000), '£20');
+      expect(formatGbpCompact(2050), '£20.50');
+      expect(formatGbpCompact(99), '£0.99');
+      expect(formatGbpCompact(123456), '£1,234.56');
+      expect(formatGbpCompact(-500), '-£5');
+    });
   });
 
   group('parseGbpInput', () {
@@ -28,9 +37,12 @@ void main() {
       expect(parseGbpInput('32,50'), isNull);
     });
 
-    test('rejects more than two decimal places rather than rounding silently', () {
-      expect(parseGbpInput('32.456'), isNull);
-    });
+    test(
+      'rejects more than two decimal places rather than rounding silently',
+      () {
+        expect(parseGbpInput('32.456'), isNull);
+      },
+    );
 
     test('rejects a malformed thousands group', () {
       expect(parseGbpInput('1,2.3'), isNull);

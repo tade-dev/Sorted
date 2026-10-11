@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../core/firestore_time.dart';
 import 'ambiguity.dart';
 import 'line_item.dart';
 
@@ -40,6 +41,20 @@ abstract class Order with _$Order {
     String? approvalUrl,
     String? draftedReply,
     @Default('screenshot') String sourceKind,
+
+    /// When the draft was written. The timeline's first entry.
+    @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)
+    DateTime? createdAt,
+    @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)
+    DateTime? updatedAt,
+
+    /// When the checkout link was created. Null until confirm.
+    @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)
+    DateTime? linkSentAt,
+
+    /// Set only when a capture completes. Null on every earlier status.
+    @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)
+    DateTime? paidAt,
   }) = _Order;
 
   factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);

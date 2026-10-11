@@ -47,6 +47,10 @@ _Order _$OrderFromJson(Map<String, dynamic> json) => _Order(
   approvalUrl: json['approvalUrl'] as String?,
   draftedReply: json['draftedReply'] as String?,
   sourceKind: json['sourceKind'] as String? ?? 'screenshot',
+  createdAt: dateTimeFromJson(json['createdAt']),
+  updatedAt: dateTimeFromJson(json['updatedAt']),
+  linkSentAt: dateTimeFromJson(json['linkSentAt']),
+  paidAt: dateTimeFromJson(json['paidAt']),
 );
 
 Map<String, dynamic> _$OrderToJson(_Order instance) => <String, dynamic>{
@@ -67,4 +71,8 @@ Map<String, dynamic> _$OrderToJson(_Order instance) => <String, dynamic>{
   'approvalUrl': instance.approvalUrl,
   'draftedReply': instance.draftedReply,
   'sourceKind': instance.sourceKind,
+  'createdAt': dateTimeToJson(instance.createdAt),
+  'updatedAt': dateTimeToJson(instance.updatedAt),
+  'linkSentAt': dateTimeToJson(instance.linkSentAt),
+  'paidAt': dateTimeToJson(instance.paidAt),
 };
