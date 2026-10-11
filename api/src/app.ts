@@ -6,6 +6,7 @@ import { ApiError, errorHandler } from './lib/errors.js';
 import type { TokenVerifier } from './lib/auth.js';
 import type { ChatTransport } from './ai/client.js';
 import { catalogueRouter } from './routes/catalogue.js';
+import { ordersRouter } from './routes/orders.js';
 import { healthRouter } from './routes/health.js';
 import { sessionRouter } from './routes/session.js';
 
@@ -47,6 +48,16 @@ export function createApp(deps: AppDeps): express.Express {
   app.use(
     '/v1',
     catalogueRouter({
+      db: deps.db,
+      verify: deps.verify,
+      transport: deps.transport,
+      model: deps.env.OPENAI_VISION_MODEL,
+    }),
+  );
+
+  app.use(
+    '/v1',
+    ordersRouter({
       db: deps.db,
       verify: deps.verify,
       transport: deps.transport,
