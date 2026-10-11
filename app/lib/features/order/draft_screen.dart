@@ -111,20 +111,38 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
   bool _busy = false;
 
   Future<void> _answer(Order order, Ambiguity ambiguity, String label) async {
-    final index = _lineIndexFor(ambiguity);
-    if (index == null || index < 0 || index >= order.lineItems.length) return;
-    final line = order.lineItems[index];
     final messenger = ScaffoldMessenger.of(context);
+    final index = _lineIndexFor(ambiguity);
+    if (index == null || index < 0 || index >= order.lineItems.length) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('That answer did not match a line on this order.'),
+        ),
+      );
+      return;
+    }
+    final line = order.lineItems[index];
 
     setState(() => _busy = true);
     try {
       final updated = ambiguity.field.endsWith('.qty')
-          ? await _resolveQty(order, line, label)
+          ? await _resolveQty(order, line, label, ambiguity.field)
           : await ref
                 .read(ordersRepositoryProvider)
-                .resolve(order.id, variantFor: (line.id, [_slug(label)]));
+                .resolve(
+                  order.id,
+                  variantFor: (line.id, [_slug(label)]),
+                  resolvedFields: [ambiguity.field],
+                );
       if (!mounted) return;
       ref.read(draftControllerProvider.notifier).replace(updated);
+      if (updated.blockingAmbiguities.any((a) => a.field == ambiguity.field)) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('That did not clear the question. Try again.'),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
@@ -133,14 +151,24 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
     }
   }
 
-  Future<Order> _resolveQty(Order order, LineItem line, String label) {
+  Future<Order> _resolveQty(
+    Order order,
+    LineItem line,
+    String label,
+    String field,
+  ) {
     final qty = int.tryParse(label);
     if (qty == null || qty < 1) {
       throw ArgumentError('Choose a whole number for the quantity.');
     }
     return ref
         .read(ordersRepositoryProvider)
-        .resolve(order.id, qtyFor: qty, qtyLineId: line.id);
+        .resolve(
+          order.id,
+          qtyFor: qty,
+          qtyLineId: line.id,
+          resolvedFields: [field],
+        );
   }
 
   Future<Order> _sendLoose(Order order, Ambiguity ambiguity, String label) {
@@ -326,8 +354,9 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
                       _LooseCard(
                         ambiguity: ambiguity,
                         busy: _busy,
-                        onAnswer: (label) =>
-                            _answerLoose(order, ambiguity, label),
+                        onAnswer: (label) => _lineIndexFor(ambiguity) != null
+                            ? _answer(order, ambiguity, label)
+                            : _answerLoose(order, ambiguity, label),
                         onPickDate: _isDateField(ambiguity.field)
                             ? () => _pickDate(order, ambiguity)
                             : null,

@@ -249,6 +249,119 @@ void main() {
     final line = (body['lineItems'] as List).single as Map<String, dynamic>;
     expect(line['id'], 'li-1');
     expect(line['variantIds'], ['8-inch']);
+    expect(body['resolvedAmbiguities'], ['lineItems[0].variantIds']);
+  });
+
+  testWidgets('tapping the only size clears the question and enables Create', (
+    tester,
+  ) async {
+    const redVelvet = LineItem(
+      id: 'li-1',
+      productId: 'p-red',
+      variantIds: ['8-inch'],
+      nameRaw: 'red velvet cake',
+      nameResolved: 'Red velvet cake',
+      qty: 5,
+      unitPriceMinor: 3600,
+      lineTotalMinor: 18000,
+      matchConfidence: 1,
+      matchMethod: 'exact',
+    );
+    final asking = _order().copyWith(
+      buyerName: 'Sarah',
+      lineItems: const [redVelvet],
+      subtotalMinor: 18000,
+      amountDueMinor: 18000,
+      ambiguities: const [
+        Ambiguity(
+          field: 'lineItems[0].size',
+          kind: 'missing',
+          question: 'What size should the red velvet cakes be?',
+          options: ['8 inch'],
+        ),
+      ],
+    );
+    final api = _FakeApi()
+      ..resolveReturns = asking.copyWith(ambiguities: const []);
+    await tester.pumpWidget(_host(asking, api: api));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+      isFalse,
+    );
+
+    await tester.tap(find.text('8 inch'));
+    await tester.pumpAndSettle();
+
+    final body = api.lastResolveBody! as Map<String, dynamic>;
+    final line = (body['lineItems'] as List).single as Map<String, dynamic>;
+    expect(line['variantIds'], ['8-inch']);
+    expect(body['resolvedAmbiguities'], ['lineItems[0].size']);
+    expect(
+      find.text('What size should the red velvet cakes be?'),
+      findsNothing,
+    );
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+      isTrue,
+    );
+  });
+
+  testWidgets('says so when an answer does not clear the question', (
+    tester,
+  ) async {
+    final asking = _order().copyWith(
+      ambiguities: const [
+        Ambiguity(
+          field: 'lineItems[0].size',
+          kind: 'missing',
+          question: 'What size should the red velvet cakes be?',
+          options: ['8 inch'],
+        ),
+      ],
+    );
+    final api = _FakeApi()..resolveReturns = asking;
+    await tester.pumpWidget(_host(asking, api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('8 inch'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      find.text('That did not clear the question. Try again.'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+      isFalse,
+    );
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('says so when the answer does not match a line', (tester) async {
+    final api = _FakeApi();
+    final asking = _order().copyWith(
+      ambiguities: const [
+        Ambiguity(
+          field: 'lineItems[4].size',
+          kind: 'missing',
+          question: 'What size should that cake be?',
+          options: ['8 inch'],
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(asking, api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('8 inch'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      find.text('That answer did not match a line on this order.'),
+      findsOneWidget,
+    );
+    expect(api.lastResolveBody, isNull);
+    await tester.pump(const Duration(seconds: 5));
   });
 
   testWidgets('changing a quantity sends the new count to the API', (

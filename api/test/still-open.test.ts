@@ -3,6 +3,7 @@ import {
   ambiguityBlocks,
   applyBlockingPolicy,
   stillOpen,
+  withoutSettledVariantQuestions,
   type AmbiguityOrder,
 } from '../src/domain/ambiguities.js';
 import type { Ambiguity } from '../src/ai/schemas.js';
@@ -70,17 +71,91 @@ describe('stillOpen', () => {
     ).toBe(false);
   });
 
-  it('does not let a flag dismiss a price-changing question', () => {
+  it('closes a size question the model filed under another name once a variant is stored', () => {
+    expect(stillOpen(ambiguity('lineItems[0].variantLabels'), order)).toBe(true);
+    expect(stillOpen(ambiguity('lineItems[0].size'), order)).toBe(true);
+    const chosen: AmbiguityOrder = {
+      ...order,
+      lineItems: [{ ...order.lineItems[0]!, variantIds: ['8-inch'] }],
+    };
+    expect(stillOpen(ambiguity('lineItems[0].variantLabels'), chosen)).toBe(false);
+    expect(stillOpen(ambiguity('lineItems[0].size'), chosen)).toBe(false);
+    expect(stillOpen(ambiguity('lineItems[0].variant'), chosen)).toBe(false);
+  });
+
+  it('closes a line question when the seller marks that field answered', () => {
     expect(
       stillOpen(ambiguity('lineItems[0].variantIds'), order, {
         resolvedAmbiguities: ['lineItems[0].variantIds'],
       }),
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      stillOpen(ambiguity('lineItems[0].size'), order, {
+        resolvedAmbiguities: ['lineItems[0].size'],
+      }),
+    ).toBe(false);
+    expect(
+      stillOpen(ambiguity('lineItems[0].icing'), order, {
+        resolvedAmbiguities: ['lineItems[0].icing'],
+      }),
+    ).toBe(false);
   });
 
   it('closes a buyer name once the order has one', () => {
     expect(stillOpen(ambiguity('buyerName'), order)).toBe(true);
     expect(stillOpen(ambiguity('buyerName'), { ...order, buyerName: 'Jess M' })).toBe(false);
+  });
+});
+
+describe('withoutSettledVariantQuestions', () => {
+  const redVelvet = {
+    id: 'red',
+    variants: [{ active: true }],
+  };
+
+  it('drops a variant question once the line already has a variant', () => {
+    const lines = [{ variantIds: ['8-inch'], productId: 'red' }];
+    expect(
+      withoutSettledVariantQuestions(
+        [ambiguity('lineItems[0].variantLabels')],
+        lines,
+        [redVelvet],
+      ),
+    ).toEqual([]);
+  });
+
+  it('drops a variant question when the product has a single live variant', () => {
+    const lines = [{ variantIds: [] as string[], productId: 'red' }];
+    expect(
+      withoutSettledVariantQuestions(
+        [ambiguity('lineItems[0].size')],
+        lines,
+        [redVelvet],
+      ),
+    ).toEqual([]);
+  });
+
+  it('keeps a size question when the product still has a real choice', () => {
+    const lines = [{ variantIds: [] as string[], productId: 'lemon' }];
+    const lemon = { id: 'lemon', variants: [{ active: true }, { active: true }] };
+    const kept = withoutSettledVariantQuestions(
+      [ambiguity('lineItems[0].size')],
+      lines,
+      [lemon],
+    );
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.field).toBe('lineItems[0].size');
+  });
+
+  it('leaves a question that is not about a variant', () => {
+    const date = ambiguity('fulfilment.date');
+    expect(
+      withoutSettledVariantQuestions(
+        [date],
+        [{ variantIds: ['8-inch'], productId: 'red' }],
+        [redVelvet],
+      ),
+    ).toEqual([date]);
   });
 });
 

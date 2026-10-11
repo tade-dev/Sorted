@@ -21,6 +21,7 @@ import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 import {
   applyBlockingPolicy,
   stillOpen,
+  withoutSettledVariantQuestions,
   type AmbiguityPatch,
 } from '../domain/ambiguities.js';
 
@@ -176,7 +177,11 @@ export function ordersRouter(deps: OrdersDeps): Router {
           buyerEmail: parsed.buyerEmail,
           channel: parsed.channel,
           lines: matched.lines,
-          ambiguities: [...parsed.ambiguities, ...matched.ambiguities],
+          ambiguities: withoutSettledVariantQuestions(
+            [...parsed.ambiguities, ...matched.ambiguities],
+            matched.lines,
+            products,
+          ),
           fulfilment: parsed.fulfilment,
           depositMinor: parsed.depositRequestedMinor,
           sourceKind: file ? 'screenshot' : 'text',

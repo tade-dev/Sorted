@@ -119,6 +119,28 @@ describe('POST /v1/orders/draft', () => {
     expect(orders.size).toBe(0);
   });
 
+  it('drops a size question the model added for a product with one variant', async () => {
+    const redVelvet = {
+      ...jess,
+      lineItems: [{ nameRaw: 'brownie box', qty: 1, variantLabels: [] }],
+      ambiguities: [{
+        field: 'lineItems[0].variantLabels',
+        kind: 'missing',
+        question: 'What size should the brownies be?',
+        options: ['Box of 6'],
+        blocking: true,
+      }],
+    };
+    const res = await request(appWith(redVelvet))
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .field('text', 'a brownie box please');
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.lineItems[0].variantIds).toEqual(['box-of-6']);
+    expect(res.body.order.ambiguities).toEqual([]);
+  });
+
   it('carries an unknown product through as a blocking ambiguity', async () => {
     const odd = {
       ...jess,
@@ -205,6 +227,38 @@ describe('POST /v1/orders/:orderId/resolve', () => {
 
     expect(res.body.order.ambiguities).toHaveLength(0);
     expect(res.body.order.subtotalMinor).toBe(4200);
+  });
+
+  it('closes a size question the model did not file as variantIds', async () => {
+    const vague = {
+      ...jess,
+      lineItems: [{ nameRaw: 'lemon drizzle cake', qty: 1, variantLabels: [] }],
+      ambiguities: [{
+        field: 'lineItems[0].size',
+        kind: 'missing',
+        question: 'What size should the lemon drizzle be?',
+        options: ['8 inch', '10 inch'],
+        blocking: true,
+      }],
+    };
+    const created = await request(appWith(vague))
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .field('text', 'a lemon drizzle');
+    expect(created.body.order.ambiguities.map((a: { field: string }) => a.field))
+      .toContain('lineItems[0].size');
+
+    const res = await request(appWith(vague))
+      .post(`/v1/orders/${created.body.order.id}/resolve`)
+      .set('Authorization', 'Bearer good')
+      .send({
+        lineItems: [{ id: 'li-1', variantIds: ['8-inch'] }],
+        resolvedAmbiguities: ['lineItems[0].size'],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.ambiguities).toEqual([]);
+    expect(res.body.order.lineItems[0].variantIds).toEqual(['8-inch']);
   });
 
   it('clears a missing date once the seller picks one', async () => {
