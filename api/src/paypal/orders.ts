@@ -1,4 +1,5 @@
 import { ApiError } from '../lib/errors.js';
+import { DEFAULT_PUBLIC_BASE_URL } from '../env.js';
 import { toPayPalValue } from '../domain/money.js';
 import type { OrderDoc } from '../domain/orders.js';
 import type { PayPalFetch } from './client.js';
@@ -21,6 +22,7 @@ export async function createPayPalOrder(
   order: OrderDoc,
   sellerId: string,
   call: PayPalFetch,
+  publicBaseUrl: string = DEFAULT_PUBLIC_BASE_URL,
 ): Promise<{ paypalOrderId: string; approvalUrl: string }> {
   if (order.amountDueMinor <= 0) {
     throw new ApiError(
@@ -32,6 +34,7 @@ export async function createPayPalOrder(
 
   const value = toPayPalValue(order.amountDueMinor);
   const takingDeposit = order.depositMinor !== null;
+  const base = publicBaseUrl.replace(/\/+$/, '') || DEFAULT_PUBLIC_BASE_URL;
 
   // PayPal rejects the order unless item_total equals the sum of items, and a
   // deposit never equals the goods. Send the itemised breakdown only when the
@@ -71,8 +74,8 @@ export async function createPayPalOrder(
             locale: 'en-GB',
             user_action: 'PAY_NOW',
             shipping_preference: 'NO_SHIPPING',
-            return_url: 'https://sorted-api-a4zo.onrender.com/v1/paypal/return',
-            cancel_url: 'https://sorted-api-a4zo.onrender.com/v1/paypal/cancel',
+            return_url: `${base}/v1/paypal/return`,
+            cancel_url: `${base}/v1/paypal/cancel`,
           },
         },
       },

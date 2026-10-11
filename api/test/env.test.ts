@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadEnv } from '../src/env.js';
+import { DEFAULT_PUBLIC_BASE_URL, loadEnv } from '../src/env.js';
 
 const valid = {
   NODE_ENV: 'test',
@@ -72,6 +72,21 @@ describe('loadEnv', () => {
   it('points at the file that lists what to set', () => {
     const { INTERNAL_TOKEN, ...rest } = valid;
     expect(() => loadEnv(rest)).toThrow(/\.env\.example/);
+  });
+
+  it('defaults the public base URL when it is absent or empty', () => {
+    expect(loadEnv(valid).PUBLIC_BASE_URL).toBe(DEFAULT_PUBLIC_BASE_URL);
+    expect(loadEnv({ ...valid, PUBLIC_BASE_URL: '' }).PUBLIC_BASE_URL).toBe(DEFAULT_PUBLIC_BASE_URL);
+    expect(loadEnv({ ...valid, PUBLIC_BASE_URL: '   ' }).PUBLIC_BASE_URL).toBe(DEFAULT_PUBLIC_BASE_URL);
+  });
+
+  it('uses a configured public base URL without a trailing slash', () => {
+    expect(loadEnv({ ...valid, PUBLIC_BASE_URL: 'https://pay.example.test/' }).PUBLIC_BASE_URL)
+      .toBe('https://pay.example.test');
+  });
+
+  it('rejects a public base URL that is not an absolute http(s) URL', () => {
+    expect(() => loadEnv({ ...valid, PUBLIC_BASE_URL: 'not a url' })).toThrow(/PUBLIC_BASE_URL/);
   });
 
   it('separates a genuinely invalid value from a missing one', () => {

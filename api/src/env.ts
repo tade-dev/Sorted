@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 const required = (name: string) => z.string().min(1, `${name} must not be empty`);
 
+/** Where PayPal sends the buyer after checkout, when PUBLIC_BASE_URL is unset. */
+export const DEFAULT_PUBLIC_BASE_URL = 'https://sorted-api-a4zo.onrender.com';
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -18,7 +21,28 @@ export type Env = z.infer<typeof schema> & {
   /** Sandbox only, per the design spec. There is no live mode. */
   readonly PAYPAL_ENV: 'sandbox';
   readonly PAYPAL_API_BASE: 'https://api-m.sandbox.paypal.com';
+  /** Origin of this API. PayPal's buyer return and cancel URLs are built from it. */
+  readonly PUBLIC_BASE_URL: string;
 };
+
+function resolvePublicBaseUrl(raw: string | undefined): string {
+  if (raw === undefined || raw.trim() === '') return DEFAULT_PUBLIC_BASE_URL;
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(
+      'Environment is not configured — invalid: PUBLIC_BASE_URL (must be an absolute http(s) URL).',
+    );
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(
+      'Environment is not configured — invalid: PUBLIC_BASE_URL (must be an absolute http(s) URL).',
+    );
+  }
+  return trimmed;
+}
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const parsed = schema.safeParse(source);
@@ -46,7 +70,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
 
     throw new Error(
       `Environment is not configured — ${parts.join('; ')}. ` +
-        'Every variable in api/.env.example must be set to a non-empty value. ' +
+        'Every required variable in api/.env.example must be set to a non-empty value. ' +
         'Use a placeholder such as "pending" for ones you do not have yet.',
     );
   }
@@ -54,5 +78,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     ...parsed.data,
     PAYPAL_ENV: 'sandbox',
     PAYPAL_API_BASE: 'https://api-m.sandbox.paypal.com',
+    PUBLIC_BASE_URL: resolvePublicBaseUrl(source.PUBLIC_BASE_URL),
   };
 }

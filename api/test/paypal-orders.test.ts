@@ -111,6 +111,16 @@ describe('createPayPalOrder', () => {
     expect(call.mock.calls[0]![1].requestId).toContain('order-xyz');
   });
 
+  it('sends the buyer to the configured origin after checkout', async () => {
+    const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
+    await createPayPalOrder(order, 'seller-a', call, 'https://pay.example.test/');
+    const ctx = (call.mock.calls[0]![1].body as {
+      payment_source: { paypal: { experience_context: { return_url: string; cancel_url: string } } };
+    }).payment_source.paypal.experience_context;
+    expect(ctx.return_url).toBe('https://pay.example.test/v1/paypal/return');
+    expect(ctx.cancel_url).toBe('https://pay.example.test/v1/paypal/cancel');
+  });
+
   it('asks for GBP and a UK experience with no shipping', async () => {
     const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
     await createPayPalOrder(order, 'seller-a', call);

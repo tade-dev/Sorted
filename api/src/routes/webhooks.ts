@@ -29,16 +29,53 @@ const STATUSES = new Set<OrderStatus>([
   'draft', 'link_sent', 'processing', 'pending', 'declined', 'paid', 'cancelled', 'expired',
 ]);
 
-function signatureHeaders(req: Request) {
-  const transmissionId = req.get('paypal-transmission-id');
-  const transmissionTime = req.get('paypal-transmission-time');
-  const certUrl = req.get('paypal-cert-url');
-  const authAlgo = req.get('paypal-auth-algo');
-  const transmissionSig = req.get('paypal-transmission-sig');
-  if (!transmissionId || !transmissionTime || !certUrl || !authAlgo || !transmissionSig) {
-    return null;
+const SIGNATURE_HEADERS = [
+  ['paypal-transmission-id', 'transmissionId'],
+  ['paypal-transmission-time', 'transmissionTime'],
+  ['paypal-cert-url', 'certUrl'],
+  ['paypal-auth-algo', 'authAlgo'],
+  ['paypal-transmission-sig', 'transmissionSig'],
+] as const;
+
+function signatureHeaders(req: Request): {
+  headers: {
+    transmissionId: string;
+    transmissionTime: string;
+    certUrl: string;
+    authAlgo: string;
+    transmissionSig: string;
+  } | null;
+  missing: string[];
+} {
+  const missing: string[] = [];
+  const values: Record<string, string> = {};
+  for (const [header, key] of SIGNATURE_HEADERS) {
+    const value = req.get(header);
+    if (!value) missing.push(header);
+    else values[key] = value;
   }
-  return { transmissionId, transmissionTime, certUrl, authAlgo, transmissionSig };
+  if (missing.length > 0) return { headers: null, missing };
+  return {
+    headers: {
+      transmissionId: values.transmissionId!,
+      transmissionTime: values.transmissionTime!,
+      certUrl: values.certUrl!,
+      authAlgo: values.authAlgo!,
+      transmissionSig: values.transmissionSig!,
+    },
+    missing,
+  };
+}
+
+function logVerifyFailure(fields: Record<string, string | number | null>): void {
+  console.error(JSON.stringify({ source: 'paypal_webhook_verify', ...fields }));
+}
+
+function safeIssue(value: string | undefined): string | null {
+  if (!value) return null;
+  const oneLine = value.replace(/\s+/g, ' ').slice(0, 80);
+  if (/bearer|secret|token/i.test(oneLine)) return 'redacted';
+  return oneLine;
 }
 
 async function locateOrder(db: Firestore, event: PayPalEvent) {
@@ -89,9 +126,15 @@ export function webhooksRouter(deps: WebhookDeps): Router {
     express.raw({ type: 'application/json', limit: '1mb' }),
     async (req, res, next) => {
       const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
-      const headers = signatureHeaders(req);
+      const { headers, missing } = signatureHeaders(req);
       if (!raw || !headers) {
         recordWebhookFailure();
+        logVerifyFailure({
+          reason: !raw ? 'missing_body' : 'missing_headers',
+          missingHeaders: missing.join(','),
+          contentType: (req.get('content-type') ?? '').slice(0, 120),
+          bodyBytes: Buffer.isBuffer(req.body) ? req.body.length : 0,
+        });
         next(new ApiError(401, 'UNAUTHENTICATED', 'PayPal could not verify that event.'));
         return;
       }
@@ -102,14 +145,28 @@ export function webhooksRouter(deps: WebhookDeps): Router {
           method: 'POST',
           rawBody: verifyWebhookBody(raw, headers, deps.env.PAYPAL_WEBHOOK_ID),
         })) as { verification_status?: string };
-      } catch {
+      } catch (err) {
         recordWebhookFailure();
+        const paypalStatus = err instanceof ApiError && err.details && typeof err.details === 'object'
+          ? (err.details as { status?: unknown }).status
+          : undefined;
+        logVerifyFailure({
+          reason: 'paypal_http',
+          httpStatus: typeof paypalStatus === 'number' ? paypalStatus : null,
+          issue: safeIssue(paypalIssue(err)),
+          bodyBytes: Buffer.byteLength(raw),
+        });
         next(new ApiError(502, 'PAYPAL_UNAVAILABLE', 'PayPal could not verify that event.'));
         return;
       }
 
       if (verified.verification_status !== 'SUCCESS') {
         recordWebhookFailure();
+        logVerifyFailure({
+          reason: 'verification_status',
+          verificationStatus: verified.verification_status ?? 'missing',
+          bodyBytes: Buffer.byteLength(raw),
+        });
         next(new ApiError(401, 'UNAUTHENTICATED', 'PayPal could not verify that event.'));
         return;
       }

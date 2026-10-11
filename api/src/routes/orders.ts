@@ -111,6 +111,7 @@ export type OrdersDeps = {
   verify: TokenVerifier;
   transport: ChatTransport;
   model: string;
+  publicBaseUrl: string;
 };
 
 export function ordersRouter(deps: OrdersDeps): Router {
@@ -339,6 +340,7 @@ export function ordersRouter(deps: OrdersDeps): Router {
         priced,
         sellerId,
         deps.paypal,
+        deps.publicBaseUrl,
       );
 
       const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();

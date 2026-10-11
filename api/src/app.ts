@@ -11,6 +11,8 @@ import { ordersRouter } from './routes/orders.js';
 import { healthRouter } from './routes/health.js';
 import { sessionRouter } from './routes/session.js';
 import { webhooksRouter } from './routes/webhooks.js';
+import { paypalPagesRouter } from './routes/paypal_pages.js';
+import { internalRouter } from './routes/internal.js';
 
 export type AppDeps = {
   env: Env;
@@ -70,8 +72,11 @@ export function createApp(deps: AppDeps): express.Express {
       transport: deps.transport,
       paypal: deps.paypal,
       model: deps.env.OPENAI_VISION_MODEL,
+      publicBaseUrl: deps.env.PUBLIC_BASE_URL,
     }),
   );
+  app.use('/v1', paypalPagesRouter(deps.db));
+  app.use('/v1', internalRouter({ env: deps.env, db: deps.db, paypal: deps.paypal }));
 
   app.use((_req, _res, next) => {
     next(new ApiError(404, 'NOT_FOUND', 'Route not found.'));

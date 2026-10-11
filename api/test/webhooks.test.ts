@@ -1,10 +1,11 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { requireEmulator } from './emulator-guard.js';
 import request from 'supertest';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { createApp } from '../src/app.js';
 import { loadEnv } from '../src/env.js';
+import { ApiError } from '../src/lib/errors.js';
 import type { PayPalFetch } from '../src/paypal/client.js';
 import type { OrderStatus } from '../src/domain/orders.js';
 
@@ -223,6 +224,78 @@ describe('POST /v1/webhooks/paypal', () => {
     const stored = await db.doc('sellers/seller-a/orders/o1').get();
     expect(stored.get('status')).toBe('link_sent');
     expect(stored.get('approvalUrl')).toContain('checkoutnow');
+  });
+
+  it('posts a documented capture event back exactly, charset and all', async () => {
+    await seed('link_sent');
+    const { fetch, calls } = paypal();
+    // Field order matches PayPal's published PAYMENT.CAPTURE.COMPLETED example.
+    // Re-stringifying it would move "id" ahead of "amount".
+    const raw = '{"id":"WH-3F562076HD293871E-75F399086E414290U","event_version":"1.0","create_time":"2024-05-16T05:19:19.355Z","resource_type":"capture","resource_version":"2.0","event_type":"PAYMENT.CAPTURE.COMPLETED","summary":"Payment completed for GBP 42.00","resource":{"amount":{"value":"42.00","currency_code":"GBP"},"custom_id":"seller-a:o1","supplementary_data":{"related_ids":{"order_id":"PP-1"}},"id":"CAP-1","status":"COMPLETED"}}';
+    const req = request(appWith(fetch))
+      .post('/v1/webhooks/paypal')
+      .set('Content-Type', 'application/json; charset=utf-8');
+    for (const [name, value] of Object.entries(HEADERS)) req.set(name, value);
+    const res = await req.send(raw);
+
+    expect(res.status).toBe(200);
+    const verify = calls.find((c) => c.path.includes('verify-webhook-signature'));
+    expect(verify?.rawBody).toContain(`"webhook_event":${raw}`);
+    const stored = await db.doc('sellers/seller-a/orders/o1').get();
+    expect(stored.get('status')).toBe('paid');
+  });
+
+  it('logs a rejected verification status without the signature', async () => {
+    await seed();
+    const { fetch } = paypal({ verified: false });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const req = request(appWith(fetch)).post('/v1/webhooks/paypal').set('Content-Type', 'application/json');
+    for (const [name, value] of Object.entries(HEADERS)) {
+      req.set(name, name === 'paypal-transmission-sig' ? 'SIGSECRETVALUE' : value);
+    }
+    const res = await req.send(approved());
+    const logged = spy.mock.calls.map((call) => call.map(String).join(' ')).join('\n');
+    spy.mockRestore();
+
+    expect(res.status).toBe(401);
+    expect(logged).toContain('"verificationStatus":"FAILURE"');
+    expect(logged).not.toContain('SIGSECRETVALUE');
+  });
+
+  it('logs a delivery that never reached PayPal', async () => {
+    const { fetch, calls } = paypal();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = await request(appWith(fetch))
+      .post('/v1/webhooks/paypal')
+      .set('Content-Type', 'text/plain')
+      .send('nope');
+    const logged = spy.mock.calls.map((call) => call.map(String).join(' ')).join('\n');
+    spy.mockRestore();
+
+    expect(res.status).toBe(401);
+    expect(logged).toContain('"reason":"missing_body"');
+    expect(logged).toContain('text/plain');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('logs the PayPal HTTP issue when verification itself fails', async () => {
+    await seed();
+    const fetch: PayPalFetch = async () => {
+      throw new ApiError(502, 'PAYPAL_UNAVAILABLE', 'PayPal rejected that request (VALIDATION_ERROR).', {
+        status: 400,
+        detail: 'VALIDATION_ERROR',
+      });
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = await post(appWith(fetch), approved());
+    const logged = spy.mock.calls.map((call) => call.map(String).join(' ')).join('\n');
+    spy.mockRestore();
+
+    expect(res.status).toBe(502);
+    expect(logged).toContain('"reason":"paypal_http"');
+    expect(logged).toContain('"httpStatus":400');
+    expect(logged).toContain('VALIDATION_ERROR');
+    expect(logged).not.toContain('paypal-transmission-sig');
   });
 
   it('records a refund without moving a paid order', async () => {

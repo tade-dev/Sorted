@@ -146,6 +146,40 @@ describe('POST /v1/orders/:orderId/confirm', () => {
     expect(body.purchase_units[0]!.amount.value).toBe('42.00');
   });
 
+  it('sends PayPal the configured buyer return and cancel pages', async () => {
+    const custom = loadEnv({
+      NODE_ENV: 'test',
+      PAYPAL_CLIENT_ID: 'x', PAYPAL_CLIENT_SECRET: 'x', PAYPAL_WEBHOOK_ID: 'x',
+      OPENAI_API_KEY: 'x', OPENAI_VISION_MODEL: 'test-model',
+      FIREBASE_PROJECT_ID: 'sorted-confirm-test', INTERNAL_TOKEN: 't',
+      PUBLIC_BASE_URL: 'https://pay.example.test/',
+    });
+    const paypal = vi.fn<PayPalFetch>().mockResolvedValue({
+      id: 'PP-1', status: 'PAYER_ACTION_REQUIRED',
+      links: [{ rel: 'payer-action', method: 'GET', href: LINK }],
+    });
+    const app = createApp({
+      env: custom, db, paypal,
+      transport: transportFor(parsed),
+      verify: async (t: string) => {
+        if (t === 'good') return { uid: 'seller-a' };
+        throw new Error('no');
+      },
+    });
+    const id = await draft(app);
+    const res = await request(app)
+      .post(`/v1/orders/${id}/confirm`)
+      .set('Authorization', 'Bearer good')
+      .send({});
+
+    expect(res.status).toBe(200);
+    const ctx = (paypal.mock.calls[0]![1].body as {
+      payment_source: { paypal: { experience_context: { return_url: string; cancel_url: string } } };
+    }).payment_source.paypal.experience_context;
+    expect(ctx.return_url).toBe('https://pay.example.test/v1/paypal/return');
+    expect(ctx.cancel_url).toBe('https://pay.example.test/v1/paypal/cancel');
+  });
+
   it('refuses while a blocking ambiguity is unanswered', async () => {
     // Otherwise a link goes out with a guessed size and a price the seller
     // never agreed to.

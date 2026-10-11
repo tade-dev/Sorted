@@ -152,6 +152,37 @@ export function verifyWebhookBody(
   return `${head.slice(0, -1)},"webhook_event":${rawEvent}}`;
 }
 
+export type ReconcileAction =
+  | { kind: 'leave' }
+  | { kind: 'capture' }
+  | { kind: 'move'; status: 'paid' | 'pending' | 'declined'; captureId: string | null };
+
+/**
+ * What a missed webhook should do, read from PayPal's own order.
+ *
+ * A COMPLETED capture is Paid here. The webhook handler leaves that as
+ * `processing` and waits for PAYMENT.CAPTURE.COMPLETED; this sweep runs
+ * because that event never landed.
+ */
+export function reconcileAction(body: unknown): ReconcileAction {
+  const outcome = interimFromPayPalOrder(body);
+  if (outcome.interim === 'pending') {
+    return { kind: 'move', status: 'pending', captureId: outcome.captureId };
+  }
+  if (outcome.interim === 'declined') {
+    return { kind: 'move', status: 'declined', captureId: outcome.captureId };
+  }
+  if (outcome.captureId && outcome.interim === 'processing') {
+    return { kind: 'move', status: 'paid', captureId: outcome.captureId };
+  }
+  const order = (body ?? {}) as Record<string, unknown>;
+  const orderStatus = typeof order.status === 'string' ? order.status : '';
+  if (!outcome.captureId && (orderStatus === 'APPROVED' || orderStatus === 'COMPLETED')) {
+    return { kind: 'capture' };
+  }
+  return { kind: 'leave' };
+}
+
 export async function capturePayPalOrder(
   call: PayPalFetch,
   paypalOrderId: string,

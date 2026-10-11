@@ -38,3 +38,6 @@ services:
         sync: false
       - key: INTERNAL_TOKEN
         sync: false
+      # Buyer return and cancel pages. Unset uses the hosted Render URL in code.
+      - key: PUBLIC_BASE_URL
+        sync: false

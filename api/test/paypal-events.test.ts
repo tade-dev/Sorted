@@ -3,6 +3,7 @@ import {
   interimFromPayPalOrder,
   parseCustomId,
   parsePayPalEvent,
+  reconcileAction,
   statusForEvent,
   verifyWebhookBody,
 } from '../src/paypal/events.js';
@@ -71,6 +72,37 @@ describe('statusForEvent', () => {
     expect(statusForEvent('CHECKOUT.ORDER.APPROVED')).toBeNull();
     expect(statusForEvent('PAYMENT.CAPTURE.REFUNDED')).toBeNull();
     expect(statusForEvent('CHECKOUT.PAYMENT-APPROVAL.REVERSED')).toBe('link_sent');
+  });
+});
+
+describe('reconcileAction', () => {
+  it('treats a completed capture as paid, because the webhook that would is missing', () => {
+    expect(reconcileAction({
+      status: 'COMPLETED',
+      purchase_units: [{ payments: { captures: [{ id: 'CAP-1', status: 'COMPLETED' }] } }],
+    })).toEqual({ kind: 'move', status: 'paid', captureId: 'CAP-1' });
+  });
+
+  it('asks for a capture when the buyer has approved and nothing was captured', () => {
+    expect(reconcileAction({
+      status: 'APPROVED',
+      purchase_units: [{ custom_id: 'seller-a:o1' }],
+    })).toEqual({ kind: 'capture' });
+  });
+
+  it('follows a pending or declined capture', () => {
+    expect(reconcileAction({
+      status: 'COMPLETED',
+      purchase_units: [{ payments: { captures: [{ id: 'CAP-1', status: 'PENDING' }] } }],
+    })).toEqual({ kind: 'move', status: 'pending', captureId: 'CAP-1' });
+    expect(reconcileAction({
+      status: 'COMPLETED',
+      purchase_units: [{ payments: { captures: [{ id: 'CAP-1', status: 'DECLINED' }] } }],
+    })).toEqual({ kind: 'move', status: 'declined', captureId: 'CAP-1' });
+  });
+
+  it('leaves an order the buyer has not approved', () => {
+    expect(reconcileAction({ status: 'PAYER_ACTION_REQUIRED', purchase_units: [] })).toEqual({ kind: 'leave' });
   });
 });
 
