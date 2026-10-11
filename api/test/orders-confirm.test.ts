@@ -104,6 +104,32 @@ describe('POST /v1/orders/:orderId/confirm', () => {
     expect(res.body.order.draftedReply).toContain(LINK);
   });
 
+  it('stores a human-dated reply when the model cannot write one', async () => {
+    const app = createApp({
+      env, db, paypal: happyPayPal,
+      transport: async (body) => {
+        const sent = JSON.stringify(body);
+        if (sent.includes('checkoutnow')) throw new Error('model down');
+        return { content: JSON.stringify(parsed) };
+      },
+      verify: async (t: string) => {
+        if (t === 'good') return { uid: 'seller-a' };
+        throw new Error('no');
+      },
+    });
+    const id = await draft(app);
+
+    const res = await request(app)
+      .post(`/v1/orders/${id}/confirm`)
+      .set('Authorization', 'Bearer good')
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.order.draftedReply).toContain('Sat 10 Oct');
+    expect(res.body.order.draftedReply).not.toContain('2026-10-10');
+    expect(res.body.order.draftedReply).toContain(LINK);
+  });
+
   it('charges exactly what the order says is due', async () => {
     const paypal = vi.fn<PayPalFetch>().mockResolvedValue({
       id: 'PP-1', status: 'PAYER_ACTION_REQUIRED',

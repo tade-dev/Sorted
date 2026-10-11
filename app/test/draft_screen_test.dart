@@ -159,7 +159,8 @@ void main() {
   ) async {
     await tester.pumpWidget(_host(_order()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-10-10'), findsWidgets);
+    expect(find.textContaining('Sat 10 Oct'), findsWidgets);
+    expect(find.textContaining('2026-10-10'), findsNothing);
     expect(find.textContaining("mum's birthday"), findsWidgets);
   });
 
@@ -375,7 +376,7 @@ void main() {
     );
     await tester.pumpWidget(_host(order, api: api));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-10-18'));
+    await tester.tap(find.text('Sun 18 Oct'));
     await tester.pumpAndSettle();
 
     final body = api.lastResolveBody! as Map<String, dynamic>;

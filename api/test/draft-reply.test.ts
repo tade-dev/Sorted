@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { REPLY_SYSTEM, draftReply } from '../src/ai/draft_reply.js';
+import { REPLY_SYSTEM, draftReply, fallbackReply } from '../src/ai/draft_reply.js';
 import type { ChatTransport } from '../src/ai/client.js';
 import type { OrderDoc } from '../src/domain/orders.js';
 
@@ -107,5 +107,41 @@ describe('draftReply', () => {
   it('tells the model to use UK English and keep it short', () => {
     expect(REPLY_SYSTEM).toMatch(/UK English/i);
     expect(REPLY_SYSTEM).toMatch(/\b60 words\b/);
+  });
+
+  it('gives the model a human date, not the ISO value', async () => {
+    const transport = vi.fn<ChatTransport>().mockResolvedValue({
+      content: JSON.stringify({ reply: `collect Sat 10 Oct. pay: ${link}` }),
+    });
+    await draftReply({ order, personaTone: '', approvalUrl: link, tone: 'friendly' }, transport, 'm');
+    const body = JSON.stringify(transport.mock.calls[0]![0]);
+    expect(body).toContain('Sat 10 Oct');
+    expect(body).not.toContain('2026-10-10');
+  });
+
+  it('rewrites an ISO date the model echoed into the reply', async () => {
+    const dated = {
+      ...order,
+      fulfilment: { mode: 'collection', date: '2026-10-13', notes: null },
+    } as unknown as OrderDoc;
+    const transport: ChatTransport = async () => ({
+      content: JSON.stringify({ reply: `collection 2026-10-13, pay ${link}` }),
+    });
+    const out = await draftReply(
+      { order: dated, personaTone: '', approvalUrl: link, tone: 'short' },
+      transport,
+      'm',
+    );
+    expect(out).toContain('Tue 13 Oct');
+    expect(out).not.toContain('2026-10-13');
+    expect(out).toContain(link);
+  });
+
+  it('fallback reply uses the same human date and keeps the link', () => {
+    const text = fallbackReply(order, link);
+    expect(text).toContain('Sat 10 Oct');
+    expect(text).not.toContain('2026-10-10');
+    expect(text).toContain(link);
+    expect(text).toContain('£56.00');
   });
 });

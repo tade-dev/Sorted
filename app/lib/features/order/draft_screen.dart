@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../core/money.dart';
+import '../../core/uk_date.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../models/ambiguity.dart';
@@ -374,7 +375,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
                               label: order.fulfilment.mode == 'delivery'
                                   ? 'Delivery'
                                   : 'Collection',
-                              value: order.fulfilment.date!,
+                              value: formatUkDate(order.fulfilment.date!),
                             ),
                           if (order.fulfilment.notes != null)
                             _Detail(
@@ -477,7 +478,7 @@ class _LooseCardState extends State<_LooseCard> {
               children: [
                 for (final option in ambiguity.options)
                   SelectableChip(
-                    label: option,
+                    label: displayDate(option),
                     selected: false,
                     onTap: widget.busy ? () {} : () => widget.onAnswer(option),
                   ),
@@ -592,7 +593,7 @@ class _LineCard extends StatelessWidget {
                       children: [
                         for (final option in ambiguity!.options)
                           SelectableChip(
-                            label: option,
+                            label: displayDate(option),
                             selected: false,
                             onTap: busy
                                 ? () {}

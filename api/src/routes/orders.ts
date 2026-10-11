@@ -16,7 +16,7 @@ import {
 import { sumMinor, multiplyMinor, applyDelta } from '../domain/money.js';
 import { createPayPalOrder } from '../paypal/orders.js';
 import type { PayPalFetch } from '../paypal/client.js';
-import { draftReply, type ReplyTone } from '../ai/draft_reply.js';
+import { draftReply, fallbackReply, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 import {
   applyBlockingPolicy,
@@ -344,7 +344,7 @@ export function ordersRouter(deps: OrdersDeps): Router {
       const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
       const personaTone = (sellerSnap.data()?.personaTone as string | undefined) ?? '';
 
-      let draftedReply: string | null = null;
+      let draftedReply: string;
       try {
         draftedReply = await draftReply(
           { order: priced, personaTone, approvalUrl, tone: 'friendly' },
@@ -353,7 +353,7 @@ export function ordersRouter(deps: OrdersDeps): Router {
         );
       } catch {
         // The link is the thing that matters. A failed draft must not lose it.
-        draftedReply = null;
+        draftedReply = fallbackReply(priced, approvalUrl);
       }
 
       const updated: OrderDoc = {

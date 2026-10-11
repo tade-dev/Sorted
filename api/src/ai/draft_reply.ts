@@ -1,6 +1,7 @@
 import { replyDraftSchema } from './schemas.js';
 import { generateStructured, type ChatTransport } from './client.js';
 import { ApiError } from '../lib/errors.js';
+import { formatUkDate, humaniseIsoDates } from '../domain/dates.js';
 import { formatGbp } from '../domain/money.js';
 import type { OrderDoc } from '../domain/orders.js';
 
@@ -14,6 +15,7 @@ export const REPLY_SYSTEM = [
   'Do not invent a link, shorten it, or wrap it in markdown.',
   'Use no emoji unless the seller\'s own sample uses them.',
   'Do not promise a date, a time or anything else that is not in the order details given.',
+  'When the order details include a date, copy it exactly. It is already written the way the buyer should read it, for example "Tue 13 Oct". Never rewrite it as an ISO date.',
   'Do not restate the itemised prices; name what they ordered and the total.',
 ].join(' ');
 
@@ -53,7 +55,7 @@ export async function draftReply(
       ? `They are paying a deposit of ${formatGbp(order.amountDueMinor)} now, with the rest due on collection.`
       : `Total to pay: ${formatGbp(order.amountDueMinor)}`,
     order.fulfilment.date
-      ? `${order.fulfilment.mode === 'delivery' ? 'Delivery' : 'Collection'}: ${order.fulfilment.date}`
+      ? `${order.fulfilment.mode === 'delivery' ? 'Delivery' : 'Collection'}: ${formatUkDate(order.fulfilment.date)}`
       : '',
     order.fulfilment.notes ? `Note: ${order.fulfilment.notes}` : '',
     `Payment link, to include verbatim: ${approvalUrl}`,
@@ -93,5 +95,17 @@ export async function draftReply(
     );
   }
 
-  return reply;
+  return humaniseIsoDates(reply);
+}
+
+/** Used when the model cannot write the reply. Same date wording, and the link is intact. */
+export function fallbackReply(order: OrderDoc, approvalUrl: string): string {
+  const items = order.lineItems
+    .map((l) => `${l.qty} x ${l.nameResolved ?? l.nameRaw}`)
+    .join(', ');
+  const when = order.fulfilment.date
+    ? ` for ${order.fulfilment.mode === 'delivery' ? 'delivery' : 'collection'} ${formatUkDate(order.fulfilment.date)}`
+    : '';
+  const who = order.buyerName ?? 'there';
+  return `Hi ${who}! You're down for ${items}${when}. Total ${formatGbp(order.amountDueMinor)}. You can pay here: ${approvalUrl}`;
 }
