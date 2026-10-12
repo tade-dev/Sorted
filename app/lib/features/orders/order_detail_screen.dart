@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,7 +50,42 @@ class OrderDetailScreen extends ConsumerWidget {
         ),
       ),
       body: order.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Shimmer(
+          child: ListView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            children: [
+              // The order slip, then the timeline rows.
+              const SkeletonCard(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [SkeletonLine(width: 120), Spacer(), SkeletonLine(width: 90)]),
+                    SizedBox(height: 18),
+                    SkeletonLine(width: 180, fontSize: 15),
+                    SizedBox(height: 10),
+                    SkeletonLine(width: 140, fontSize: 15),
+                    SizedBox(height: 22),
+                    Row(children: [SkeletonLine(width: 50, fontSize: 16), Spacer(), SkeletonBox(width: 120, height: 30, radius: 8)]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              for (var i = 0; i < 4; i++)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 18),
+                  child: Row(children: [
+                    SkeletonBox(width: 16, height: 16, radius: 8),
+                    SizedBox(width: 18),
+                    SkeletonLine(width: 170, fontSize: 16),
+                    Spacer(),
+                    SkeletonLine(width: 40),
+                  ]),
+                ),
+            ],
+          ),
+        ),
         error: (error, _) => const _DetailMessage(
           title: 'Could not load this order',
           message: 'Check your connection and try again.',

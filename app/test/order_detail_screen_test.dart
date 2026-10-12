@@ -204,6 +204,8 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Could not load this order'), findsOneWidget);
+    // flutter_animate schedules a zero-length start timer; let it fire.
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('says when the link and the reply were not kept', (tester) async {

@@ -106,6 +106,31 @@ describe('PATCH /v1/catalogue/products/:productId', () => {
     expect(res.body.product.basePriceMinor).toBe(3500);
   });
 
+  it('saves a photo URL from this seller\'s own Storage folder', async () => {
+    const id = await create();
+    const url = `https://firebasestorage.googleapis.com/v0/b/sorted-7b9b7.firebasestorage.app/o/${encodeURIComponent(`sellers/seller-a/products/${id}/1.jpg`)}?alt=media&token=t`;
+    const res = await request(app())
+      .patch(`/v1/catalogue/products/${id}`)
+      .set('Authorization', 'Bearer good')
+      .send({ photoUrl: url });
+    expect(res.status).toBe(200);
+    expect(res.body.product.photoUrl).toBe(url);
+  });
+
+  it('400s on a photo URL that is not this seller\'s upload', async () => {
+    const id = await create();
+    for (const url of [
+      'https://example.com/cake.jpg',
+      `https://firebasestorage.googleapis.com/v0/b/x/o/${encodeURIComponent(`sellers/someone-else/products/${id}/1.jpg`)}`,
+    ]) {
+      const res = await request(app())
+        .patch(`/v1/catalogue/products/${id}`)
+        .set('Authorization', 'Bearer good')
+        .send({ photoUrl: url });
+      expect(res.status).toBe(400);
+    }
+  });
+
   it('404s for a product that does not exist', async () => {
     const res = await request(app())
       .patch('/v1/catalogue/products/nope')

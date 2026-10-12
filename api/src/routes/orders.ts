@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer, { MulterError } from 'multer';
 import { z } from 'zod';
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { looksLikeUpload, visionMime } from '../lib/image_type.js';
 import { ApiError } from '../lib/errors.js';
 import { requireSeller, type TokenVerifier } from '../lib/auth.js';
 import type { ChatTransport } from '../ai/client.js';
@@ -26,13 +27,12 @@ import {
 } from '../domain/ambiguities.js';
 
 const MAX_BYTES = 8 * 1024 * 1024;
-const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/heic']);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: 1 },
   fileFilter: (_req, file, cb) => {
-    if (!ALLOWED.has(file.mimetype)) {
+    if (!looksLikeUpload(file.mimetype)) {
       cb(new ApiError(400, 'VALIDATION_FAILED', `${file.mimetype} is not an image Sorted can read.`));
       return;
     }
@@ -150,7 +150,7 @@ export function ordersRouter(deps: OrdersDeps): Router {
 
         const parsed = await parseDm(
           {
-            ...(file ? { image: { buffer: file.buffer, mime: file.mimetype } } : {}),
+            ...(file ? { image: { buffer: file.buffer, mime: visionMime(file.buffer) } } : {}),
             ...(text ? { text } : {}),
           },
           toBrief(products),

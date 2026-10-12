@@ -61,7 +61,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     final hasText = _controller.text.trim().isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New order')),
+      appBar: AppBar(
+        // Reached by go() after a failed read, so there may be nothing to pop.
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const SortedIcon(SortedIcons.back, size: 24),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
+        title: const Text('New order'),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(SortedShape.screenPadding),

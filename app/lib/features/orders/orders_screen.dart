@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,7 +35,25 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           horizontal: SortedShape.screenPadding,
         ),
         child: orders.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => Shimmer(
+            child: ListView(
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                const SizedBox(height: 12),
+                const Row(children: [SkeletonLine(width: 110, fontSize: 30), Spacer(), SkeletonLine(width: 100, fontSize: 13)]),
+                const SizedBox(height: 14),
+                const Row(children: [
+                  SkeletonBox(width: 52, height: 36, radius: 999),
+                  SizedBox(width: 8),
+                  SkeletonBox(width: 80, height: 36, radius: 999),
+                  SizedBox(width: 8),
+                  SkeletonBox(width: 64, height: 36, radius: 999),
+                ]),
+                const SizedBox(height: 12),
+                for (var i = 0; i < 5; i++) ...[const OrderCardSkeleton(), const SizedBox(height: 10)],
+              ],
+            ),
+          ),
           error: (error, _) => _OrdersMessage(
             title: 'Could not load your orders',
             message: 'Check your connection and try again.',

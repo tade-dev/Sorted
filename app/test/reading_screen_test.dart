@@ -37,6 +37,8 @@ void main() {
     await tester.pump();
     expect(find.textContaining('Reading'), findsWidgets);
     await tester.pump(const Duration(seconds: 2));
+    // flutter_animate schedules a zero-length start timer; let it fire.
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('moves to the draft once it is ready', (tester) async {

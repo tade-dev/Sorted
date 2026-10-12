@@ -30,6 +30,10 @@ const _unpriced = ProductCandidate(
 );
 
 class _FakeApi implements CatalogueApi {
+  @override
+  Future<Map<String, dynamic>> patchProduct(String productId, Object body) async =>
+      {'product': body};
+
   Object? saved;
   List<String> skipped = <String>[];
   Object? throwOnSave;
@@ -187,6 +191,8 @@ void main() {
 
     expect(find.textContaining('Lemon drizzle cake'), findsWidgets);
     expect(find.textContaining('not added again'), findsOneWidget);
+    // flutter_animate schedules a zero-length start timer; let it fire.
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('shows the API message when saving fails, and stays put',

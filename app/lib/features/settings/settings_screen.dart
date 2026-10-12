@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/sorted_icon.dart';
@@ -79,6 +81,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
+    if (seller == null && !_loaded) return const _SettingsSkeleton();
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -147,6 +151,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ]),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsSkeleton extends StatelessWidget {
+  const _SettingsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget field(double h) => SkeletonBox(height: h, radius: 14);
+    return SafeArea(
+      child: Shimmer(
+        child: ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          children: [
+            const SkeletonLine(width: 130, fontSize: 32),
+            const SizedBox(height: 30),
+            const SkeletonLine(width: 50, fontSize: 19),
+            const SizedBox(height: 12),
+            field(52),
+            const SizedBox(height: 28),
+            const SkeletonLine(width: 190, fontSize: 19),
+            const SizedBox(height: 12),
+            field(110),
+            const SizedBox(height: 24),
+            field(54),
+          ],
+        ),
       ),
     );
   }

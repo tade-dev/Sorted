@@ -3,6 +3,7 @@ import '../../widgets/sorted_icon.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/sorted_colors.dart';
@@ -107,48 +108,227 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
       );
     }
 
+    final ready = state is DraftReady;
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Cancel',
+          icon: const SortedIcon(SortedIcons.close, size: 24),
+          onPressed: () {
+            ref.read(draftControllerProvider.notifier).clear();
+            context.canPop() ? context.pop() : context.go('/');
+          },
+        ),
+        title: const Text('New order'),
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(SortedShape.screenPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('New order', style: text.bodySmall),
-              Text('Reading the message', style: text.headlineMedium),
-              const SizedBox(height: 24),
-              for (var i = 0; i < _steps.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    children: [
-                      if (i < _shown)
-                        SortedIcon(SortedIcons.checkCircle, size: 20, color: c.success)
-                      else if (i == _shown)
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: c.primary,
-                          ),
-                        )
-                      else
-                        SortedIcon(SortedIcons.circle, size: 20, color: c.line),
-                      const SizedBox(width: 12),
-                      Text(
-                        _steps[i],
-                        style: i <= _shown
-                            ? text.bodyLarge
-                            : text.bodyMedium?.copyWith(color: c.muted),
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                children: [
+                  Text('Reading the message', style: text.headlineLarge?.copyWith(height: 1.1)),
+                  const SizedBox(height: 26),
+                  const Center(child: _ScanningPaper()),
+                  const SizedBox(height: 26),
+                  for (var i = 0; i < _steps.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _StepRow(
+                        label: _steps[i],
+                        state: ready || i < _shown
+                            ? _Step.done
+                            : i == _shown
+                                ? _Step.active
+                                : _Step.todo,
                       ),
-                    ],
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              child: SizedBox(
+                height: SortedShape.primaryButtonHeight,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.ink,
+                    backgroundColor: Colors.transparent,
+                    side: BorderSide(color: ready ? c.ink : c.line, width: 1.5),
+                    textStyle: text.labelLarge,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(SortedShape.primaryButtonRadius),
+                    ),
                   ),
+                  onPressed: ready ? () => context.go('/order/draft') : null,
+                  child: const Text('See order draft'),
                 ),
-            ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _Step { done, active, todo }
+
+/// 28 px status dot + 16/500 label, as in Reading.dc.html.
+class _StepRow extends StatelessWidget {
+  const _StepRow({required this.label, required this.state});
+  final String label;
+  final _Step state;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    final text = Theme.of(context).textTheme;
+    final Widget dot = switch (state) {
+      _Step.done => Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: c.success, shape: BoxShape.circle),
+        child: const SortedIcon(SortedIcons.check, size: 16, color: Colors.white, strokeWidth: 2.4),
+      ).animate().scale(begin: const Offset(0.6, 0.6), duration: 220.ms, curve: Curves.easeOutBack),
+      _Step.active => SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: c.primary,
+          backgroundColor: c.line,
+        ),
+      ),
+      _Step.todo => Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: c.line, width: 3),
+        ),
+      ),
+    };
+    return Row(
+      children: [
+        dot,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: text.bodyLarge?.copyWith(
+              color: state == _Step.done ? c.ink : c.muted,
+              fontWeight: state == _Step.done ? FontWeight.w500 : FontWeight.w600,
+            ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// The "paper" from Reading.dc.html: a 210×250 chat card (avatar, name bar,
+/// four message bubbles) with a glowing blue scan line sweeping down and up.
+/// The same card is shown for a screenshot and for pasted text; the design
+/// has one processing screen for both.
+class _ScanningPaper extends StatelessWidget {
+  const _ScanningPaper();
+
+  static const _w = 210.0;
+  static const _h = 250.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    Widget bubble(double f) => Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: f,
+        child: Container(
+          height: 14,
+          decoration: BoxDecoration(
+            color: c.neutralTint,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(7),
+              topRight: Radius.circular(7),
+              bottomRight: Radius.circular(7),
+              bottomLeft: Radius.circular(3),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final line = Container(
+      width: _w,
+      height: 3,
+      decoration: BoxDecoration(
+        color: c.primary,
+        boxShadow: [
+          BoxShadow(color: c.primary.withValues(alpha: 0.35), blurRadius: 18, spreadRadius: 6),
+        ],
+      ),
+    );
+
+    return Container(
+      width: _w,
+      height: _h,
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border.all(color: c.line),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: c.ink.withValues(alpha: 0.12), blurRadius: 34, offset: const Offset(0, 14)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(color: Color(0xFFF3C9B8), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 60,
+                      height: 8,
+                      decoration: BoxDecoration(color: c.line, borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                for (final (i, f) in [0.85, 0.70, 0.55, 0.40].indexed)
+                  bubble(f)
+                      .animate()
+                      .fadeIn(delay: (150 * i).ms, duration: 300.ms)
+                      .slideX(begin: -0.05, delay: (150 * i).ms, duration: 300.ms),
+              ],
+            ),
+          ),
+          if (reduceMotion)
+            Positioned(left: 0, top: 118, child: line)
+          else
+            Positioned(
+              left: 0,
+              top: 0,
+              child: line
+                  .animate(onPlay: (a) => a.repeat(reverse: true))
+                  .moveY(begin: 24, end: 222, duration: 1600.ms, curve: Curves.easeInOut),
+            ),
+        ],
       ),
     );
   }

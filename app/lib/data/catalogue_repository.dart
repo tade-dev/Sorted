@@ -2,12 +2,14 @@ import '../core/api_client.dart';
 import '../models/product.dart';
 import '../models/product_candidate.dart';
 import 'firestore_refs.dart';
+import 'photo_store.dart';
 
 /// The API surface the repository needs, named so tests can fake it without
 /// a Dio instance or a live token.
 abstract class CatalogueApi {
   Future<Map<String, dynamic>> extract(List<({List<int> bytes, String filename})> files);
   Future<Map<String, dynamic>> saveProducts(Object body);
+  Future<Map<String, dynamic>> patchProduct(String productId, Object body);
 }
 
 class HttpCatalogueApi implements CatalogueApi {
@@ -21,11 +23,33 @@ class HttpCatalogueApi implements CatalogueApi {
   @override
   Future<Map<String, dynamic>> saveProducts(Object body) =>
       _client.postJson('/v1/catalogue/products', body);
+
+  @override
+  Future<Map<String, dynamic>> patchProduct(String productId, Object body) =>
+      _client.patchJson('/v1/catalogue/products/$productId', body);
 }
 
 class CatalogueRepository {
-  CatalogueRepository({required this.api});
+  CatalogueRepository({required this.api, this.photos});
   final CatalogueApi api;
+  final PhotoStore? photos;
+
+  /// Uploads a product photo to Storage, then records its URL through the API
+  /// (clients cannot write Firestore directly).
+  Future<String> setPhoto({
+    required String sellerId,
+    required String productId,
+    required List<int> bytes,
+  }) async {
+    final store = photos ?? FirebasePhotoStore();
+    final url = await store.uploadProductPhoto(
+      sellerId: sellerId,
+      productId: productId,
+      bytes: bytes,
+    );
+    await api.patchProduct(productId, {'photoUrl': url});
+    return url;
+  }
 
   /// Reads come straight from Firestore so the list updates live.
   /// Orders server-side on `name` only, and filters `active` in Dart.
