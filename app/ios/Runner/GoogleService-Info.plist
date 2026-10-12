@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.sorted</string>
+	<string>dev.tade.sorted</string>
 	<key>PROJECT_ID</key>
 	<string>sorted-7b9b7</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1066325330:ios:1cd263f239de2628d4568b</string>
+	<string>1:1066325330:ios:cec9fb7726a5fabdd4568b</string>
 </dict>
 </plist>

@@ -1,4 +1,4 @@
-package com.example.sorted
+package dev.tade.sorted
 
 import io.flutter.embedding.android.FlutterActivity
 

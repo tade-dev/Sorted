@@ -58,18 +58,17 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBgKmX0LpyRf2jM5txHPw-99gHHqhQ1ymM',
-    appId: '1:1066325330:android:70b079c6942c21acd4568b',
+    appId: '1:1066325330:android:fa4729c45df5da94d4568b',
     messagingSenderId: '1066325330',
     projectId: 'sorted-7b9b7',
     storageBucket: 'sorted-7b9b7.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCCk9yT2hHZ4thiqcBWp_Az-V8PM9XBlLM',
-    appId: '1:1066325330:ios:1cd263f239de2628d4568b',
+    appId: '1:1066325330:ios:cec9fb7726a5fabdd4568b',
     messagingSenderId: '1066325330',
     projectId: 'sorted-7b9b7',
     storageBucket: 'sorted-7b9b7.firebasestorage.app',
-    iosBundleId: 'com.example.sorted',
+    iosBundleId: 'dev.tade.sorted',
   );
 }

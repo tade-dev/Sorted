@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Sorted uses the camera to photograph your products so it can add them to your catalogue.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Sorted reads photos you choose of your products, or screenshots of buyer messages.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -30,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Sorted uses the camera to photograph your products so it can add them to your catalogue.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Sorted reads photos you choose of your products, or screenshots of buyer messages.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
