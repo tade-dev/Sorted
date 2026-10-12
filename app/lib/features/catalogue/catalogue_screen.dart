@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
@@ -45,7 +46,7 @@ class CatalogueScreen extends ConsumerWidget {
                   ),
                   TextButton.icon(
                     onPressed: () => context.push('/catalogue/snap'),
-                    icon: const Icon(Icons.camera_alt_outlined, size: SortedShape.iconSize),
+                    icon: const SortedIcon(SortedIcons.camera, size: SortedShape.iconSize),
                     label: const Text('Snap more'),
                   ),
                 ],
@@ -67,7 +68,7 @@ class CatalogueScreen extends ConsumerWidget {
                         const SizedBox(height: 20),
                         PrimaryButton(
                           label: 'Snap your stock',
-                          icon: Icons.camera_alt_outlined,
+                          icon: SortedIcons.camera,
                           onPressed: () => context.push('/catalogue/snap'),
                         ),
                       ],

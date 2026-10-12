@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/sorted_icon.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,7 +78,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               OutlinedButton.icon(
                 key: const Key('intake-upload'),
                 onPressed: _busy ? null : _upload,
-                icon: const Icon(Icons.image_outlined),
+                icon: const SortedIcon(SortedIcons.image),
                 label: const Text('Upload a screenshot'),
               ),
               const SizedBox(height: 18),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
@@ -63,7 +64,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.verified_user_outlined, size: 24, color: c.primary),
+              SortedIcon(SortedIcons.shield, size: 24, color: c.primary),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
@@ -120,7 +121,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
       ],
       action: PrimaryButton(
         label: _saving ? 'Connecting…' : 'Connect PayPal',
-        icon: Icons.link,
+        icon: SortedIcons.link,
         onPressed: _saving ? null : _connect,
       ),
       footnote: sharedMerchantNote,

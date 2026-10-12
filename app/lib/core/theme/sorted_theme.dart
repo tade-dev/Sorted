@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/sorted_icon.dart';
 
 import 'sorted_colors.dart';
 import 'sorted_shape.dart';
@@ -152,7 +153,7 @@ ThemeData sortedTheme() {
       ),
     ),
     actionIconTheme: ActionIconThemeData(
-      backButtonIconBuilder: (_) => const Icon(Icons.chevron_left, size: 28),
+      backButtonIconBuilder: (_) => const SortedIcon(SortedIcons.back, size: 24),
     ),
     dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),
   );

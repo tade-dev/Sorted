@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
@@ -65,7 +66,7 @@ class OnboardingScaffold extends ConsumerWidget {
                     child: IconButton(
                       tooltip: 'Back',
                       padding: EdgeInsets.zero,
-                      icon: Icon(Icons.chevron_left, size: 24, color: c.ink),
+                      icon: SortedIcon(SortedIcons.back, size: 24, color: c.ink),
                       onPressed: () => context.canPop()
                           ? context.pop()
                           : context.go('/welcome'),

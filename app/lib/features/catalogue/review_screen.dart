@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/money.dart';
@@ -134,7 +135,7 @@ class _CandidateCardState extends ConsumerState<_CandidateCard> {
               Expanded(child: Text(candidate.name, style: text.titleLarge)),
               IconButton(
                 tooltip: 'Remove ${candidate.name}',
-                icon: const Icon(Icons.close),
+                icon: const SortedIcon(SortedIcons.close),
                 onPressed: () => ref
                     .read(extractionControllerProvider.notifier)
                     .discard(candidate.tempId),

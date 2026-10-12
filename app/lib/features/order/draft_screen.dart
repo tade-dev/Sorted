@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/money.dart';
@@ -320,7 +321,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
         title: const Text('Order draft'),
         leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.chevron_left, size: 28),
+          icon: const SortedIcon(SortedIcons.back, size: 24),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -450,7 +451,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
               const SizedBox(height: 4),
               PrimaryButton(
                 label: _busy ? 'Creating the link…' : 'Create PayPal link',
-                icon: Icons.link_outlined,
+                icon: SortedIcons.link,
                 onPressed: _busy || !_canCreate(order)
                     ? null
                     : () => _create(order),
@@ -683,7 +684,7 @@ class _QtyStepper extends StatelessWidget {
           onPressed: busy || line.qty <= 1
               ? null
               : () => onQty(line, line.qty - 1),
-          icon: const Icon(Icons.remove),
+          icon: const SortedIcon(SortedIcons.minus),
         ),
         Text('${line.qty}', style: text.labelLarge),
         IconButton(
@@ -692,7 +693,7 @@ class _QtyStepper extends StatelessWidget {
           onPressed: busy || line.qty >= 999
               ? null
               : () => onQty(line, line.qty + 1),
-          icon: const Icon(Icons.add),
+          icon: const SortedIcon(SortedIcons.add),
         ),
       ],
     );

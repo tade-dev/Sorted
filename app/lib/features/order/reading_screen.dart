@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/sorted_icon.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,7 +124,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
                   child: Row(
                     children: [
                       if (i < _shown)
-                        Icon(Icons.check_circle, size: 20, color: c.success)
+                        SortedIcon(SortedIcons.checkCircle, size: 20, color: c.success)
                       else if (i == _shown)
                         SizedBox(
                           width: 20,
@@ -134,7 +135,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
                           ),
                         )
                       else
-                        Icon(Icons.circle_outlined, size: 20, color: c.line),
+                        SortedIcon(SortedIcons.circle, size: 20, color: c.line),
                       const SizedBox(width: 12),
                       Text(
                         _steps[i],

@@ -1,5 +1,6 @@
 // app/lib/widgets/warning_card.dart
 import 'package:flutter/material.dart';
+import 'sorted_icon.dart';
 
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
@@ -28,7 +29,7 @@ class WarningCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.error_outline, size: SortedShape.iconSize, color: c.warningText),
+              SortedIcon(SortedIcons.alert, size: SortedShape.iconSize, color: c.warningText),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

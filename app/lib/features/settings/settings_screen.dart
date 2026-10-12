@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
@@ -131,7 +132,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Source code'),
               subtitle: const Text(repoUrl),
-              trailing: const Icon(Icons.copy, size: 20),
+              trailing: const SortedIcon(SortedIcons.copy, size: 20),
               onTap: () {
                 Clipboard.setData(const ClipboardData(text: repoUrl));
                 ScaffoldMessenger.of(context).showSnackBar(

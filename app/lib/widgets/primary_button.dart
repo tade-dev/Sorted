@@ -1,5 +1,6 @@
 // app/lib/widgets/primary_button.dart
 import 'package:flutter/material.dart';
+import 'sorted_icon.dart';
 
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
@@ -24,7 +25,7 @@ class PrimaryButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final IconData? icon;
+  final SortedIconData? icon;
   final PrimaryButtonTone tone;
 
   @override
@@ -52,7 +53,7 @@ class PrimaryButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
+            if (icon != null) ...[SortedIcon(icon!, size: 20), const SizedBox(width: 8)],
             Text(label),
           ],
         ),

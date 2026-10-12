@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'widgets/sorted_icon.dart';
 
 import 'core/theme/sorted_colors.dart';
 import 'features/catalogue/catalogue_screen.dart';
@@ -71,10 +72,10 @@ class SortedTabBar extends StatelessWidget {
   final String location;
 
   static const _tabs = [
-    ('/', 'Home', Icons.home_outlined),
-    ('/orders', 'Orders', Icons.receipt_outlined),
-    ('/catalogue', 'Catalogue', Icons.grid_view_outlined),
-    ('/settings', 'Settings', Icons.tune),
+    ('/', 'Home', SortedIcons.home),
+    ('/orders', 'Orders', SortedIcons.orders),
+    ('/catalogue', 'Catalogue', SortedIcons.catalogue),
+    ('/settings', 'Settings', SortedIcons.settings),
   ];
 
   @override
@@ -82,7 +83,7 @@ class SortedTabBar extends StatelessWidget {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
 
-    Widget tab((String, String, IconData) t) {
+    Widget tab((String, String, SortedIconData) t) {
       final selected = location == t.$1;
       final color = selected ? c.ink : c.muted;
       return Expanded(
@@ -96,7 +97,7 @@ class SortedTabBar extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(t.$3, size: 22, color: color),
+                  SortedIcon(t.$3, size: 22, color: color),
                   const SizedBox(height: 4),
                   Text(
                     t.$2,
@@ -153,7 +154,7 @@ class SortedTabBar extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.add, size: 26, color: Colors.white),
+                            child: const SortedIcon(SortedIcons.add, size: 24, color: Colors.white, strokeWidth: 2),
                           ),
                         ),
                       ),

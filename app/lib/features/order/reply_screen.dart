@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/money.dart';
@@ -21,7 +22,7 @@ const _tones = [
 class _PayBanner {
   const _PayBanner(this.label, this.icon, this.background, this.foreground);
   final String label;
-  final IconData icon;
+  final SortedIconData icon;
   final Color Function(SortedColors colors) background;
   final Color Function(SortedColors colors) foreground;
 }
@@ -31,31 +32,31 @@ _PayBanner _payBanner(Order order) {
   return switch (order.status) {
     'paid' => _PayBanner(
       '$who paid',
-      Icons.check_circle,
+      SortedIcons.checkCircle,
       (c) => c.successTint,
       (c) => c.success,
     ),
     'pending' => _PayBanner(
       'Payment is pending with PayPal',
-      Icons.schedule,
+      SortedIcons.clock,
       (c) => c.warningTint,
       (c) => c.warningText,
     ),
     'processing' => _PayBanner(
       'Confirming the payment with PayPal',
-      Icons.schedule,
+      SortedIcons.clock,
       (c) => c.warningTint,
       (c) => c.warningText,
     ),
     'declined' => _PayBanner(
       'Payment declined. Ask $who to try the link again.',
-      Icons.error_outline,
+      SortedIcons.alert,
       (c) => c.warningTint,
       (c) => c.warningText,
     ),
     _ => _PayBanner(
       'Waiting for $who to pay',
-      Icons.schedule,
+      SortedIcons.clock,
       (c) => c.warningTint,
       (c) => c.warningText,
     ),
@@ -184,7 +185,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                       color: c.success,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white),
+                    child: const SortedIcon(SortedIcons.check, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -252,8 +253,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(
-                                          Icons.link,
+                                        SortedIcon(SortedIcons.link,
                                           size: 18,
                                           color: c.highlight,
                                         ),
@@ -310,8 +310,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              banner.icon,
+                            SortedIcon(banner.icon,
                               size: 20,
                               color: banner.foreground(c),
                             ),
@@ -335,7 +334,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
               const SizedBox(height: 12),
               PrimaryButton(
                 label: 'Copy reply',
-                icon: Icons.copy_outlined,
+                icon: SortedIcons.copy,
                 onPressed: _busy || toCopy.isEmpty
                     ? null
                     : () async {

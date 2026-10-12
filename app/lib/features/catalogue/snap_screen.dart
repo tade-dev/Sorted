@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
@@ -95,7 +96,7 @@ class _SnapScreenState extends ConsumerState<SnapScreen> {
                   ),
                   IconButton(
                     onPressed: () => context.pop(),
-                    icon: Icon(Icons.close, color: c.onDarkMuted),
+                    icon: SortedIcon(SortedIcons.close, color: c.onDarkMuted),
                   ),
                 ],
               ),
@@ -132,7 +133,7 @@ class _SnapScreenState extends ConsumerState<SnapScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _busy ? null : () => _snap(fromCamera: false),
-                      icon: const Icon(Icons.photo_library_outlined),
+                      icon: const SortedIcon(SortedIcons.gallery),
                       label: const Text('Upload'),
                     ),
                   ),
@@ -141,7 +142,7 @@ class _SnapScreenState extends ConsumerState<SnapScreen> {
                     child: OutlinedButton.icon(
                       key: const Key('snap-shutter'),
                       onPressed: _busy ? null : () => _snap(fromCamera: true),
-                      icon: const Icon(Icons.camera_alt_outlined),
+                      icon: const SortedIcon(SortedIcons.camera),
                       label: const Text('Snap'),
                     ),
                   ),

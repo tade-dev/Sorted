@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/sorted_colors.dart';
@@ -99,7 +100,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: 16),
         PrimaryButton(
           label: 'New order from a DM',
-          icon: Icons.add,
+          icon: SortedIcons.add,
           onPressed: () => context.push('/order/new'),
         ),
       ],
@@ -117,7 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.notifications_none, size: 20, color: c.warningText),
+                  SortedIcon(SortedIcons.bell, size: 20, color: c.warningText),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
 import '../../core/theme/sorted_colors.dart';
@@ -36,7 +37,7 @@ class OrderDetailScreen extends ConsumerWidget {
         ),
         leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.chevron_left, size: 28),
+          icon: const SortedIcon(SortedIcons.back, size: 24),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -156,8 +157,7 @@ class _DetailBody extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.verified_user_outlined,
+                      SortedIcon(SortedIcons.shield,
                         size: SortedShape.iconSize,
                         color: c.primary,
                       ),
@@ -240,7 +240,7 @@ class _DetailBody extends StatelessWidget {
             ),
             child: PrimaryButton(
               label: 'Copy reply',
-              icon: Icons.copy_outlined,
+              icon: SortedIcons.copy,
               onPressed: () =>
                   _copy(context, reply, 'Copied. Paste it into the chat.'),
             ),
@@ -535,7 +535,7 @@ class _CopyRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.link, size: 18, color: c.primary),
+          SortedIcon(SortedIcons.link, size: 18, color: c.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

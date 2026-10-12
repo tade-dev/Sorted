@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'sorted_icon.dart';
 
 import '../core/theme/sorted_colors.dart';
 
@@ -52,7 +53,7 @@ class _SortedStampState extends State<SortedStamp>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check, color: c.primary, size: 26),
+            SortedIcon(SortedIcons.check, color: c.primary, size: 26),
             const SizedBox(width: 4),
             Text(
               'Sorted',
