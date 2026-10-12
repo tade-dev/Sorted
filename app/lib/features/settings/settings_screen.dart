@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
-import '../../core/theme/sorted_shape.dart';
 import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
 import '../onboarding/connect_screen.dart';
