@@ -183,7 +183,7 @@ class _HeroSlip extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(left: 180, top: 178, child: SortedStamp(degrees: -12)),
+          const Positioned(left: 180, top: 196, child: SortedStamp(degrees: -12)),
         ],
       ),
     );

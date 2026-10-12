@@ -45,6 +45,7 @@ void main() {
 
   test('greeting and date', () {
     expect(greeting(now, 'Mia Bakes'), 'Morning, Mia');
+    expect(greeting(now, "Ola's Bakehouse"), 'Morning, Ola');
     expect(greeting(DateTime(2026, 10, 10, 19), ''), 'Evening');
     expect(longDate(now), 'Saturday 10 October');
   });

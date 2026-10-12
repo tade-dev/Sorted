@@ -94,7 +94,8 @@ String longDate(DateTime now) {
 String greeting(DateTime now, String name) {
   final h = now.toLocal().hour;
   final part = h < 12 ? 'Morning' : (h < 18 ? 'Afternoon' : 'Evening');
-  final first = name.trim().split(RegExp(r'\s+')).first;
+  // Shop names read as "Ola's Bakehouse"; greet the person, "Ola".
+  final first = name.trim().split(RegExp(r'\s+')).first.replaceAll(RegExp(r"['’]s$"), '');
   return first.isEmpty ? part : '$part, $first';
 }
 

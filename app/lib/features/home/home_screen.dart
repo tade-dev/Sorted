@@ -201,10 +201,10 @@ class _SummaryCard extends StatelessWidget {
               child: Row(
                 children: [
                   if (total == 0)
-                    Expanded(child: ColoredBox(color: c.darkTrack))
+                    Expanded(child: Container(color: c.darkTrack))
                   else ...[
-                    if (paid > 0) Expanded(flex: paid, child: ColoredBox(color: c.paidBar)),
-                    if (waiting > 0) Expanded(flex: waiting, child: ColoredBox(color: c.highlight)),
+                    if (paid > 0) Expanded(flex: paid, child: Container(color: c.paidBar)),
+                    if (waiting > 0) Expanded(flex: waiting, child: Container(color: c.highlight)),
                   ],
                 ],
               ),
