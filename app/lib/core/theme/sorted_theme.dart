@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'sorted_colors.dart';
 import 'sorted_shape.dart';
@@ -7,11 +6,33 @@ import 'sorted_shape.dart';
 ThemeData sortedTheme() {
   const c = SortedColors.light;
 
-  final display = GoogleFonts.bricolageGrotesqueTextTheme();
-  final body = GoogleFonts.plusJakartaSansTextTheme();
+  // Material's type scale tracks letters out (0.1–0.5); the design is CSS
+  // default tracking, so zero it before applying the families.
+  final m = Typography.material2021().black;
+  TextStyle? flat(TextStyle? t) => t?.copyWith(letterSpacing: 0);
+  final base = TextTheme(
+    displayLarge: flat(m.displayLarge),
+    displayMedium: flat(m.displayMedium),
+    displaySmall: flat(m.displaySmall),
+    headlineLarge: flat(m.headlineLarge),
+    headlineMedium: flat(m.headlineMedium),
+    headlineSmall: flat(m.headlineSmall),
+    titleLarge: flat(m.titleLarge),
+    titleMedium: flat(m.titleMedium),
+    titleSmall: flat(m.titleSmall),
+    bodyLarge: flat(m.bodyLarge),
+    bodyMedium: flat(m.bodyMedium),
+    bodySmall: flat(m.bodySmall),
+    labelLarge: flat(m.labelLarge),
+    labelMedium: flat(m.labelMedium),
+    labelSmall: flat(m.labelSmall),
+  );
+  final display = base.apply(fontFamily: 'Bricolage Grotesque');
+  final body = base.apply(fontFamily: 'Plus Jakarta Sans');
 
   return ThemeData(
     useMaterial3: true,
+    fontFamily: 'Plus Jakarta Sans',
     scaffoldBackgroundColor: c.background,
     colorScheme: ColorScheme.fromSeed(
       seedColor: c.primary,
@@ -111,6 +132,27 @@ ThemeData sortedTheme() {
         textStyle: body.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    ),
+    // Header from Draft / Reply / Order: 44 px chevron back, 16/600 title,
+    // left-aligned, flat on the page colour.
+    appBarTheme: AppBarTheme(
+      backgroundColor: c.background,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: c.ink,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleSpacing: 0,
+      toolbarHeight: 60,
+      iconTheme: IconThemeData(color: c.ink, size: 24),
+      titleTextStyle: body.titleMedium?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: c.ink,
+      ),
+    ),
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (_) => const Icon(Icons.chevron_left, size: 28),
     ),
     dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),
   );

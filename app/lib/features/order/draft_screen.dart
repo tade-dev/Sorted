@@ -320,7 +320,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
         title: const Text('Order draft'),
         leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.chevron_left, size: 28),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
