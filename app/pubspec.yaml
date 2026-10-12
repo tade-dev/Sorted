@@ -75,8 +75,6 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  shaders:
-    - shaders/ripple.frag
 
   # Bundled static weights (OFL) so copyWith(fontWeight: ...) picks the real
   # cut instead of a synthesised one, and nothing is fetched at runtime.

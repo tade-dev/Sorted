@@ -9,7 +9,6 @@ import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../providers/catalogue_providers.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/ripple_image.dart';
 import 'camera_port.dart';
 
 /// Named so tests can inject photos without a camera.
@@ -270,7 +269,13 @@ class _SnapScreenState extends ConsumerState<SnapScreen> with WidgetsBindingObse
     return Stack(
       fit: StackFit.expand,
       children: [
-        RippleImage(key: const Key('snap-ripple'), bytes: latest),
+        Image.memory(
+          Uint8List.fromList(latest),
+          key: const Key('snap-reading-photo'),
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
         if (count > 1)
           Positioned(
             left: 14,

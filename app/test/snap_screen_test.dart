@@ -152,14 +152,14 @@ void main() {
     expect(camera.closed, isTrue);
   });
 
-  testWidgets('ripples the photo with a status line while reading', (tester) async {
+  testWidgets('shows the latest photo with a status line while reading', (tester) async {
     final picker = _FakePicker([(bytes: [1], filename: 'a.png'), (bytes: [2], filename: 'b.png')]);
     await tester.pumpWidget(_host(picker, api: _SlowApi()));
     await tester.tap(find.byKey(const Key('snap-upload')));
     await tester.pump();
     await tester.tap(find.byType(FilledButton));
     await tester.pump();
-    expect(find.byKey(const Key('snap-ripple')), findsOneWidget);
+    expect(find.byKey(const Key('snap-reading-photo')), findsOneWidget);
     expect(find.text('Reading 2 photos…'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).enabled, isFalse);
   });
