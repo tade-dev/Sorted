@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
@@ -102,7 +103,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
       _tone = tone;
       _busy = true;
     });
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     try {
       final reply = await ref
           .read(ordersRepositoryProvider)
@@ -113,7 +114,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
           .replace(order.copyWith(draftedReply: reply));
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -340,11 +341,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                     : () async {
                         await Clipboard.setData(ClipboardData(text: toCopy));
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Copied. Paste it into the chat.'),
-                          ),
-                        );
+                        SortedToast.success(context, 'Copied. Paste it into the chat.');
                       },
               ),
               SizedBox(

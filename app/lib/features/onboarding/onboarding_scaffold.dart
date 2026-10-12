@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
@@ -21,9 +22,7 @@ Future<void> finishOnboarding(BuildContext context, WidgetRef ref) async {
 }
 
 void showOnboardingError(BuildContext context, Object error) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(describeApiError(error))));
+  SortedToast.error(context, describeApiError(error));
 }
 
 /// Setup / Connect chrome from the design: 44 px back chevron and a 16/600

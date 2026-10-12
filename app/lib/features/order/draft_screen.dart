@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
@@ -112,14 +113,10 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
   bool _busy = false;
 
   Future<void> _answer(Order order, Ambiguity ambiguity, String label) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     final index = _lineIndexFor(ambiguity);
     if (index == null || index < 0 || index >= order.lineItems.length) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('That answer did not match a line on this order.'),
-        ),
-      );
+      toast.show('That answer did not match a line on this order.', kind: SortedToastKind.error);
       return;
     }
     final line = order.lineItems[index];
@@ -138,15 +135,11 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
       if (!mounted) return;
       ref.read(draftControllerProvider.notifier).replace(updated);
       if (updated.blockingAmbiguities.any((a) => a.field == ambiguity.field)) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('That did not clear the question. Try again.'),
-          ),
-        );
+        toast.show('That did not clear the question. Try again.', kind: SortedToastKind.error);
       }
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -211,7 +204,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
     Ambiguity ambiguity,
     String label,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     setState(() => _busy = true);
     try {
       final updated = await _sendLoose(order, ambiguity, label);
@@ -219,7 +212,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
       ref.read(draftControllerProvider.notifier).replace(updated);
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -242,7 +235,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
 
   Future<void> _setQty(Order order, LineItem line, int qty) async {
     if (qty < 1 || qty > 999 || _busy) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     setState(() => _busy = true);
     try {
       final updated = await ref
@@ -252,7 +245,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
       ref.read(draftControllerProvider.notifier).replace(updated);
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -260,7 +253,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
 
   Future<void> _create(Order order) async {
     setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     final router = GoRouter.of(context);
     try {
       final confirmed = await ref.read(ordersRepositoryProvider).confirm(order);
@@ -269,7 +262,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
       router.go('/order/reply');
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

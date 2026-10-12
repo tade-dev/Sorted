@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -599,5 +600,5 @@ class _CopyRow extends StatelessWidget {
 Future<void> _copy(BuildContext context, String value, String notice) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(notice)));
+  SortedToast.success(context, notice);
 }

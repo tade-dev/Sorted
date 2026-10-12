@@ -191,8 +191,8 @@ void main() {
 
     expect(find.textContaining('Lemon drizzle cake'), findsWidgets);
     expect(find.textContaining('not added again'), findsOneWidget);
-    // flutter_animate schedules a zero-length start timer; let it fire.
-    await tester.pump(Duration.zero);
+    // Let the toast auto-dismiss so no timer outlives the test.
+    await tester.pump(const Duration(seconds: 6));
   });
 
   testWidgets('shows the API message when saving fails, and stays put',
@@ -208,5 +208,7 @@ void main() {
     expect(find.textContaining('could not be saved'), findsOneWidget);
     // Still on Review, not stranded on a half-finished navigation.
     expect(find.text('catalogue landed'), findsNothing);
+    // Let the toast auto-dismiss so no timer outlives the test.
+    await tester.pump(const Duration(seconds: 6));
   });
 }

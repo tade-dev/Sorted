@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -235,7 +236,7 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     final router = GoRouter.of(context);
     try {
       final result =
@@ -244,19 +245,13 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
 
       if (result.skippedDuplicates.isNotEmpty) {
         final names = result.skippedDuplicates.join(', ');
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Already in your catalogue, so not added again: $names'),
-          ),
-        );
+        toast.show('Already in your catalogue, so not added again: $names');
       }
       router.go('/catalogue');
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(describeApiError(e))),
-      );
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     }
   }
 
