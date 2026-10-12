@@ -48,11 +48,17 @@ class SortedIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = IconTheme.of(context);
     final s = size ?? theme.size ?? 24;
-    return HugeIcon(
-      icon: icon,
-      size: s,
-      color: color ?? theme.color,
-      strokeWidth: strokeWidth ?? 1.8 * s / 24,
+    // Align loosens tight constraints (e.g. a 56 px Container), which would
+    // otherwise stretch the SVG past [size]; factors of 1 keep it hugging.
+    return Align(
+      widthFactor: 1,
+      heightFactor: 1,
+      child: HugeIcon(
+        icon: icon,
+        size: s,
+        color: color ?? theme.color,
+        strokeWidth: strokeWidth ?? 1.8 * s / 24,
+      ),
     );
   }
 }

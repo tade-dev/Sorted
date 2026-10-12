@@ -154,7 +154,7 @@ class SortedTabBar extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const SortedIcon(SortedIcons.add, size: 24, color: Colors.white, strokeWidth: 2),
+                            child: const SortedIcon(SortedIcons.add, size: 20, color: Colors.white, strokeWidth: 1.8),
                           ),
                         ),
                       ),
