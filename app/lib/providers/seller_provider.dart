@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/api_client.dart';
+import '../models/seller.dart';
 import 'api_provider.dart';
 
 /// Signs the seller in anonymously and makes sure their shop exists.
@@ -26,3 +29,40 @@ final sellerIdProvider = FutureProvider<String>((ref) async {
 
   return uid;
 });
+
+/// The live seller doc. Null until bootstrap has written it.
+final sellerProvider = StreamProvider<Seller?>((ref) {
+  final sellerId = ref.watch(sellerIdProvider).value;
+  if (sellerId == null) return const Stream<Seller?>.empty();
+  return FirebaseFirestore.instance.doc('sellers/$sellerId').snapshots().map(
+    (snap) => snap.exists ? Seller.fromMap(snap.id, snap.data()!) : null,
+  );
+});
+
+/// Writes onboarding and Settings answers. Only the given fields change.
+class SellerUpdater {
+  SellerUpdater(this._api);
+  final ApiClient _api;
+
+  Future<void> update({
+    String? displayName,
+    String? personaTone,
+    List<String>? sells,
+    List<String>? channels,
+    String? fulfilmentMode,
+    bool connectPaypal = false,
+    bool finishOnboarding = false,
+  }) => _api.patchJson('/v1/session/seller', {
+    'displayName': ?displayName,
+    'personaTone': ?personaTone,
+    'sells': ?sells,
+    'channels': ?channels,
+    'fulfilmentMode': ?fulfilmentMode,
+    if (connectPaypal) 'paypalConnected': true,
+    if (finishOnboarding) 'onboarded': true,
+  });
+}
+
+final sellerUpdaterProvider = Provider<SellerUpdater>(
+  (ref) => SellerUpdater(ref.watch(apiClientProvider)),
+);

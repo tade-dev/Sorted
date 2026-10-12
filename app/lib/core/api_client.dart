@@ -25,6 +25,15 @@ class ApiClient {
     return res.data ?? <String, dynamic>{};
   }
 
+  Future<Map<String, dynamic>> patchJson(String path, Object body) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      path,
+      data: body,
+      options: await _authed(),
+    );
+    return res.data ?? <String, dynamic>{};
+  }
+
   Future<Map<String, dynamic>> postImages(
     String path,
     List<({List<int> bytes, String filename})> files, {
