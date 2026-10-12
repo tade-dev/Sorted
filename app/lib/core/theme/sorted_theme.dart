@@ -143,7 +143,8 @@ ThemeData sortedTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleSpacing: 0,
+      // A bare AppBar with no leading must not sit flush at x=0.
+      titleSpacing: 16,
       toolbarHeight: 60,
       iconTheme: IconThemeData(color: c.ink, size: 24),
       titleTextStyle: body.titleMedium?.copyWith(

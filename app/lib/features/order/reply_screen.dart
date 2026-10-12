@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
@@ -165,7 +166,12 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
     final banner = _payBanner(order);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reply ready')),
+      // The order is sent, so back goes to it rather than to its editable draft.
+      appBar: SortedAppBar(
+        title: 'Reply ready',
+        fallback: '/orders/${order.id}',
+        alwaysFallback: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(

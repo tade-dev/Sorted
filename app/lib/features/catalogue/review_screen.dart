@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,7 +92,10 @@ class ReviewScreen extends ConsumerWidget {
     final count = candidates.length;
 
     return Scaffold(
+      // Reached by go() from Snap, so there is nothing to pop.
+      appBar: const SortedAppBar(fallback: '/catalogue'),
       body: SafeArea(
+        top: false,
         child: Padding(
           padding: const EdgeInsets.all(SortedShape.screenPadding),
           child: Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
@@ -310,20 +311,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
         : 'on collection';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Order draft'),
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const SortedIcon(SortedIcons.back, size: 24),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/');
-            }
-          },
-        ),
-      ),
+      appBar: const SortedAppBar(title: 'Order draft', fallback: '/'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
