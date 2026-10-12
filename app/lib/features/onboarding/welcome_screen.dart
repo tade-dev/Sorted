@@ -30,10 +30,10 @@ class WelcomeScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(28, 40, 28, 0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Sorted',
+                            textAlign: TextAlign.center,
                             style: text.displayLarge?.copyWith(
                               color: c.background,
                               height: 0.95,
@@ -43,6 +43,7 @@ class WelcomeScreen extends ConsumerWidget {
                           const SizedBox(height: 14),
                           Text(
                             'From DM to paid.',
+                            textAlign: TextAlign.center,
                             style: text.bodyLarge?.copyWith(
                               fontSize: 24,
                               height: 1.25,
@@ -55,6 +56,7 @@ class WelcomeScreen extends ConsumerWidget {
                             constraints: const BoxConstraints(maxWidth: 310),
                             child: Text(
                               'Turn the orders in your DMs into PayPal checkout links, and see who has paid without chasing anyone.',
+                              textAlign: TextAlign.center,
                               style: text.bodyLarge?.copyWith(color: c.onDarkMuted),
                             ),
                           ),
@@ -62,7 +64,10 @@ class WelcomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    const Center(child: _HeroSlip()),
+                    const SizedBox(
+                      height: 330,
+                      child: FittedBox(fit: BoxFit.scaleDown, child: _HeroSlip()),
+                    ),
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
@@ -120,7 +125,7 @@ class _HeroSlip extends StatelessWidget {
       ),
     );
     return SizedBox(
-      width: 340,
+      width: 380,
       height: 330,
       child: Stack(
         children: [
