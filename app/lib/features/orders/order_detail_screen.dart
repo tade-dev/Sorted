@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_app_bar.dart';
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
@@ -28,27 +29,7 @@ class OrderDetailScreen extends ConsumerWidget {
     final events = ref.watch(paymentEventsProvider(orderId));
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: SortedColors.of(context).background,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'Order',
-          style: Theme.of(context).textTheme.labelLarge
-              ?.copyWith(fontSize: 16, color: SortedColors.of(context).ink),
-        ),
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const SortedIcon(SortedIcons.back, size: 24),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/orders');
-            }
-          },
-        ),
-      ),
+      appBar: const SortedAppBar(title: 'Order', fallback: '/orders'),
       body: order.when(
         loading: () => Shimmer(
           child: ListView(
@@ -599,5 +580,5 @@ class _CopyRow extends StatelessWidget {
 Future<void> _copy(BuildContext context, String value, String notice) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(notice)));
+  SortedToast.success(context, notice);
 }

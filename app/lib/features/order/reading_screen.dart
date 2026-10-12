@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_icon.dart';
 
 import 'package:flutter/material.dart';
@@ -110,16 +111,11 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
 
     final ready = state is DraftReady;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'Cancel',
-          icon: const SortedIcon(SortedIcons.close, size: 24),
-          onPressed: () {
-            ref.read(draftControllerProvider.notifier).clear();
-            context.canPop() ? context.pop() : context.go('/');
-          },
-        ),
-        title: const Text('New order'),
+      appBar: SortedAppBar(
+        title: 'New order',
+        fallback: '/',
+        close: true,
+        onBack: () => ref.read(draftControllerProvider.notifier).clear(),
       ),
       body: SafeArea(
         top: false,

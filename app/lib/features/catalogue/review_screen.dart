@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_app_bar.dart';
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,7 +92,10 @@ class ReviewScreen extends ConsumerWidget {
     final count = candidates.length;
 
     return Scaffold(
+      // Reached by go() from Snap, so there is nothing to pop.
+      appBar: const SortedAppBar(fallback: '/catalogue'),
       body: SafeArea(
+        top: false,
         child: Padding(
           padding: const EdgeInsets.all(SortedShape.screenPadding),
           child: Column(
@@ -235,7 +240,7 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     final router = GoRouter.of(context);
     try {
       final result =
@@ -244,19 +249,13 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
 
       if (result.skippedDuplicates.isNotEmpty) {
         final names = result.skippedDuplicates.join(', ');
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Already in your catalogue, so not added again: $names'),
-          ),
-        );
+        toast.show('Already in your catalogue, so not added again: $names');
       }
       router.go('/catalogue');
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(describeApiError(e))),
-      );
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     }
   }
 

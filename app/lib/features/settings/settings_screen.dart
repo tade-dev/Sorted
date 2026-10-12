@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final toast = SortedToast.of(context);
     try {
       await ref.read(sellerUpdaterProvider).update(
         displayName: _name.text.trim(),
@@ -50,9 +51,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
       _savedName = _name.text.trim();
       _savedTone = _tone.text.trim();
-      messenger.showSnackBar(const SnackBar(content: Text('Saved')));
+      toast.show('Saved', kind: SortedToastKind.success);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -139,9 +140,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               trailing: const SortedIcon(SortedIcons.copy, size: 20),
               onTap: () {
                 Clipboard.setData(const ClipboardData(text: repoUrl));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied')),
-                );
+                SortedToast.success(context, 'Link copied');
               },
             ),
             const ListTile(

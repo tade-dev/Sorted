@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -115,7 +116,7 @@ class CatalogueScreen extends ConsumerWidget {
 /// photo. Picks one image (re-encoded to JPEG by the picker), uploads it to
 /// Storage, and saves the URL through the API.
 Future<void> _editPhoto(BuildContext context, WidgetRef ref, Product product) async {
-  final messenger = ScaffoldMessenger.of(context);
+  final toast = SortedToast.of(context);
   final fromCamera = await showModalBottomSheet<bool>(
     context: context,
     showDragHandle: true,
@@ -149,19 +150,15 @@ Future<void> _editPhoto(BuildContext context, WidgetRef ref, Product product) as
   final picked = await ref.read(imagePickerProvider).pick(fromCamera: fromCamera);
   if (picked.isEmpty) return;
   final sellerId = await ref.read(sellerIdProvider.future);
-  messenger.showSnackBar(const SnackBar(content: Text('Uploading photo…')));
+  toast.show('Uploading photo…', duration: const Duration(minutes: 1));
   try {
     await ref.read(catalogueRepositoryProvider).setPhoto(
           sellerId: sellerId,
           productId: product.id,
           bytes: picked.first.bytes,
         );
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Photo saved')));
+    toast.show('Photo saved', kind: SortedToastKind.success);
   } catch (_) {
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Could not upload that photo. Try again.')));
+    toast.show('Could not upload that photo. Try again.', kind: SortedToastKind.error);
   }
 }

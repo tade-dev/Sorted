@@ -64,10 +64,18 @@ class PrimaryButton extends StatelessWidget {
 
 /// Home's "Draft a nudge": 44 high, 12 radius, ink fill, 14/600, hugs its label.
 class CompactButton extends StatelessWidget {
-  const CompactButton({super.key, required this.label, required this.onPressed});
+  const CompactButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.highlight = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
+
+  /// Yellow fill, ink label (Snap's "Done").
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +84,10 @@ class CompactButton extends StatelessWidget {
       height: SortedShape.minTouchTarget,
       child: FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor: c.ink,
-          foregroundColor: Colors.white,
+          backgroundColor: highlight ? c.highlight : c.ink,
+          foregroundColor: highlight ? c.ink : Colors.white,
+          disabledBackgroundColor: (highlight ? c.highlight : c.ink).withValues(alpha: 0.4),
+          disabledForegroundColor: (highlight ? c.ink : Colors.white).withValues(alpha: 0.7),
           minimumSize: const Size(0, SortedShape.minTouchTarget),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           textStyle: Theme.of(context).textTheme.labelMedium,

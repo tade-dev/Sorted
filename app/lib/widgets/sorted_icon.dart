@@ -32,6 +32,7 @@ abstract final class SortedIcons {
   static const circle = HugeIcons.strokeRoundedCircle;
   static const clock = HugeIcons.strokeRoundedClock01;
   static const alert = HugeIcons.strokeRoundedAlertCircle;
+  static const info = HugeIcons.strokeRoundedInformationCircle;
 }
 
 /// Drop-in for `Icon`: picks up size and colour from the surrounding
