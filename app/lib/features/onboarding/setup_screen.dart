@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/segmented_control.dart';
 import '../../widgets/selectable_chip.dart';
 import 'onboarding_scaffold.dart';
 
@@ -90,41 +91,39 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     return OnboardingScaffold(
       step: 'Step 1 of 2',
       title: 'Tell us about your shop',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const FieldLabel('Shop name'),
-          TextField(
+      sections: [
+        LabelledField(
+          label: 'Shop name',
+          gap: 8,
+          child: TextField(
             controller: _name,
             textCapitalization: TextCapitalization.words,
             maxLength: 60,
+            style: Theme.of(context).textTheme.bodyLarge,
             decoration: const InputDecoration(
-              hintText: "e.g. Mia's Bakes",
+              hintText: "e.g. Ola's Bakehouse",
               counterText: '',
             ),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 24),
-          const FieldLabel('What do you sell?'),
-          chips(sellOptions, _sells),
-          const SizedBox(height: 24),
-          const FieldLabel('Where do buyers message you?'),
-          chips(channelOptions, _channels),
-          const SizedBox(height: 24),
-          const FieldLabel('How do buyers get their order?'),
-          SegmentedButton<String>(
-            emptySelectionAllowed: true,
-            showSelectedIcon: false,
-            segments: [
-              for (final e in fulfilmentOptions.entries)
-                ButtonSegment(value: e.key, label: Text(e.value)),
-            ],
-            selected: {?_fulfilment},
-            onSelectionChanged: (s) =>
-                setState(() => _fulfilment = s.isEmpty ? null : s.first),
+        ),
+        LabelledField(
+          label: 'What do you sell?',
+          child: chips(sellOptions, _sells),
+        ),
+        LabelledField(
+          label: 'Where do buyers message you?',
+          child: chips(channelOptions, _channels),
+        ),
+        LabelledField(
+          label: 'How do buyers get their order?',
+          child: SegmentedControl<String>(
+            segments: fulfilmentOptions,
+            selected: _fulfilment,
+            onChanged: (v) => setState(() => _fulfilment = v),
           ),
-        ],
-      ),
+        ),
+      ],
       action: PrimaryButton(
         label: _saving ? 'Saving…' : 'Continue',
         onPressed: _saving || _name.text.trim().isEmpty ? null : _continue,

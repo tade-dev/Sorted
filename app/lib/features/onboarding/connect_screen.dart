@@ -8,12 +8,13 @@ import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
 import 'onboarding_scaffold.dart';
 
-/// Honest small print: there is no PayPal sign-in in this build.
+/// Honest small print (spec §13): there is no PayPal sign-in in this build.
+/// The design's "You sign in on PayPal…" line would promise one.
 const sharedMerchantNote =
-    'This demo uses a shared PayPal sandbox merchant, so there is nothing to sign in to. Per-seller onboarding through PayPal Partner is next.';
+    'This demo uses a shared PayPal sandbox merchant. Per-seller sign-in through PayPal is next.';
 
-/// `Connect.dc.html`, step 2 of 2. Attaches the seller to the shared sandbox
-/// merchant (no OAuth) and finishes onboarding.
+/// `Connect PayPal.png`, step 2 of 2. Attaches the seller to the shared
+/// sandbox merchant (no OAuth) and finishes onboarding.
 class ConnectScreen extends ConsumerStatefulWidget {
   const ConnectScreen({super.key});
 
@@ -51,57 +52,72 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
     return OnboardingScaffold(
       step: 'Step 2 of 2',
       title: 'Get paid through PayPal',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Buyers pay through a secure PayPal checkout instead of a bank transfer, so eligible purchases are covered by PayPal Buyer Protection. Buyers trust you faster.',
-            style: text.bodyLarge?.copyWith(color: c.muted),
+      gap: 22,
+      sections: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: c.primaryTint,
+            borderRadius: BorderRadius.circular(SortedShape.cardRadius),
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: c.background,
-              borderRadius: BorderRadius.circular(SortedShape.cardRadius),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('How Sorted works', style: text.titleSmall),
-                for (final (i, s) in steps.indexed)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor: c.primaryTint,
-                          child: Text(
-                            '${i + 1}',
-                            style: text.labelSmall?.copyWith(color: c.primary),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(s.$1, style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 2),
-                              Text(s.$2, style: text.bodySmall?.copyWith(color: c.muted)),
-                            ],
-                          ),
-                        ),
-                      ],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.verified_user_outlined, size: 24, color: c.primary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Buyers pay through a secure PayPal checkout instead of a bank transfer, so eligible purchases are covered by PayPal Buyer Protection. Buyers trust you faster.',
+                  style: text.bodyMedium?.copyWith(color: c.ink, height: 1.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: c.surface,
+            border: Border.all(color: c.line),
+            borderRadius: BorderRadius.circular(SortedShape.cardRadius),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('How Sorted works', style: text.titleLarge),
+              for (final (i, s) in steps.indexed) ...[
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+                      child: Text(
+                        '${i + 1}',
+                        style: text.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.$1, style: text.titleMedium),
+                          const SizedBox(height: 2),
+                          Text(s.$2, style: text.bodyMedium?.copyWith(fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
       action: PrimaryButton(
         label: _saving ? 'Connecting…' : 'Connect PayPal',
         icon: Icons.link,

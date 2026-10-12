@@ -7,9 +7,12 @@ import 'order_presentation.dart';
 /// Status chip. Paid is the green one; the others stay in the warning, blue
 /// and neutral tokens so they can be told apart without relying on hue alone.
 class StatusPill extends StatelessWidget {
-  const StatusPill({super.key, required this.status});
+  const StatusPill({super.key, required this.status, this.label});
 
   final String status;
+
+  /// Overrides the wording but keeps the tone, e.g. Home's "Deposit due".
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +43,7 @@ class StatusPill extends StatelessWidget {
         border: border == null ? null : Border.all(color: border),
       ),
       child: Text(
-        presentation.label,
+        label ?? presentation.label,
         style: text.bodySmall?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w600,

@@ -72,7 +72,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: text.labelSmall?.copyWith(color: c.muted, letterSpacing: 0.6)),
+          Text(title, style: text.titleLarge),
           const SizedBox(height: 10),
           ...children,
         ],
@@ -81,16 +81,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(SortedShape.screenPadding),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
-          Text('Settings', style: text.headlineMedium),
+          Text('Settings', style: text.headlineLarge),
           const SizedBox(height: 24),
           section('Shop', [
             TextField(
               controller: _name,
               maxLength: 60,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Shop name', counterText: ''),
+              style: text.bodyLarge,
+              decoration: const InputDecoration(hintText: 'Shop name', counterText: ''),
               onChanged: (_) => setState(() {}),
             ),
           ]),
@@ -100,6 +101,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               maxLength: 500,
               minLines: 3,
               maxLines: 6,
+              style: text.bodyLarge,
               decoration: const InputDecoration(
                 hintText: 'e.g. Warm and chatty, signs off with "Mia x"',
               ),

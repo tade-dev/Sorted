@@ -7,7 +7,10 @@ import '../core/theme/sorted_colors.dart';
 /// The mark that lands on an order once it is paid. Scales in with a slight
 /// overshoot and sits at the design's −10° tilt.
 class SortedStamp extends StatefulWidget {
-  const SortedStamp({super.key});
+  const SortedStamp({super.key, this.degrees = -10});
+
+  /// Tilt. The order slip uses −10°, the Welcome hero −12°.
+  final double degrees;
 
   @override
   State<SortedStamp> createState() => _SortedStampState();
@@ -35,7 +38,7 @@ class _SortedStampState extends State<SortedStamp>
       builder: (context, child) {
         final t = Curves.easeOutBack.transform(_controller.value.clamp(0, 1));
         return Transform.rotate(
-          angle: -10 * math.pi / 180,
+          angle: widget.degrees * math.pi / 180,
           child: Transform.scale(scale: 0.6 + 0.4 * t, child: child),
         );
       },

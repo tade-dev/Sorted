@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
 
+/// The pill toggle from Setup/Draft: 40 high, 14 px side padding, 1.5 px
+/// border, ink fill when selected. Sizes to its label so it sits in a Wrap.
 class SelectableChip extends StatelessWidget {
   const SelectableChip({
     super.key,
@@ -19,23 +21,32 @@ class SelectableChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SortedColors.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(SortedShape.pillRadius),
-      child: Container(
-        height: SortedShape.selectableChipHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? c.ink : c.surface,
-          border: Border.all(color: selected ? c.ink : c.line),
-          borderRadius: BorderRadius.circular(SortedShape.pillRadius),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? c.ink : c.surface,
+        shape: StadiumBorder(
+          side: BorderSide(color: selected ? c.ink : c.line, width: 1.5),
         ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: selected ? Colors.white : c.ink,
-              ),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const StadiumBorder(),
+          child: Container(
+            height: SortedShape.selectableChipHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: selected ? Colors.white : c.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

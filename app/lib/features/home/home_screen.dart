@@ -48,31 +48,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(SortedShape.screenPadding),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(longDate(now), style: text.bodySmall?.copyWith(color: c.muted)),
-                    const SizedBox(height: 2),
-                    Text(greeting(now, name), style: text.headlineMedium),
+                    Text(longDate(now), style: text.bodySmall?.copyWith(fontSize: 14)),
+                    Text(greeting(now, name), style: text.headlineMedium?.copyWith(fontSize: 30)),
                   ],
                 ),
               ),
               CircleAvatar(
-                radius: 20,
-                backgroundColor: c.primaryTint,
+                radius: 22,
+                backgroundColor: c.ink,
                 child: Text(
                   name.trim().isEmpty ? 'S' : name.trim()[0].toUpperCase(),
-                  style: text.titleSmall?.copyWith(color: c.primary),
+                  style: text.titleLarge?.copyWith(fontSize: 18, color: Colors.white),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           ...orders.when(
             loading: () => [const _SummaryCard.loading()],
             error: (_, _) => [
@@ -109,30 +109,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: c.warningTint,
-            border: Border.all(color: c.warningBorder),
             borderRadius: BorderRadius.circular(SortedShape.cardRadius),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                nudgeLine(s.nudge!, now, formatGbpCompact),
-                style: text.bodyMedium?.copyWith(color: c.warningText),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.notifications_none, size: 20, color: c.warningText),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      nudgeLine(s.nudge!, now, formatGbpCompact),
+                      style: text.bodyMedium?.copyWith(color: c.ink),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextButton(
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              const SizedBox(height: 12),
+              // The nudge sheet is not built yet, so this opens the order,
+              // which already has the reply and link to copy.
+              CompactButton(
+                label: 'Open the order',
                 onPressed: () => context.push('/orders/${s.nudge!.id}'),
-                child: const Text('Open the order'),
               ),
             ],
           ),
         ),
       ],
       if (s.upcoming.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        Text('Collections coming up', style: text.titleSmall),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text('Collections coming up', style: text.titleLarge),
+        ),
         for (final o in s.upcoming) _UpcomingRow(order: o),
       ],
     ];
@@ -150,7 +161,17 @@ class _SummaryCard extends StatelessWidget {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     final s = summary;
-    final white = text.bodyMedium?.copyWith(color: Colors.white);
+    final paid = s?.paidTodayCount ?? 0;
+    final waiting = s?.waitingCount ?? 0;
+    final total = paid + waiting;
+    final small = text.bodySmall?.copyWith(fontSize: 14, color: c.background);
+
+    Widget dot(Color color) => Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -161,22 +182,59 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Paid today', style: text.bodySmall?.copyWith(color: c.onDarkMuted)),
-          const SizedBox(height: 6),
+          Text('Paid today', style: small?.copyWith(color: c.onDarkMuted)),
+          const SizedBox(height: 14),
           Text(
             s == null ? '—' : formatGbpCompact(s.paidTodayMinor),
-            style: text.displaySmall?.copyWith(color: Colors.white),
+            style: text.displayLarge?.copyWith(
+              fontSize: 48,
+              height: 1,
+              letterSpacing: -1.5,
+              color: c.background,
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            s == null
-                ? 'Loading today…'
-                : s.paidTodayCount == 0 && s.waitingCount == 0
-                    ? 'No payments yet today'
-                    : '${s.paidTodayCount} paid · ${s.waitingCount} waiting'
-                          '${s.waitingCount > 0 ? ', ${formatGbpCompact(s.waitingMinor)}' : ''}',
-            style: white,
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(SortedShape.pillRadius),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (total == 0)
+                    Expanded(child: ColoredBox(color: c.darkTrack))
+                  else ...[
+                    if (paid > 0) Expanded(flex: paid, child: ColoredBox(color: c.paidBar)),
+                    if (waiting > 0) Expanded(flex: waiting, child: ColoredBox(color: c.highlight)),
+                  ],
+                ],
+              ),
+            ),
           ),
+          const SizedBox(height: 14),
+          if (s == null)
+            Text('Loading today…', style: small)
+          else if (total == 0)
+            Text('No payments yet today', style: small)
+          else
+            Wrap(
+              spacing: 18,
+              runSpacing: 6,
+              children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  dot(c.paidBar),
+                  const SizedBox(width: 6),
+                  Text('$paid paid', style: small),
+                ]),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  dot(c.highlight),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$waiting waiting${waiting > 0 ? ', ${formatGbpCompact(s.waitingMinor)}' : ''}',
+                    style: small,
+                  ),
+                ]),
+              ],
+            ),
         ],
       ),
     );
@@ -192,19 +250,23 @@ class _UpcomingRow extends StatelessWidget {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     final date = formatUkDate(order.fulfilment.date!).split(' ');
+    final depositDue = order.status != 'paid' && order.depositMinor != null;
     return InkWell(
       onTap: () => context.push('/orders/${order.id}'),
-      borderRadius: BorderRadius.circular(SortedShape.cardRadius),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
         child: Row(
           children: [
             SizedBox(
-              width: 44,
+              width: 46,
               child: Column(
                 children: [
-                  Text(date.first, style: text.bodySmall?.copyWith(color: c.muted)),
-                  Text(date.length > 1 ? date[1] : '', style: text.titleSmall),
+                  Text(date.first, style: text.bodySmall?.copyWith(fontSize: 12)),
+                  Text(
+                    date.length > 1 ? date[1] : '',
+                    style: text.titleLarge?.copyWith(fontSize: 20, height: 1.2),
+                  ),
                 ],
               ),
             ),
@@ -213,18 +275,25 @@ class _UpcomingRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(buyerLabel(order), style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(buyerLabel(order), style: text.titleSmall),
                   Text(
                     itemsSummary(order),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: text.bodySmall?.copyWith(color: c.muted),
+                    style: text.bodySmall,
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            StatusPill(status: order.status),
+            const SizedBox(width: 12),
+            StatusPill(
+              status: order.status,
+              label: depositDue
+                  ? 'Deposit due'
+                  : order.status == 'link_sent'
+                      ? 'Waiting'
+                      : null,
+            ),
           ],
         ),
       ),

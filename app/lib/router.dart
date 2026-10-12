@@ -53,41 +53,119 @@ class _NavShell extends StatelessWidget {
   const _NavShell({required this.child});
   final Widget child;
 
-  static const _tabs = ['/', '/orders', '/catalogue', '/settings'];
+  @override
+  Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: SortedTabBar(location: location),
+    );
+  }
+}
+
+/// The design's tab bar: white, 84 high with a top hairline, four 22 px
+/// icon tabs at 11 px, and a raised 56 px blue "new order" button in the
+/// centre slot. Selected tab is ink/700, the rest muted/500.
+class SortedTabBar extends StatelessWidget {
+  const SortedTabBar({super.key, required this.location});
+  final String location;
+
+  static const _tabs = [
+    ('/', 'Home', Icons.home_outlined),
+    ('/orders', 'Orders', Icons.receipt_outlined),
+    ('/catalogue', 'Catalogue', Icons.grid_view_outlined),
+    ('/settings', 'Settings', Icons.tune),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final c = SortedColors.of(context);
-    final location = GoRouterState.of(context).uri.path;
-    final index = _tabs.indexWhere((t) => t == location);
+    final text = Theme.of(context).textTheme;
 
-    return Scaffold(
-      body: child,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: c.primary,
-        foregroundColor: Colors.white,
-        onPressed: () => context.push('/order/new'),
-        child: const Icon(Icons.add),
+    Widget tab((String, String, IconData) t) {
+      final selected = location == t.$1;
+      final color = selected ? c.ink : c.muted;
+      return Expanded(
+        child: Semantics(
+          selected: selected,
+          button: true,
+          child: InkWell(
+            onTap: () => context.go(t.$1),
+            child: SizedBox(
+              height: 44,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(t.$3, size: 22, color: color),
+                  const SizedBox(height: 4),
+                  Text(
+                    t.$2,
+                    style: text.bodySmall?.copyWith(
+                      fontSize: 11,
+                      height: 1,
+                      color: color,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.line)),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index < 0 ? 0 : index,
-        onDestinationSelected: (i) => context.go(_tabs[i]),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            label: 'Orders',
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 66,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                tab(_tabs[0]),
+                tab(_tabs[1]),
+                Expanded(
+                  child: Center(
+                    child: Transform.translate(
+                      offset: const Offset(0, -18),
+                      child: Semantics(
+                        label: 'New order from a DM',
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () => context.push('/order/new'),
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: c.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: c.ink.withValues(alpha: 0.28),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.add, size: 26, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                tab(_tabs[2]),
+                tab(_tabs[3]),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            label: 'Catalogue',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }

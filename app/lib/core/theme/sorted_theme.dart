@@ -48,7 +48,9 @@ ThemeData sortedTheme() {
       bodyLarge: body.bodyLarge?.copyWith(fontSize: 16, height: 1.5, color: c.ink),
       bodyMedium: body.bodyMedium?.copyWith(fontSize: 15, height: 1.45, color: c.muted),
       labelLarge: body.labelLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w600),
-      labelMedium: body.labelMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+      labelMedium: body.labelMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600, color: c.ink),
+      titleMedium: body.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: c.ink),
+      titleSmall: body.titleSmall?.copyWith(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink),
       bodySmall: body.bodySmall?.copyWith(fontSize: 13, color: c.muted),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -67,6 +69,47 @@ ThemeData sortedTheme() {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(SortedShape.cardRadius),
         side: BorderSide(color: c.line),
+      ),
+    ),
+    // Setup's text field: 52 high, 14 radius, 1.5 px #DCE2EA, white, 16 px.
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: c.surface,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      hintStyle: body.bodyLarge?.copyWith(fontSize: 16, color: c.muted),
+      labelStyle: body.bodyLarge?.copyWith(fontSize: 16, color: c.muted),
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: c.line, width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: c.line, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: c.primary, width: 1.5),
+      ),
+    ),
+    textSelectionTheme: TextSelectionThemeData(cursorColor: c.primary),
+    // Welcome's "I already have an account": 48 high, 15/600, no fill.
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: c.ink,
+        minimumSize: const Size(0, SortedShape.secondaryButtonHeight),
+        textStyle: body.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: c.ink,
+        backgroundColor: c.surface,
+        minimumSize: const Size(0, SortedShape.secondaryButtonHeight),
+        side: BorderSide(color: c.line, width: 1.5),
+        textStyle: body.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),

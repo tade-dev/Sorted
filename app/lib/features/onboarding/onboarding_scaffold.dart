@@ -25,21 +25,24 @@ void showOnboardingError(BuildContext context, Object error) {
     ..showSnackBar(SnackBar(content: Text(describeApiError(error))));
 }
 
-/// Shared chrome for Setup and Connect: back, step label, Skip, then a
-/// scrolling body with the primary action pinned to the bottom.
+/// Setup / Connect chrome from the design: 44 px back chevron and a 16/600
+/// "Step n of 2", a 32 px Bricolage title, a body, then the action pinned
+/// 40 px above the bottom. Skip (spec §13) sits quietly on the right.
 class OnboardingScaffold extends ConsumerWidget {
   const OnboardingScaffold({
     super.key,
     required this.step,
     required this.title,
-    required this.body,
+    required this.sections,
     required this.action,
+    this.gap = 24,
     this.footnote,
   });
 
   final String step;
   final String title;
-  final Widget body;
+  final List<Widget> sections;
+  final double gap;
   final Widget action;
   final String? footnote;
 
@@ -48,29 +51,32 @@ class OnboardingScaffold extends ConsumerWidget {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: c.surface,
+      backgroundColor: c.background,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Back',
-                    icon: Icon(Icons.chevron_left, color: c.ink),
-                    onPressed: () => context.canPop()
-                        ? context.pop()
-                        : context.go('/welcome'),
-                  ),
-                  Expanded(
-                    child: Text(
-                      step,
-                      textAlign: TextAlign.center,
-                      style: text.bodySmall?.copyWith(color: c.muted),
+                  SizedBox.square(
+                    dimension: SortedShape.minTouchTarget,
+                    child: IconButton(
+                      tooltip: 'Back',
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.chevron_left, size: 24, color: c.ink),
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go('/welcome'),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(step, style: text.titleMedium),
+                  ),
                   TextButton(
+                    style: TextButton.styleFrom(foregroundColor: c.muted),
                     onPressed: () => finishOnboarding(context, ref),
                     child: const Text('Skip'),
                   ),
@@ -79,36 +85,21 @@ class OnboardingScaffold extends ConsumerWidget {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  SortedShape.screenPaddingWide,
-                  16,
-                  SortedShape.screenPaddingWide,
-                  24,
-                ),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                 children: [
-                  Text(title, style: text.headlineMedium),
-                  const SizedBox(height: 24),
-                  body,
+                  Text(title, style: text.headlineLarge?.copyWith(height: 1.1)),
+                  for (final child in sections) ...[SizedBox(height: gap), child],
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                SortedShape.screenPaddingWide,
-                0,
-                SortedShape.screenPaddingWide,
-                24,
-              ),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
               child: Column(
                 children: [
                   action,
                   if (footnote != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      footnote!,
-                      textAlign: TextAlign.center,
-                      style: text.bodySmall?.copyWith(color: c.muted),
-                    ),
+                    const SizedBox(height: 12),
+                    Text(footnote!, textAlign: TextAlign.center, style: text.bodySmall),
                   ],
                 ],
               ),
@@ -120,22 +111,22 @@ class OnboardingScaffold extends ConsumerWidget {
   }
 }
 
-class FieldLabel extends StatelessWidget {
-  const FieldLabel(this.label, {super.key});
+/// A 14/600 field label with the design's 8–10 px gap to its control.
+class LabelledField extends StatelessWidget {
+  const LabelledField({super.key, required this.label, required this.child, this.gap = 10});
   final String label;
+  final Widget child;
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
-    final c = SortedColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        label,
-        style: Theme.of(context)
-            .textTheme
-            .labelMedium
-            ?.copyWith(color: c.ink, fontWeight: FontWeight.w600),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        SizedBox(height: gap),
+        child,
+      ],
     );
   }
 }
