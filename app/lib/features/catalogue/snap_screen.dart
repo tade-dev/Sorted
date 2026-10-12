@@ -24,8 +24,8 @@ class _PlatformPicker implements ImagePickerPort {
     // The web build has no camera worth using, so it always picks files.
     final useCamera = fromCamera && !kIsWeb;
     final files = useCamera
-        ? [await _picker.pickImage(source: ImageSource.camera)]
-        : await _picker.pickMultiImage();
+        ? [await _picker.pickImage(source: ImageSource.camera, maxWidth: 2048, imageQuality: 85)]
+        : await _picker.pickMultiImage(maxWidth: 2048, imageQuality: 85);
 
     final out = <({List<int> bytes, String filename})>[];
     for (final f in files) {

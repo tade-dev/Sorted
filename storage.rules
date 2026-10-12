@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Product photos. Each seller (an anonymous Firebase Auth user) can read and
+// write only their own folder. Uploads must be images under 8 MB. Buyers and
+// other sellers see the photos only through the download URL saved on the
+// product, which carries its own token.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /sellers/{uid}/products/{productId}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+    match /{everything=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import multer, { MulterError } from 'multer';
 import type { Firestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
+import { looksLikeUpload, visionMime } from '../lib/image_type.js';
 import { ApiError } from '../lib/errors.js';
 import { requireSeller, type TokenVerifier } from '../lib/auth.js';
 import type { ChatTransport } from '../ai/client.js';
@@ -22,17 +23,32 @@ const patchBodySchema = z.object({
   basePriceMinor: z.number().int().nonnegative().optional(),
   depositMinor: z.number().int().nonnegative().nullable().optional(),
   variants: z.array(variantInputSchema).max(12).optional(),
+  photoUrl: z.string().url().max(2048).nullable().optional(),
 });
+
+/**
+ * A photo URL must be a Firebase Storage download link to this seller's own
+ * folder for this product, so a client cannot point a product at any image
+ * on the web or at another seller's upload.
+ */
+export function isOwnPhotoUrl(url: string, sellerId: string, productId: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'firebasestorage.googleapis.com') return false;
+  const match = /^\/v0\/b\/[^/]+\/o\/(.+)$/.exec(parsed.pathname);
+  if (!match) return false;
+  const object = decodeURIComponent(match[1]!);
+  return object.startsWith(`sellers/${sellerId}/products/${productId}/`) && !object.includes('..');
+}
 
 const MAX_IMAGES = 5;
 const MAX_BYTES = 8 * 1024 * 1024;
-const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/heic']);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: MAX_IMAGES },
   fileFilter: (_req, file, cb) => {
-    if (!ALLOWED.has(file.mimetype)) {
+    if (!looksLikeUpload(file.mimetype)) {
       cb(new ApiError(400, 'VALIDATION_FAILED', `${file.mimetype} is not an image Sorted can read.`));
       return;
     }
@@ -78,7 +94,7 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
       }
       try {
         const extraction = await extractCatalogue(
-          files.map((f) => ({ buffer: f.buffer, mime: f.mimetype })),
+          files.map((f) => ({ buffer: f.buffer, mime: visionMime(f.buffer) })),
           deps.transport,
           deps.model,
         );
@@ -108,6 +124,11 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
     const parsed = patchBodySchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       next(new ApiError(400, 'VALIDATION_FAILED', 'That change is not valid.', parsed.error.format()));
+      return;
+    }
+    const photoUrl = parsed.data.photoUrl;
+    if (photoUrl && !isOwnPhotoUrl(photoUrl, req.sellerId!, String(req.params.productId))) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That photo link is not one Sorted uploaded.'));
       return;
     }
     const ref = deps.db.doc(`sellers/${req.sellerId}/products/${req.params.productId}`);

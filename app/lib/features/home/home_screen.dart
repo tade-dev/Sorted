@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/sorted_icon.dart';
@@ -75,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 16),
           ...orders.when(
-            loading: () => [const _SummaryCard.loading()],
+            loading: () => const [HomeSkeleton()],
             error: (_, _) => [
               _Message(
                 'Could not load today',
@@ -153,7 +155,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required HomeSummary this.summary});
-  const _SummaryCard.loading() : summary = null;
 
   final HomeSummary? summary;
 
@@ -320,6 +321,64 @@ class _Message extends StatelessWidget {
         const SizedBox(height: 4),
         Text(body, style: text.bodyMedium?.copyWith(color: c.muted)),
         TextButton(onPressed: onAction, child: Text(action)),
+      ],
+    );
+  }
+}
+
+/// Home while the orders stream connects: the ink summary card with its
+/// bar and legend, then three collection rows.
+class HomeSkeleton extends StatelessWidget {
+  const HomeSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Shimmer(
+          dark: true,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: c.ink,
+              borderRadius: BorderRadius.circular(SortedShape.cardRadiusLarge),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonLine(width: 72, dark: true),
+                SizedBox(height: 14),
+                SkeletonBox(width: 110, height: 44, radius: 10, dark: true),
+                SizedBox(height: 14),
+                SkeletonBox(height: 10, radius: 999, dark: true),
+                SizedBox(height: 14),
+                Row(children: [
+                  SkeletonLine(width: 60, dark: true),
+                  SizedBox(width: 18),
+                  SkeletonLine(width: 110, dark: true),
+                ]),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Shimmer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SkeletonLine(width: 190, fontSize: 19),
+              const SizedBox(height: 10),
+              for (var i = 0; i < 3; i++)
+                Container(
+                  decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
+                  child: const RowSkeleton(leading: 40, leadingRadius: 8),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

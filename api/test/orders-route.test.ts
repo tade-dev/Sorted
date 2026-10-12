@@ -79,6 +79,40 @@ describe('POST /v1/orders/draft', () => {
     expect(res.body.order.sourceKind).toBe('screenshot');
   });
 
+  it('sends the model the real format even when the phone mislabels it', async () => {
+    // Regression: the upload's Content-Type is a guess from the filename. A
+    // JPEG sent as octet-stream (or a HEIC labelled jpeg) used to reach the
+    // model with the wrong data URI and come back unread.
+    let seen: unknown;
+    const transport: ChatTransport = async (body) => {
+      seen = body;
+      return { content: JSON.stringify(jess) };
+    };
+    const app = createApp({
+      env, db, transport, paypal: async () => ({}),
+      verify: async () => ({ uid: 'seller-a' }),
+    });
+    const jpeg = Buffer.from('ffd8ffe000104a464946', 'hex');
+    const res = await request(app)
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .attach('image', jpeg, { filename: 'image_picker_1', contentType: 'application/octet-stream' });
+
+    expect(res.status).toBe(200);
+    const json = JSON.stringify(seen);
+    expect(json).toContain('data:image/jpeg;base64,' + jpeg.toString('base64'));
+  });
+
+  it('turns a HEIC photo away instead of sending it to the model', async () => {
+    const heic = Buffer.concat([Buffer.from('00000018', 'hex'), Buffer.from('ftypheic'), Buffer.alloc(8)]);
+    const res = await request(appWith(jess))
+      .post('/v1/orders/draft')
+      .set('Authorization', 'Bearer good')
+      .attach('image', heic, { filename: 'IMG_0001.jpg', contentType: 'image/jpeg' });
+    expect(res.status).toBe(400);
+    expect(res.body.error?.message ?? JSON.stringify(res.body)).toMatch(/HEIC/);
+  });
+
   it('accepts pasted text, which is the web path', async () => {
     const res = await request(appWith(jess))
       .post('/v1/orders/draft')

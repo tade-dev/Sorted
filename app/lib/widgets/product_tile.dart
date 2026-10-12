@@ -1,4 +1,5 @@
 // app/lib/widgets/product_tile.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../core/money.dart';
@@ -29,14 +30,7 @@ class ProductTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: c.primaryTint,
-                borderRadius: BorderRadius.circular(SortedShape.productTileRadius),
-              ),
-            ),
+            _Thumb(url: product.photoUrl),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -58,6 +52,33 @@ class ProductTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 52x52 product photo; the tint block stands in while loading, on error,
+/// and when the product has no photo yet.
+class _Thumb extends StatelessWidget {
+  const _Thumb({this.url});
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    final block = Container(width: 52, height: 52, color: c.primaryTint);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(SortedShape.productTileRadius),
+      child: url == null
+          ? block
+          : CachedNetworkImage(
+              imageUrl: url!,
+              width: 52,
+              height: 52,
+              fit: BoxFit.cover,
+              memCacheWidth: 156,
+              placeholder: (_, _) => block,
+              errorWidget: (_, _, _) => block,
+            ),
     );
   }
 }

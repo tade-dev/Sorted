@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/sorted_icon.dart';
@@ -21,7 +23,40 @@ class ReviewScreen extends ConsumerWidget {
     final candidates = ref.watch(extractionControllerProvider);
 
     if (candidates == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Extraction in flight: candidate cards in the shape they will take.
+      return Scaffold(
+        body: SafeArea(
+          child: Shimmer(
+            child: ListView(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              children: [
+                const SkeletonLine(width: 110, fontSize: 13),
+                const SizedBox(height: 8),
+                const SkeletonLine(width: 220, fontSize: 28),
+                const SizedBox(height: 20),
+                for (var i = 0; i < 3; i++) ...[
+                  const SkeletonCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [SkeletonLine(width: 150, fontSize: 16), Spacer(), SkeletonLine(width: 50)]),
+                        SizedBox(height: 12),
+                        Row(children: [
+                          SkeletonBox(width: 70, height: 40, radius: 999),
+                          SizedBox(width: 8),
+                          SkeletonBox(width: 70, height: 40, radius: 999),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (candidates.isEmpty) {

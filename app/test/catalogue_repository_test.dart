@@ -1,10 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sorted/data/catalogue_repository.dart';
+import 'package:sorted/data/photo_store.dart';
 import 'package:sorted/models/ambiguity.dart';
 import 'package:sorted/models/product_candidate.dart';
 import 'package:sorted/models/variant.dart';
 
 class _FakeApi implements CatalogueApi {
+  @override
+  Future<Map<String, dynamic>> patchProduct(String productId, Object body) async {
+    patched = (productId, body);
+    return {'product': body};
+  }
+
+  (String, Object)? patched;
+
   Object? lastBody;
   Map<String, dynamic> extractResponse = {'candidates': []};
   Map<String, dynamic> saveResponse = {'created': <String>[], 'skippedDuplicates': <String>[]};
@@ -20,7 +29,30 @@ class _FakeApi implements CatalogueApi {
   }
 }
 
+class _FakeStore implements PhotoStore {
+  String? path;
+  @override
+  Future<String> uploadProductPhoto({
+    required String sellerId,
+    required String productId,
+    required List<int> bytes,
+  }) async {
+    path = 'sellers/$sellerId/products/$productId';
+    return 'https://firebasestorage.googleapis.com/v0/b/b/o/x.jpg?alt=media';
+  }
+}
+
 void main() {
+  test('uploads a product photo then saves its URL on the product', () async {
+    final api = _FakeApi();
+    final store = _FakeStore();
+    final url = await CatalogueRepository(api: api, photos: store)
+        .setPhoto(sellerId: 's1', productId: 'p1', bytes: [1, 2, 3]);
+    expect(store.path, 'sellers/s1/products/p1');
+    expect(api.patched?.$1, 'p1');
+    expect(api.patched?.$2, {'photoUrl': url});
+  });
+
   late _FakeApi api;
   late CatalogueRepository repo;
 
