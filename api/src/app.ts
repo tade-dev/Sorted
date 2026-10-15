@@ -74,6 +74,7 @@ export function createApp(deps: AppDeps): express.Express {
       paypal: deps.paypal,
       model: deps.env.OPENAI_VISION_MODEL,
       publicBaseUrl: deps.env.PUBLIC_BASE_URL,
+      invoiceSecret: deps.env.INTERNAL_TOKEN,
     }),
   );
   app.use(
@@ -85,7 +86,13 @@ export function createApp(deps: AppDeps): express.Express {
       model: deps.env.OPENAI_VISION_MODEL,
     }),
   );
-  app.use('/v1', paypalPagesRouter(deps.db, deps.paypal));
+  app.use(
+    '/v1',
+    paypalPagesRouter(deps.db, deps.paypal, {
+      secret: deps.env.INTERNAL_TOKEN,
+      baseUrl: deps.env.PUBLIC_BASE_URL,
+    }),
+  );
   app.use('/v1', internalRouter({ env: deps.env, db: deps.db, paypal: deps.paypal }));
 
   app.use((_req, _res, next) => {

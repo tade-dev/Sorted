@@ -23,8 +23,13 @@ class ExtractionController extends Notifier<List<ProductCandidate>?> {
   @override
   List<ProductCandidate>? build() => null;
 
+  /// The snapped photos behind the current candidates, kept so saving can
+  /// attach each one to the product it became.
+  List<List<int>> photos = const [];
+
   Future<void> extract(List<({List<int> bytes, String filename})> files) async {
     state = null;
+    photos = [for (final f in files) f.bytes];
     state = await ref.read(catalogueRepositoryProvider).extract(files);
   }
 
@@ -39,7 +44,10 @@ class ExtractionController extends Notifier<List<ProductCandidate>?> {
     state = [for (final c in state ?? <ProductCandidate>[]) if (c.tempId != tempId) c];
   }
 
-  void clear() => state = null;
+  void clear() {
+    photos = const [];
+    state = null;
+  }
 }
 
 final extractionControllerProvider =

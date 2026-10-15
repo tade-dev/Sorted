@@ -343,6 +343,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.refreshes, 0);
   });
+
+  testWidgets('a paid order shows a copyable invoice link', (tester) async {
+    final api = _InvoiceApi();
+    await tester.pumpWidget(host(api: api));
+    await tester.pumpAndSettle();
+    expect(find.text('Invoice'), findsOneWidget);
+    expect(find.text(_InvoiceApi.url), findsOneWidget);
+    expect(api.calls, 1);
+  });
+
+  testWidgets('an unpaid order has no invoice section', (tester) async {
+    final api = _InvoiceApi();
+    await tester.pumpWidget(
+      host(api: api, order: Stream.value(jess(status: 'link_sent'))),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('invoice-section')), findsNothing);
+    expect(api.calls, 0);
+  });
+
+  testWidgets('the invoice section is left out when it cannot load', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(api: _ThankYouApi(() async => {'message': 'x'})),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('invoice-section')), findsNothing);
+  });
 }
 
 class _RefreshApi extends Fake implements OrdersApi {
@@ -353,4 +382,19 @@ class _RefreshApi extends Fake implements OrdersApi {
     refreshes++;
     return const {};
   }
+
+}
+
+class _InvoiceApi extends Fake implements OrdersApi {
+  static const url = 'https://api.example.com/v1/invoice/s/o1/sig';
+  int calls = 0;
+
+  @override
+  Future<Map<String, dynamic>> invoice(String orderId) async {
+    calls++;
+    return {'url': url, 'number': 'INV-O1'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> refresh(String orderId) async => {};
 }

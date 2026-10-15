@@ -1,7 +1,9 @@
 // app/lib/widgets/primary_button.dart
 import 'package:flutter/material.dart';
+
 import 'sorted_icon.dart';
 
+import '../core/motion/sorted_motion.dart';
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
 
@@ -35,27 +37,35 @@ class PrimaryButton extends StatelessWidget {
       PrimaryButtonTone.blue => (c.primary, Colors.white),
       PrimaryButtonTone.light => (c.background, c.ink),
     };
-    return SizedBox(
-      width: double.infinity,
-      height: SortedShape.primaryButtonHeight,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: bg,
-          foregroundColor: fg,
-          disabledBackgroundColor: bg.withValues(alpha: 0.4),
-          disabledForegroundColor: fg.withValues(alpha: 0.8),
-          textStyle: Theme.of(context).textTheme.labelLarge,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SortedShape.primaryButtonRadius),
+    return PressScale(
+      enabled: onPressed != null,
+      child: SizedBox(
+        width: double.infinity,
+        height: SortedShape.primaryButtonHeight,
+        child: FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: bg,
+            foregroundColor: fg,
+            disabledBackgroundColor: bg.withValues(alpha: 0.4),
+            disabledForegroundColor: fg.withValues(alpha: 0.8),
+            textStyle: Theme.of(context).textTheme.labelLarge,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(
+                SortedShape.primaryButtonRadius,
+              ),
+            ),
           ),
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[SortedIcon(icon!, size: 20), const SizedBox(width: 8)],
-            Text(label),
-          ],
+          onPressed: onPressed,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                SortedIcon(icon!, size: 20),
+                const SizedBox(width: 8),
+              ],
+              Text(label),
+            ],
+          ),
         ),
       ),
     );
@@ -86,12 +96,17 @@ class CompactButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: highlight ? c.highlight : c.ink,
           foregroundColor: highlight ? c.ink : Colors.white,
-          disabledBackgroundColor: (highlight ? c.highlight : c.ink).withValues(alpha: 0.4),
-          disabledForegroundColor: (highlight ? c.ink : Colors.white).withValues(alpha: 0.7),
+          disabledBackgroundColor: (highlight ? c.highlight : c.ink).withValues(
+            alpha: 0.4,
+          ),
+          disabledForegroundColor: (highlight ? c.ink : Colors.white)
+              .withValues(alpha: 0.7),
           minimumSize: const Size(0, SortedShape.minTouchTarget),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           textStyle: Theme.of(context).textTheme.labelMedium,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         onPressed: onPressed,
         child: Text(label),

@@ -28,9 +28,13 @@ export function buyerPage(opts: {
   headline: string;
   detail: string;
   statusLine?: string | null;
+  link?: { href: string; label: string } | null;
 }): string {
   const status = opts.statusLine
     ? `<p>${escapeHtml(opts.statusLine)}</p>`
+    : '';
+  const link = opts.link
+    ? `<p><a href="${escapeHtml(opts.link.href)}">${escapeHtml(opts.link.label)}</a></p>`
     : '';
   return `<!DOCTYPE html>
 <html lang="en">
@@ -46,6 +50,7 @@ export function buyerPage(opts: {
   .mark { margin: 0 0 1.5rem; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.04em; color: #0070E0; }
   h1 { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 1.75rem; letter-spacing: -0.03em; line-height: 1.25; }
   p { margin: 1rem 0 0; color: #515A6B; font-size: 1rem; line-height: 1.5; }
+  a { color: #0070E0; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -54,6 +59,7 @@ export function buyerPage(opts: {
   <h1>${escapeHtml(opts.headline)}</h1>
   <p>${escapeHtml(opts.detail)}</p>
   ${status}
+  ${link}
 </main>
 </body>
 </html>

@@ -20,6 +20,7 @@ import type { PayPalFetch } from '../paypal/client.js';
 import { OPEN_STATUSES, reconcileOrder } from '../paypal/reconcile.js';
 import { draftReply, fallbackReply, fallbackThankYou, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
+import { invoiceNumber, invoiceUrl } from '../domain/invoice.js';
 import {
   applyBlockingPolicy,
   stillOpen,
@@ -168,6 +169,8 @@ export type OrdersDeps = {
   transport: ChatTransport;
   model: string;
   publicBaseUrl: string;
+  /** Signs buyer invoice links. Optional so older callers keep working. */
+  invoiceSecret?: string;
 };
 
 export function ordersRouter(deps: OrdersDeps): Router {
@@ -623,6 +626,29 @@ export function ordersRouter(deps: OrdersDeps): Router {
         message = fallbackThankYou(order);
       }
       res.json({ message });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // The buyer-facing invoice link for a paid order, for the seller to share.
+  router.get('/orders/:orderId/invoice', requireSeller(deps.verify), async (req, res, next) => {
+    const orderId = String(req.params.orderId);
+    try {
+      if (!deps.invoiceSecret) {
+        next(new ApiError(404, 'NOT_FOUND', 'Invoices are not set up on this server.'));
+        return;
+      }
+      const snap = await deps.db.doc(`sellers/${req.sellerId}/orders/${orderId}`).get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      if (snap.get('status') !== 'paid') {
+        next(new ApiError(409, 'ORDER_STATE_INVALID', 'That order has not been paid yet.'));
+        return;
+      }
+      res.json({
+        url: invoiceUrl(deps.publicBaseUrl, deps.invoiceSecret, req.sellerId!, orderId),
+        number: invoiceNumber(orderId),
+      });
     } catch (err) {
       next(err);
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
+import { resolvePhotoIndex } from '../src/routes/catalogue.js';
 import { loadEnv } from '../src/env.js';
 import type { ChatTransport } from '../src/ai/client.js';
 
@@ -46,6 +47,8 @@ describe('POST /v1/catalogue/extract', () => {
     expect(res.body.candidates[0].name).toBe('Lemon drizzle cake');
     // Extraction must not write; the seller confirms first.
     expect(res.body.candidates[0].tempId).toBeTypeOf('string');
+    // One photo: the product can only have come from it.
+    expect(res.body.candidates[0].photoIndex).toBe(0);
   });
 
   it('401s without a token', async () => {
@@ -105,4 +108,14 @@ describe('POST /v1/catalogue/extract', () => {
     expect(res.status).toBe(200);
     expect(res.body.candidates).toEqual([]);
   });
+});
+
+describe('resolvePhotoIndex', () => {
+  it('keeps an in-range index', () => expect(resolvePhotoIndex(2, 3)).toBe(2));
+  it('drops an out-of-range or negative index', () => {
+    expect(resolvePhotoIndex(3, 3)).toBeNull();
+    expect(resolvePhotoIndex(-1, 3)).toBeNull();
+  });
+  it('falls back to the only photo when there is one', () => expect(resolvePhotoIndex(null, 1)).toBe(0));
+  it('stays null for several photos when unsure', () => expect(resolvePhotoIndex(null, 2)).toBeNull());
 });
