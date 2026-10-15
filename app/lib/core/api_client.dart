@@ -16,6 +16,11 @@ class ApiClient {
     return Options(headers: {if (token != null) 'Authorization': 'Bearer $token'});
   }
 
+  Future<Map<String, dynamic>> getJson(String path) async {
+    final res = await _dio.get<Map<String, dynamic>>(path, options: await _authed());
+    return res.data ?? <String, dynamic>{};
+  }
+
   Future<Map<String, dynamic>> postJson(String path, Object body) async {
     final res = await _dio.post<Map<String, dynamic>>(
       path,
