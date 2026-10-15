@@ -18,9 +18,9 @@ const schema = z.object({
 });
 
 export type Env = z.infer<typeof schema> & {
-  /** Sandbox only, per the design spec. There is no live mode. */
-  readonly PAYPAL_ENV: 'sandbox';
-  readonly PAYPAL_API_BASE: 'https://api-m.sandbox.paypal.com';
+  /** Sandbox unless PAYPAL_ENV=live is set. */
+  readonly PAYPAL_ENV: 'sandbox' | 'live';
+  readonly PAYPAL_API_BASE: 'https://api-m.sandbox.paypal.com' | 'https://api-m.paypal.com';
   /** Origin of this API. PayPal's buyer return and cancel URLs are built from it. */
   readonly PUBLIC_BASE_URL: string;
 };
@@ -74,10 +74,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
         'Use a placeholder such as "pending" for ones you do not have yet.',
     );
   }
+  const live = source.PAYPAL_ENV?.trim().toLowerCase() === 'live';
   return {
     ...parsed.data,
-    PAYPAL_ENV: 'sandbox',
-    PAYPAL_API_BASE: 'https://api-m.sandbox.paypal.com',
+    PAYPAL_ENV: live ? 'live' : 'sandbox',
+    PAYPAL_API_BASE: live ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com',
     PUBLIC_BASE_URL: resolvePublicBaseUrl(source.PUBLIC_BASE_URL),
   };
 }

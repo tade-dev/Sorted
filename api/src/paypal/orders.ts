@@ -23,6 +23,12 @@ export async function createPayPalOrder(
   sellerId: string,
   call: PayPalFetch,
   publicBaseUrl: string = DEFAULT_PUBLIC_BASE_URL,
+  /**
+   * The seller's own PayPal email. PayPal pays it directly ("pay another
+   * account"); Sorted's app still captures. Null pays the shared sandbox
+   * merchant that owns the app, which keeps the demo working.
+   */
+  payeeEmail: string | null = null,
 ): Promise<{ paypalOrderId: string; approvalUrl: string }> {
   if (order.amountDueMinor <= 0) {
     throw new ApiError(
@@ -56,6 +62,7 @@ export async function createPayPalOrder(
           breakdown: { item_total: { currency_code: 'GBP', value } },
         },
     ...(takingDeposit ? {} : { items }),
+    ...(payeeEmail ? { payee: { email_address: payeeEmail } } : {}),
     ...(takingDeposit
       ? { description: `Deposit for order ${order.id.slice(0, 8)}` }
       : {}),

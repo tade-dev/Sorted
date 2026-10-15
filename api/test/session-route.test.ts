@@ -65,4 +65,24 @@ describe('PATCH /v1/session/seller', () => {
       .send({ onboarded: true });
     expect(res.status).toBe(404);
   });
+
+  it('saves, lowercases and clears the seller PayPal email', async () => {
+    await db.doc('sellers/seller-a').set({ displayName: 'My shop' });
+    let res = await request(app()).patch('/v1/session/seller').set('Authorization', 'Bearer good')
+      .send({ paypalEmail: ' Mia@Example.com ' });
+    expect(res.status).toBe(200);
+    expect((await db.doc('sellers/seller-a').get()).get('paypalEmail')).toBe('mia@example.com');
+
+    res = await request(app()).patch('/v1/session/seller').set('Authorization', 'Bearer good')
+      .send({ paypalEmail: '' });
+    expect(res.status).toBe(200);
+    expect((await db.doc('sellers/seller-a').get()).get('paypalEmail')).toBeNull();
+  });
+
+  it('rejects a PayPal email that is not an email', async () => {
+    await db.doc('sellers/seller-a').set({ displayName: 'My shop' });
+    const res = await request(app()).patch('/v1/session/seller').set('Authorization', 'Bearer good')
+      .send({ paypalEmail: 'not-an-email' });
+    expect(res.status).toBe(400);
+  });
 });

@@ -11,6 +11,7 @@ class Seller {
     this.channels = const [],
     this.fulfilmentMode,
     this.paypalMerchant,
+    this.paypalEmail,
     this.onboardedAt,
   });
 
@@ -21,6 +22,9 @@ class Seller {
   final List<String> channels;
   final String? fulfilmentMode;
   final String? paypalMerchant;
+
+  /// Where buyers pay. Null pays the shared sandbox merchant.
+  final String? paypalEmail;
   final DateTime? onboardedAt;
 
   bool get onboarded => onboardedAt != null;
@@ -34,6 +38,7 @@ class Seller {
     channels: _strings(map['channels']),
     fulfilmentMode: map['fulfilmentMode'] as String?,
     paypalMerchant: map['paypalMerchant'] as String?,
+    paypalEmail: map['paypalEmail'] as String?,
     onboardedAt: dateTimeFromJson(map['onboardedAt']),
   );
 

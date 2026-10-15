@@ -326,4 +326,31 @@ void main() {
     expect(find.text('Sorted'), findsOneWidget);
     expect(find.text('Payment received'), findsOneWidget);
   });
+
+  testWidgets('an open order asks PayPal for its state once', (tester) async {
+    final api = _RefreshApi();
+    await tester.pumpWidget(
+      host(order: Stream.value(jess(status: 'link_sent')), api: api),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(api.refreshes, 1);
+  });
+
+  testWidgets('a paid order does not ask PayPal', (tester) async {
+    final api = _RefreshApi();
+    await tester.pumpWidget(host(order: Stream.value(jess()), api: api));
+    await tester.pumpAndSettle();
+    expect(api.refreshes, 0);
+  });
+}
+
+class _RefreshApi extends Fake implements OrdersApi {
+  int refreshes = 0;
+
+  @override
+  Future<Map<String, dynamic>> refresh(String orderId) async {
+    refreshes++;
+    return const {};
+  }
 }

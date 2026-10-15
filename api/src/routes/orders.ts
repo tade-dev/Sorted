@@ -17,6 +17,7 @@ import {
 import { sumMinor, multiplyMinor, applyDelta } from '../domain/money.js';
 import { createPayPalOrder } from '../paypal/orders.js';
 import type { PayPalFetch } from '../paypal/client.js';
+import { OPEN_STATUSES, reconcileOrder } from '../paypal/reconcile.js';
 import { draftReply, fallbackReply, fallbackThankYou, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 import {
@@ -501,14 +502,18 @@ export function ordersRouter(deps: OrdersDeps): Router {
 
       // Nothing is written until PayPal has accepted the order, so a rejection
       // leaves the seller's draft exactly as it was to retry.
+      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
+      const rawPayee = sellerSnap.data()?.paypalEmail;
+      const payeeEmail = typeof rawPayee === 'string' && rawPayee.includes('@') ? rawPayee : null;
+
       const { paypalOrderId, approvalUrl } = await createPayPalOrder(
         priced,
         sellerId,
         deps.paypal,
         deps.publicBaseUrl,
+        payeeEmail,
       );
 
-      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
       const personaTone = (sellerSnap.data()?.personaTone as string | undefined) ?? '';
 
       let draftedReply: string;
@@ -529,6 +534,7 @@ export function ordersRouter(deps: OrdersDeps): Router {
         paypalOrderId,
         approvalUrl,
         draftedReply,
+        paypalPayee: payeeEmail ?? 'shared_sandbox',
       };
 
       await ref.update({
@@ -617,6 +623,26 @@ export function ordersRouter(deps: OrdersDeps): Router {
         message = fallbackThankYou(order);
       }
       res.json({ message });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // The app calls this when the seller opens an open order. A payment to the
+  // seller's own PayPal may never webhook Sorted, so this asks PayPal itself.
+  router.post('/orders/:orderId/refresh', requireSeller(deps.verify), async (req, res, next) => {
+    const orderId = String(req.params.orderId);
+    const ref = deps.db.doc(`sellers/${req.sellerId}/orders/${orderId}`);
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      const order = snap.data() as OrderDoc;
+      let changed = false;
+      if (OPEN_STATUSES.includes(order.status) && order.paypalOrderId) {
+        changed = await reconcileOrder(deps.paypal, ref, orderId, order.status, order.paypalOrderId);
+      }
+      const status = changed ? ((await ref.get()).get('status') as string) : order.status;
+      res.json({ status, changed });
     } catch (err) {
       next(err);
     }

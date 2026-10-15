@@ -409,4 +409,66 @@ describe('GET /v1/orders', () => {
     const res = await request(appWith(parsed)).get('/v1/orders');
     expect(res.status).toBe(401);
   });
+
+describe('per-seller PayPal', () => {
+  it("pays the seller's saved PayPal email", async () => {
+    await db.doc('sellers/seller-a').set({ paypalEmail: 'mia@example.com' }, { merge: true });
+    const paypal = vi.fn<PayPalFetch>().mockResolvedValue({
+      id: 'PP-1', status: 'PAYER_ACTION_REQUIRED',
+      links: [{ rel: 'payer-action', method: 'GET', href: LINK }],
+    });
+    const app = appWith(parsed, paypal);
+    const id = await draft(app);
+    const res = await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+
+    expect(res.status).toBe(200);
+    const body = paypal.mock.calls[0]![1].body as { purchase_units: { payee?: unknown }[] };
+    expect(body.purchase_units[0]!.payee).toEqual({ email_address: 'mia@example.com' });
+    expect(res.body.order.paypalPayee).toBe('mia@example.com');
+  });
+
+  it('falls back to the shared sandbox merchant with no email', async () => {
+    const app = appWith(parsed);
+    const id = await draft(app);
+    const res = await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+    expect(res.body.order.paypalPayee).toBe('shared_sandbox');
+  });
+});
+
+describe('POST /v1/orders/:orderId/refresh', () => {
+  async function seedOpen(status: string) {
+    await db.doc('sellers/seller-a/orders/o1').set({ id: 'o1', status, paypalOrderId: 'PP-9' });
+  }
+
+  it('turns an order paid when PayPal has a completed capture', async () => {
+    await seedOpen('link_sent');
+    const app = appWith(parsed, async () => ({
+      id: 'PP-9', status: 'COMPLETED',
+      purchase_units: [{ payments: { captures: [{ id: 'CAP-9', status: 'COMPLETED' }] } }],
+    }));
+    const res = await request(app).post('/v1/orders/o1/refresh').set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'paid', changed: true });
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('paypalCaptureId')).toBe('CAP-9');
+  });
+
+  it('leaves an unapproved order alone and skips closed ones', async () => {
+    await seedOpen('link_sent');
+    const paypal = vi.fn<PayPalFetch>().mockResolvedValue({ id: 'PP-9', status: 'PAYER_ACTION_REQUIRED' });
+    const app = appWith(parsed, paypal);
+    let res = await request(app).post('/v1/orders/o1/refresh').set('Authorization', 'Bearer good').send({});
+    expect(res.body).toEqual({ status: 'link_sent', changed: false });
+
+    await seedOpen('paid');
+    paypal.mockClear();
+    res = await request(app).post('/v1/orders/o1/refresh').set('Authorization', 'Bearer good').send({});
+    expect(res.body).toEqual({ status: 'paid', changed: false });
+    expect(paypal).not.toHaveBeenCalled();
+  });
+
+  it('404s for an order that is not there', async () => {
+    const res = await request(appWith(parsed)).post('/v1/orders/nope/refresh').set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(404);
+  });
+});
 });

@@ -23,6 +23,9 @@ Order _sent({String? reply}) => Order(
 
 class _FakeApi implements OrdersApi {
   @override
+  Future<Map<String, dynamic>> refresh(String orderId) async => const {};
+
+  @override
   Future<Map<String, dynamic>> thankYou(String orderId) async => {'message': 'Thanks!'};
 
   String? lastTone;

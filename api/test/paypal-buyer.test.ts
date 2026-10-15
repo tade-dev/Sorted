@@ -208,4 +208,44 @@ describe('POST /v1/internal/workflows/reconcile', () => {
     expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('paid');
     expect((await db.doc('sellers/seller-a/orders/o2').get()).get('status')).toBe('processing');
   });
+
+describe('GET /v1/paypal/return capture fallback', () => {
+  it('captures an approved order so it turns paid without a webhook', async () => {
+    await seed('link_sent');
+    const calls: string[] = [];
+    const fetch: PayPalFetch = async (path, init) => {
+      calls.push(`${init.method} ${path}`);
+      if (init.method === 'GET') return { id: 'PPORDER1', status: 'APPROVED' };
+      return completed;
+    };
+    const res = await request(appWith(fetch)).get('/v1/paypal/return').query({ token: 'PPORDER1' });
+
+    expect(res.status).toBe(200);
+    expect(calls).toContain('POST /v2/checkout/orders/PPORDER1/capture');
+    const stored = await db.doc('sellers/seller-a/orders/o1').get();
+    expect(stored.get('status')).toBe('paid');
+    expect(stored.get('paypalCaptureId')).toBe('CAP-1');
+    expect(res.text).toContain('It&#39;s paid.');
+  });
+
+  it('still shows the page when PayPal is down', async () => {
+    await seed('link_sent');
+    const res = await request(appWith(async () => { throw new ApiError(502, 'PAYPAL_UNAVAILABLE', 'down'); }))
+      .get('/v1/paypal/return').query({ token: 'PPORDER1' });
+    expect(res.status).toBe(200);
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('link_sent');
+  });
+
+  it('never captures a superseded PayPal order', async () => {
+    await seed('draft', { paypalOrderId: null, supersededPaypalOrderIds: ['PPORDER1'] });
+    let posted = false;
+    const fetch: PayPalFetch = async (_path, init) => {
+      if (init.method === 'POST') posted = true;
+      return { id: 'PPORDER1', status: 'APPROVED' };
+    };
+    await request(appWith(fetch)).get('/v1/paypal/return').query({ token: 'PPORDER1' });
+    expect(posted).toBe(false);
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('draft');
+  });
+});
 });
