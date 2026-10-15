@@ -50,6 +50,8 @@ class SellerUpdater {
     List<String>? sells,
     List<String>? channels,
     String? fulfilmentMode,
+    /// Empty clears it, so payments go to the shared sandbox merchant.
+    String? paypalEmail,
     bool connectPaypal = false,
     bool finishOnboarding = false,
   }) => _api.patchJson('/v1/session/seller', {
@@ -58,6 +60,7 @@ class SellerUpdater {
     'sells': ?sells,
     'channels': ?channels,
     'fulfilmentMode': ?fulfilmentMode,
+    'paypalEmail': ?paypalEmail,
     if (connectPaypal) 'paypalConnected': true,
     if (finishOnboarding) 'onboarded': true,
   });

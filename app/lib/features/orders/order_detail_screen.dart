@@ -24,14 +24,41 @@ import 'edit_order_screen.dart' show editableOrderStatuses;
 import 'order_presentation.dart';
 import 'status_pill.dart';
 
-class OrderDetailScreen extends ConsumerWidget {
+class OrderDetailScreen extends ConsumerStatefulWidget {
   const OrderDetailScreen({super.key, required this.orderId});
 
   final String orderId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
+  bool _checkedPayPal = false;
+
+  String get orderId => widget.orderId;
+
+  /// Once per visit, an open order asks PayPal for its state, so a payment
+  /// that never webhooked still turns the order paid.
+  void _checkPayPalOnce(Order? order) {
+    if (_checkedPayPal || order == null) return;
+    if (!const {'link_sent', 'processing', 'pending'}.contains(order.status)) {
+      return;
+    }
+    _checkedPayPal = true;
+    Future.microtask(() {
+      try {
+        return ref.read(ordersRepositoryProvider).refreshFromPayPal(orderId);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final order = ref.watch(orderByIdProvider(orderId));
+    _checkPayPalOnce(order.value);
     final events = ref.watch(paymentEventsProvider(orderId));
 
     return Scaffold(

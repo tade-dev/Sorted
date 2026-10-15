@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
-import '../onboarding/connect_screen.dart';
 
 const repoUrl = 'https://github.com/tade-dev/sorted';
 
@@ -26,8 +27,10 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _name = TextEditingController();
   final _tone = TextEditingController();
+  final _paypal = TextEditingController();
   String _savedName = '';
   String _savedTone = '';
+  String _savedPaypal = '';
   bool _loaded = false;
   bool _saving = false;
 
@@ -35,22 +38,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _name.dispose();
     _tone.dispose();
+    _paypal.dispose();
     super.dispose();
   }
 
   bool get _dirty =>
-      _name.text.trim() != _savedName || _tone.text.trim() != _savedTone;
+      _name.text.trim() != _savedName ||
+      _tone.text.trim() != _savedTone ||
+      _paypalText != _savedPaypal;
+
+  String get _paypalText => _paypal.text.trim().toLowerCase();
+
+  /// Empty is valid: it means the shared sandbox merchant.
+  bool get _paypalValid => _paypalText.isEmpty || isPlausibleEmail(_paypalText);
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final toast = SortedToast.of(context);
     try {
-      await ref.read(sellerUpdaterProvider).update(
-        displayName: _name.text.trim(),
-        personaTone: _tone.text.trim(),
-      );
+      await ref
+          .read(sellerUpdaterProvider)
+          .update(
+            displayName: _name.text.trim(),
+            personaTone: _tone.text.trim(),
+            paypalEmail: _paypalText,
+          );
       _savedName = _name.text.trim();
       _savedTone = _tone.text.trim();
+      _savedPaypal = _paypalText;
       toast.show('Saved', kind: SortedToastKind.success);
     } catch (e) {
       toast.show(describeApiError(e), kind: SortedToastKind.error);
@@ -68,6 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _loaded = true;
       _name.text = _savedName = seller.displayName;
       _tone.text = _savedTone = seller.personaTone;
+      _paypal.text = _savedPaypal = seller.paypalEmail ?? '';
     }
 
     Widget section(String title, List<Widget> children) => Padding(
@@ -96,7 +112,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               maxLength: 60,
               textCapitalization: TextCapitalization.words,
               style: text.bodyLarge,
-              decoration: const InputDecoration(hintText: 'Shop name', counterText: ''),
+              decoration: const InputDecoration(
+                hintText: 'Shop name',
+                counterText: '',
+              ),
               onChanged: (_) => setState(() {}),
             ),
           ]),
@@ -117,21 +136,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: text.bodySmall?.copyWith(color: c.muted),
             ),
           ]),
+          section('Payments', [
+            TextField(
+              controller: _paypal,
+              maxLength: 127,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              style: text.bodyLarge,
+              decoration: InputDecoration(
+                hintText: 'Your PayPal email',
+                counterText: '',
+                errorText: _paypalValid ? null : 'Enter a valid email',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            Text(
+              _savedPaypal.isEmpty
+                  ? 'Buyers pay the shared PayPal sandbox merchant. Add your PayPal email to get paid directly.'
+                  : 'Buyers pay $_savedPaypal directly through PayPal.',
+              style: text.bodySmall?.copyWith(color: c.muted),
+            ),
+          ]),
           PrimaryButton(
             label: _saving ? 'Saving…' : 'Save changes',
-            onPressed: _saving || !_dirty || _name.text.trim().isEmpty ? null : _save,
+            onPressed:
+                _saving || !_dirty || _name.text.trim().isEmpty || !_paypalValid
+                ? null
+                : _save,
           ),
           const SizedBox(height: 32),
-          section('Payments', [
-            Text(
-              seller?.paypalConnected == true
-                  ? 'Connected to the shared PayPal sandbox merchant.'
-                  : 'Using the shared PayPal sandbox merchant.',
-              style: text.bodyMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(sharedMerchantNote, style: text.bodySmall?.copyWith(color: c.muted)),
-          ]),
           section('About', [
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -184,3 +217,7 @@ class _SettingsSkeleton extends StatelessWidget {
     );
   }
 }
+
+/// A light check; PayPal is the real judge when it creates the order.
+bool isPlausibleEmail(String value) =>
+    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);

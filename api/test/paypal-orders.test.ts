@@ -151,4 +151,18 @@ describe('createPayPalOrder', () => {
     ).rejects.toThrow();
     expect(call).not.toHaveBeenCalled();
   });
+
+  it("pays the seller's own PayPal when an email is given", async () => {
+    const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
+    await createPayPalOrder(order, 'seller-a', call, undefined, 'mia@example.com');
+    const body = call.mock.calls[0]![1].body as { purchase_units: { payee?: { email_address: string } }[] };
+    expect(body.purchase_units[0]!.payee).toEqual({ email_address: 'mia@example.com' });
+  });
+
+  it('leaves out payee so the shared merchant is paid when there is no email', async () => {
+    const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
+    await createPayPalOrder(order, 'seller-a', call);
+    const body = call.mock.calls[0]![1].body as { purchase_units: Record<string, unknown>[] };
+    expect(body.purchase_units[0]!).not.toHaveProperty('payee');
+  });
 });

@@ -85,7 +85,7 @@ export function createApp(deps: AppDeps): express.Express {
       model: deps.env.OPENAI_VISION_MODEL,
     }),
   );
-  app.use('/v1', paypalPagesRouter(deps.db));
+  app.use('/v1', paypalPagesRouter(deps.db, deps.paypal));
   app.use('/v1', internalRouter({ env: deps.env, db: deps.db, paypal: deps.paypal }));
 
   app.use((_req, _res, next) => {

@@ -19,6 +19,11 @@ export const sellerPatchSchema = z
     sells: z.array(z.string().trim().min(1).max(40)).max(8),
     channels: z.array(z.string().trim().min(1).max(40)).max(8),
     fulfilmentMode: z.enum(['collection', 'delivery', 'both']),
+    /**
+     * Where buyers' payments go. Empty clears it, and payments go to the
+     * shared sandbox merchant again.
+     */
+    paypalEmail: z.union([z.string().trim().toLowerCase().email().max(127), z.literal('')]),
     /** No OAuth: attaches the seller to the shared sandbox merchant. */
     paypalConnected: z.literal(true),
     /** Finished or skipped onboarding. */
@@ -50,8 +55,9 @@ export function sessionRouter(deps: { db: Firestore; verify: TokenVerifier }): R
       next(new ApiError(400, 'VALIDATION_FAILED', 'That change is not valid.', parsed.error.format()));
       return;
     }
-    const { paypalConnected, onboarded, ...fields } = parsed.data;
+    const { paypalConnected, onboarded, paypalEmail, ...fields } = parsed.data;
     const update: Record<string, unknown> = { ...fields, updatedAt: FieldValue.serverTimestamp() };
+    if (paypalEmail !== undefined) update.paypalEmail = paypalEmail === '' ? null : paypalEmail;
     if (paypalConnected) {
       update.paypalMerchant = 'shared_sandbox';
       update.paypalConnectedAt = FieldValue.serverTimestamp();

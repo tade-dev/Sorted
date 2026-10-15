@@ -14,6 +14,7 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> edit(String orderId, Object body);
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone);
   Future<Map<String, dynamic>> thankYou(String orderId);
+  Future<Map<String, dynamic>> refresh(String orderId);
 }
 
 class HttpOrdersApi implements OrdersApi {
@@ -51,6 +52,10 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> thankYou(String orderId) =>
       _client.postJson('/v1/orders/$orderId/thank-you', const {});
+
+  @override
+  Future<Map<String, dynamic>> refresh(String orderId) =>
+      _client.postJson('/v1/orders/$orderId/refresh', const {});
 }
 
 class OrdersRepository {
@@ -201,5 +206,14 @@ class OrdersRepository {
   Future<String> thankYou(String orderId) async {
     final json = await api.thankYou(orderId);
     return json['message'] as String;
+  }
+
+  /// Asks the API to check PayPal for this order. A payment to the seller's
+  /// own PayPal may not webhook Sorted, so opening the order is the fallback.
+  /// The order stream picks up any change; failures are ignored.
+  Future<void> refreshFromPayPal(String orderId) async {
+    try {
+      await api.refresh(orderId);
+    } catch (_) {}
   }
 }

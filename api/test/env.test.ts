@@ -44,8 +44,16 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, PORT: 'eighty' })).toThrow(/PORT/);
   });
 
-  it('always reports the sandbox PayPal environment', () => {
+  it('defaults to the sandbox PayPal environment', () => {
     expect(loadEnv(valid).PAYPAL_ENV).toBe('sandbox');
+    expect(loadEnv(valid).PAYPAL_API_BASE).toBe('https://api-m.sandbox.paypal.com');
+    expect(loadEnv({ ...valid, PAYPAL_ENV: 'nonsense' }).PAYPAL_ENV).toBe('sandbox');
+  });
+
+  it('switches to live PayPal only when PAYPAL_ENV=live', () => {
+    const env = loadEnv({ ...valid, PAYPAL_ENV: 'live' });
+    expect(env.PAYPAL_ENV).toBe('live');
+    expect(env.PAYPAL_API_BASE).toBe('https://api-m.paypal.com');
   });
 
   it('lists every missing variable in one message, not just the first', () => {

@@ -37,6 +37,9 @@ Map<String, dynamic> orderJson({
 
 class _FakeApi implements OrdersApi {
   @override
+  Future<Map<String, dynamic>> refresh(String orderId) async => const {};
+
+  @override
   Future<Map<String, dynamic>> thankYou(String orderId) async {
     lastPath = 'thank-you/$orderId';
     if (throwOn != null) throw throwOn!;

@@ -12,7 +12,7 @@ import 'onboarding_scaffold.dart';
 /// Honest small print (spec §13): there is no PayPal sign-in in this build.
 /// The design's "You sign in on PayPal…" line would promise one.
 const sharedMerchantNote =
-    'This demo uses a shared PayPal sandbox merchant. Per-seller sign-in through PayPal is next.';
+    'This demo uses a shared PayPal sandbox merchant until you add your own PayPal email in Settings.';
 
 /// `Connect PayPal.png`, step 2 of 2. Attaches the seller to the shared
 /// sandbox merchant (no OAuth) and finishes onboarding.

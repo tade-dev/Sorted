@@ -34,6 +34,8 @@ export type OrderDoc = {
   supersededPaypalOrderIds?: string[];
   approvalUrl: string | null;
   paypalCaptureId: string | null;
+  /** Seller PayPal email the link pays, or 'shared_sandbox'. */
+  paypalPayee?: string;
   paypalInvoiceId: string | null;
   draftedReply: string | null;
   nudge: { count: number; lastSentAt: Timestamp | null; lastText: string | null; channel: string | null; snoozedUntil: Timestamp | null };
