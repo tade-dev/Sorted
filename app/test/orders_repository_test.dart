@@ -8,24 +8,45 @@ Map<String, dynamic> orderJson({
   List<Map<String, dynamic>>? ambiguities,
   String? approvalUrl,
 }) => {
-      'id': id, 'status': status, 'buyerName': 'Jess M', 'buyerHandle': 'jess.mcr',
-      'channel': 'instagram',
-      'lineItems': [
-        {
-          'id': 'li-1', 'productId': 'p1', 'variantIds': ['10-inch'],
-          'nameRaw': 'lemon drizzle', 'nameResolved': 'Lemon drizzle cake',
-          'qty': 1, 'unitPriceMinor': 4200, 'lineTotalMinor': 4200,
-          'matchConfidence': 1.0, 'matchMethod': 'exact',
-        },
-      ],
-      'subtotalMinor': 4200, 'amountDueMinor': 4200, 'currency': 'GBP',
-      'fulfilment': {'mode': 'collection', 'date': '2026-10-10'},
-      'ambiguities': ambiguities ?? <Map<String, dynamic>>[],
-      'approvalUrl': ?approvalUrl,
-    };
+  'id': id,
+  'status': status,
+  'buyerName': 'Jess M',
+  'buyerHandle': 'jess.mcr',
+  'channel': 'instagram',
+  'lineItems': [
+    {
+      'id': 'li-1',
+      'productId': 'p1',
+      'variantIds': ['10-inch'],
+      'nameRaw': 'lemon drizzle',
+      'nameResolved': 'Lemon drizzle cake',
+      'qty': 1,
+      'unitPriceMinor': 4200,
+      'lineTotalMinor': 4200,
+      'matchConfidence': 1.0,
+      'matchMethod': 'exact',
+    },
+  ],
+  'subtotalMinor': 4200,
+  'amountDueMinor': 4200,
+  'currency': 'GBP',
+  'fulfilment': {'mode': 'collection', 'date': '2026-10-10'},
+  'ambiguities': ambiguities ?? <Map<String, dynamic>>[],
+  'approvalUrl': ?approvalUrl,
+};
 
 class _FakeApi implements OrdersApi {
-  Map<String, dynamic> draftResponse = {'order': null, 'reason': 'nothing here'};
+  @override
+  Future<Map<String, dynamic>> thankYou(String orderId) async {
+    lastPath = 'thank-you/$orderId';
+    if (throwOn != null) throw throwOn!;
+    return {'message': 'Thanks Jess!'};
+  }
+
+  Map<String, dynamic> draftResponse = {
+    'order': null,
+    'reason': 'nothing here',
+  };
   Map<String, dynamic> orderResponse = {'order': {}};
   String replyResponse = 'hi';
   Object? throwOn;
@@ -33,7 +54,10 @@ class _FakeApi implements OrdersApi {
   String? lastPath;
 
   @override
-  Future<Map<String, dynamic>> draftFromImage(List<int> bytes, String filename) async {
+  Future<Map<String, dynamic>> draftFromImage(
+    List<int> bytes,
+    String filename,
+  ) async {
     lastPath = 'image';
     if (throwOn != null) throw throwOn!;
     return draftResponse;
@@ -68,7 +92,10 @@ class _FakeApi implements OrdersApi {
   }
 
   @override
-  Future<Map<String, dynamic>> regenerateReply(String orderId, String tone) async {
+  Future<Map<String, dynamic>> regenerateReply(
+    String orderId,
+    String tone,
+  ) async {
     lastBody = tone;
     return {'draftedReply': replyResponse};
   }
@@ -91,7 +118,10 @@ void main() {
   });
 
   test('returns null when the API found no order', () async {
-    api.draftResponse = {'order': null, 'reason': 'Sorted could not find an order in that.'};
+    api.draftResponse = {
+      'order': null,
+      'reason': 'Sorted could not find an order in that.',
+    };
     expect(await repo.draftFromText('a cat photo'), isNull);
     expect(repo.lastDraftReason, contains('could not find'));
   });
@@ -114,15 +144,26 @@ void main() {
   test('refuses to confirm an order that is still blocked', () async {
     // The API refuses too; failing here saves a round trip and a confusing
     // error, and keeps the button and the rule in agreement.
-    final blocked = Order.fromJson(orderJson(ambiguities: [
-      {'field': 'lineItems[0].variantIds', 'kind': 'missing', 'question': 'Which size?'},
-    ]));
+    final blocked = Order.fromJson(
+      orderJson(
+        ambiguities: [
+          {
+            'field': 'lineItems[0].variantIds',
+            'kind': 'missing',
+            'question': 'Which size?',
+          },
+        ],
+      ),
+    );
     expect(() => repo.confirm(blocked), throwsA(isA<ArgumentError>()));
   });
 
   test('confirms an unblocked order', () async {
     api.orderResponse = {
-      'order': orderJson(status: 'link_sent', approvalUrl: 'https://x/checkoutnow?token=T'),
+      'order': orderJson(
+        status: 'link_sent',
+        approvalUrl: 'https://x/checkoutnow?token=T',
+      ),
     };
     final out = await repo.confirm(Order.fromJson(orderJson()));
     expect(out.status, 'link_sent');
@@ -142,6 +183,12 @@ void main() {
     expect(api.lastBody, 'formal');
   });
 
+  test('fetches a thank-you for the order', () async {
+    final out = await repo.thankYou('o1');
+    expect(out, 'Thanks Jess!');
+    expect(api.lastPath, 'thank-you/o1');
+  });
+
   test('edit sends every line and the note to the edit route', () async {
     api.orderResponse = {'order': orderJson()};
     await repo.edit(
@@ -155,7 +202,12 @@ void main() {
     expect(api.lastPath, 'edit/o1');
     expect(api.lastBody, {
       'lineItems': [
-        {'id': 'l1', 'productId': 'p1', 'variantIds': ['8-inch'], 'qty': 2},
+        {
+          'id': 'l1',
+          'productId': 'p1',
+          'variantIds': ['8-inch'],
+          'qty': 2,
+        },
         {'productId': 'p2', 'variantIds': <String>[], 'qty': 1},
       ],
       'note': 'Happy birthday',

@@ -17,7 +17,7 @@ import {
 import { sumMinor, multiplyMinor, applyDelta } from '../domain/money.js';
 import { createPayPalOrder } from '../paypal/orders.js';
 import type { PayPalFetch } from '../paypal/client.js';
-import { draftReply, fallbackReply, type ReplyTone } from '../ai/draft_reply.js';
+import { draftReply, fallbackReply, fallbackThankYou, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 import {
   applyBlockingPolicy,
@@ -577,6 +577,46 @@ export function ordersRouter(deps: OrdersDeps): Router {
 
       await ref.update({ draftedReply, updatedAt: FieldValue.serverTimestamp() });
       res.json({ draftedReply });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Paid.dc.html "Copy thank-you message". Written fresh on each tap and not
+  // stored: it is only ever copied, never shown.
+  router.post('/orders/:orderId/thank-you', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = regenerateBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That tone is not one Sorted knows.'));
+      return;
+    }
+    const sellerId = req.sellerId!;
+    try {
+      const snap = await deps.db.doc(`sellers/${sellerId}/orders/${req.params.orderId}`).get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      const order = snap.data() as OrderDoc;
+      if (order.status !== 'paid') {
+        next(new ApiError(409, 'ORDER_STATE_INVALID', 'That order has not been paid yet.'));
+        return;
+      }
+      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
+      let message: string;
+      try {
+        message = await draftReply(
+          {
+            order,
+            personaTone: (sellerSnap.data()?.personaTone as string | undefined) ?? '',
+            approvalUrl: '',
+            tone: parsed.data.tone as ReplyTone,
+            mode: 'thank_you',
+          },
+          deps.transport,
+          deps.model,
+        );
+      } catch {
+        message = fallbackThankYou(order);
+      }
+      res.json({ message });
     } catch (err) {
       next(err);
     }

@@ -53,6 +53,9 @@ Order _order({List<Ambiguity> ambiguities = const []}) => Order(
 );
 
 class _FakeApi implements OrdersApi {
+  @override
+  Future<Map<String, dynamic>> thankYou(String orderId) async => {'message': 'Thanks!'};
+
   Object? lastResolveBody;
   bool confirmed = false;
   Order? resolveReturns;

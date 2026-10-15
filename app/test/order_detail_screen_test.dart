@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sorted/core/theme/sorted_theme.dart';
+import 'package:sorted/data/orders_repository.dart';
 import 'package:sorted/features/orders/order_detail_screen.dart';
 import 'package:sorted/models/line_item.dart';
 import 'package:sorted/models/order.dart';
@@ -65,22 +66,37 @@ Order jess({
   );
 }
 
-Widget host({Stream<Order?>? order, Stream<List<PaymentEvent>>? events}) =>
-    ProviderScope(
-      retry: (_, _) => null,
-      overrides: [
-        orderByIdProvider.overrideWith(
-          (ref, id) => order ?? Stream.value(jess()),
-        ),
-        paymentEventsProvider.overrideWith(
-          (ref, id) => events ?? Stream.value(const <PaymentEvent>[]),
-        ),
-      ],
-      child: MaterialApp(
-        theme: sortedTheme(),
-        home: const OrderDetailScreen(orderId: 'o1'),
-      ),
-    );
+class _ThankYouApi extends Fake implements OrdersApi {
+  _ThankYouApi(this.result);
+  final Future<Map<String, dynamic>> Function() result;
+  int calls = 0;
+
+  @override
+  Future<Map<String, dynamic>> thankYou(String orderId) {
+    calls++;
+    return result();
+  }
+}
+
+Widget host({
+  Stream<Order?>? order,
+  Stream<List<PaymentEvent>>? events,
+  OrdersApi? api,
+}) => ProviderScope(
+  retry: (_, _) => null,
+  overrides: [
+    if (api != null)
+      ordersRepositoryProvider.overrideWithValue(OrdersRepository(api: api)),
+    orderByIdProvider.overrideWith((ref, id) => order ?? Stream.value(jess())),
+    paymentEventsProvider.overrideWith(
+      (ref, id) => events ?? Stream.value(const <PaymentEvent>[]),
+    ),
+  ],
+  child: MaterialApp(
+    theme: sortedTheme(),
+    home: const OrderDetailScreen(orderId: 'o1'),
+  ),
+);
 
 void main() {
   testWidgets('shows the slip, the link, the reply and the timeline', (
@@ -178,7 +194,9 @@ void main() {
       );
     });
 
-    await tester.pumpWidget(host());
+    await tester.pumpWidget(
+      host(order: Stream.value(jess(status: 'link_sent', paidAt: null))),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Copy link'));
     await tester.pump();
@@ -189,6 +207,71 @@ void main() {
     expect(copied, contains(_link));
     expect(copied.any((text) => text.contains('Hi Jess!')), isTrue);
     expect(find.textContaining('Copied'), findsWidgets);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  List<String> mockClipboard(WidgetTester tester) {
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map)['text'] as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    return copied;
+  }
+
+  testWidgets('a paid order copies a thank-you instead of the reply', (
+    tester,
+  ) async {
+    final copied = mockClipboard(tester);
+    final api = _ThankYouApi(() async => {'message': 'Thanks so much Jess!'});
+    await tester.pumpWidget(host(api: api));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Copy reply'), findsNothing);
+    await tester.tap(find.text('Copy thank-you message'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(api.calls, 1);
+    expect(copied, ['Thanks so much Jess!']);
+    expect(find.textContaining('Copied'), findsWidgets);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('an unpaid order has no thank-you button', (tester) async {
+    await tester.pumpWidget(
+      host(order: Stream.value(jess(status: 'link_sent', paidAt: null))),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Copy thank-you message'), findsNothing);
+    expect(find.text('Copy reply'), findsOneWidget);
+  });
+
+  testWidgets('says so when the thank-you cannot be written', (tester) async {
+    final copied = mockClipboard(tester);
+    final api = _ThankYouApi(() async => throw Exception('down'));
+    await tester.pumpWidget(host(api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy thank-you message'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(copied, isEmpty);
+    expect(
+      find.text('Could not write the thank-you. Try again.'),
+      findsOneWidget,
+    );
     await tester.pump(const Duration(seconds: 5));
   });
 
