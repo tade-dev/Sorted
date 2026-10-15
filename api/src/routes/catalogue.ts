@@ -12,6 +12,7 @@ import { extractCatalogue } from '../ai/extract_catalogue.js';
 import {
   productInputSchema,
   saveProducts,
+  uniqueSlugs,
   variantInputSchema,
 } from '../domain/products.js';
 import { applyDelta } from '../domain/money.js';
@@ -24,7 +25,41 @@ const patchBodySchema = z.object({
   depositMinor: z.number().int().nonnegative().nullable().optional(),
   variants: z.array(variantInputSchema).max(12).optional(),
   photoUrl: z.string().url().max(2048).nullable().optional(),
+  /** False when the seller has sold out. Missing on older products means true. */
+  inStock: z.boolean().optional(),
 });
+
+/**
+ * Gives edited variants the stored shape (id, active). A label that already
+ * existed keeps its id, so lines on open orders still point at it; new labels
+ * get a slug that does not clash with any id kept.
+ */
+export function variantsWithIds(
+  input: { axis: string; label: string; priceDeltaMinor: number }[],
+  stored: { id: string; label: string }[],
+): { id: string; axis: string; label: string; priceDeltaMinor: number; active: true }[] {
+  const key = (label: string) => label.trim().toLowerCase();
+  const byLabel = new Map(stored.map((v) => [key(v.label), v.id]));
+  const used = new Set<string>();
+  const kept = input.map((v) => {
+    const id = byLabel.get(key(v.label));
+    if (id && !used.has(id)) { used.add(id); return id; }
+    return null;
+  });
+  const fresh = uniqueSlugs(input.map((v) => v.label));
+  return input.map((v, i) => {
+    let id = kept[i];
+    if (!id) {
+      const base = fresh[i]!;
+      let candidate = base;
+      let n = 1;
+      while (used.has(candidate)) { n += 1; candidate = `${base}-${n}`; }
+      id = candidate;
+      used.add(id);
+    }
+    return { id, axis: v.axis, label: v.label.trim(), priceDeltaMinor: v.priceDeltaMinor, active: true as const };
+  });
+}
 
 /**
  * A photo URL must be a Firebase Storage download link to this seller's own
@@ -142,7 +177,7 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
       // an effective negative price that week 3 would total.
       const stored = snap.data() as {
         basePriceMinor: number;
-        variants?: { label: string; priceDeltaMinor: number }[];
+        variants?: { id: string; label: string; priceDeltaMinor: number }[];
       };
       const effectiveBase = parsed.data.basePriceMinor ?? stored.basePriceMinor;
       const effectiveVariants = parsed.data.variants ?? stored.variants ?? [];
@@ -161,7 +196,13 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
         }
       }
 
-      await ref.update({ ...parsed.data, updatedAt: FieldValue.serverTimestamp() });
+      // Raw input variants have no id or active flag; stored that way they
+      // could never be chosen on an order again.
+      const { variants, ...rest } = parsed.data;
+      const update: Record<string, unknown> = { ...rest };
+      if (variants) update.variants = variantsWithIds(variants, stored.variants ?? []);
+      if (rest.name !== undefined) update.name = rest.name.trim();
+      await ref.update({ ...update, updatedAt: FieldValue.serverTimestamp() });
       res.json({ product: (await ref.get()).data() });
     } catch (err) { next(err); }
   });

@@ -165,3 +165,18 @@ describe('uniqueSlugs via the seed module', () => {
     ]);
   });
 });
+
+describe('variantsWithIds', () => {
+  it('keeps stored ids by label and never reuses one for a new label', async () => {
+    const { variantsWithIds } = await import('../src/routes/catalogue.js');
+    const out = variantsWithIds(
+      [
+        { axis: 'size', label: 'Large 2', priceDeltaMinor: 0 },
+        { axis: 'size', label: 'large', priceDeltaMinor: 100 },
+      ],
+      [{ id: 'large-2', label: 'Large' }],
+    );
+    expect(out.map((v) => v.id)).toEqual(['large-2-2', 'large-2']);
+    expect(out.every((v) => v.active)).toBe(true);
+  });
+});
