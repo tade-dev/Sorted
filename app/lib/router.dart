@@ -4,6 +4,7 @@ import 'widgets/sorted_icon.dart';
 
 import 'core/theme/sorted_colors.dart';
 import 'features/catalogue/catalogue_screen.dart';
+import 'features/catalogue/product_edit_screen.dart';
 import 'features/catalogue/review_screen.dart';
 import 'features/catalogue/snap_screen.dart';
 import 'features/home/home_screen.dart';
@@ -14,6 +15,7 @@ import 'features/order/draft_screen.dart';
 import 'features/order/intake_screen.dart';
 import 'features/order/reading_screen.dart';
 import 'features/order/reply_screen.dart';
+import 'features/orders/edit_order_screen.dart';
 import 'features/orders/order_detail_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -39,6 +41,16 @@ final appRouter = GoRouter(
     GoRoute(path: '/order/draft', builder: (_, _) => const DraftScreen()),
     GoRoute(path: '/order/reply', builder: (_, _) => const ReplyScreen()),
     GoRoute(path: '/catalogue/review', builder: (_, _) => const ReviewScreen()),
+    GoRoute(
+      path: '/catalogue/:productId/edit',
+      builder: (_, state) =>
+          ProductEditScreen(productId: state.pathParameters['productId']!),
+    ),
+    GoRoute(
+      path: '/orders/:orderId/edit',
+      builder: (_, state) =>
+          EditOrderScreen(orderId: state.pathParameters['orderId']!),
+    ),
     GoRoute(
       path: '/orders/:orderId',
       builder: (_, state) =>

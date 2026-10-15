@@ -54,6 +54,13 @@ class _FakeApi implements OrdersApi {
   }
 
   @override
+  Future<Map<String, dynamic>> edit(String orderId, Object body) async {
+    lastPath = 'edit/$orderId';
+    lastBody = body;
+    return orderResponse;
+  }
+
+  @override
   Future<Map<String, dynamic>> confirm(String orderId, Object body) async {
     lastBody = body;
     if (throwOn != null) throw throwOn!;
@@ -133,5 +140,25 @@ void main() {
     final out = await repo.regenerateReply('o1', 'formal');
     expect(out, 'Dear Jess, ...');
     expect(api.lastBody, 'formal');
+  });
+
+  test('edit sends every line and the note to the edit route', () async {
+    api.orderResponse = {'order': orderJson()};
+    await repo.edit(
+      'o1',
+      lines: [
+        (id: 'l1', productId: 'p1', variantIds: ['8-inch'], qty: 2),
+        (id: null, productId: 'p2', variantIds: <String>[], qty: 1),
+      ],
+      note: 'Happy birthday',
+    );
+    expect(api.lastPath, 'edit/o1');
+    expect(api.lastBody, {
+      'lineItems': [
+        {'id': 'l1', 'productId': 'p1', 'variantIds': ['8-inch'], 'qty': 2},
+        {'productId': 'p2', 'variantIds': <String>[], 'qty': 1},
+      ],
+      'note': 'Happy birthday',
+    });
   });
 }

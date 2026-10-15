@@ -15,6 +15,8 @@ import '../../models/payment_event.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/sorted_stamp.dart';
+import 'package:go_router/go_router.dart';
+import 'edit_order_screen.dart' show editableOrderStatuses;
 import 'order_presentation.dart';
 import 'status_pill.dart';
 
@@ -148,6 +150,15 @@ class _DetailBody extends StatelessWidget {
             ),
             children: [
               _OrderSlip(order: order, buyer: buyer, when: when),
+              if (editableOrderStatuses.contains(order.status))
+                // Draft.dc.html's "Edit order": a centred 44px text link.
+                Center(
+                  child: TextButton(
+                    key: const Key('edit-order'),
+                    onPressed: () => context.push('/orders/${order.id}/edit'),
+                    child: const Text('Edit order'),
+                  ),
+                ),
               if (order.status != 'paid') ...[
                 const SizedBox(height: 12),
                 StatusPill(status: order.status),

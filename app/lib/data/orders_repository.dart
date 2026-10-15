@@ -11,6 +11,7 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> draftFromText(String text);
   Future<Map<String, dynamic>> resolve(String orderId, Object body);
   Future<Map<String, dynamic>> confirm(String orderId, Object body);
+  Future<Map<String, dynamic>> edit(String orderId, Object body);
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone);
 }
 
@@ -37,6 +38,10 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> confirm(String orderId, Object body) =>
       _client.postJson('/v1/orders/$orderId/confirm', body);
+
+  @override
+  Future<Map<String, dynamic>> edit(String orderId, Object body) =>
+      _client.postJson('/v1/orders/$orderId/edit', body);
 
   @override
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone) =>
@@ -153,6 +158,24 @@ class OrdersRepository {
       throw ArgumentError(order.blockingAmbiguities.first.question);
     }
     final json = await api.confirm(order.id, {'depositMinor': ?depositMinor});
+    return Order.fromJson(json['order'] as Map<String, dynamic>);
+  }
+
+  /// Replaces the order's lines and note. The server reprices every line and
+  /// refuses paid orders; a sent order whose total changed comes back as a
+  /// draft with no link, so the seller makes a fresh one.
+  Future<Order> edit(
+    String orderId, {
+    required List<({String? id, String productId, List<String> variantIds, int qty})> lines,
+    String? note,
+  }) async {
+    final json = await api.edit(orderId, {
+      'lineItems': [
+        for (final l in lines)
+          {'id': ?l.id, 'productId': l.productId, 'variantIds': l.variantIds, 'qty': l.qty},
+      ],
+      'note': note,
+    });
     return Order.fromJson(json['order'] as Map<String, dynamic>);
   }
 
