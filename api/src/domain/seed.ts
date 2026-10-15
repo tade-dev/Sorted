@@ -41,6 +41,31 @@ export function slugify(label: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Stable slugs that stay distinct.
+ *
+ * The model generates variant labels, so "Box of 6" and "box of 6" both
+ * arriving is realistic. Sharing one id would merge two variants and lose a
+ * price, so colliding slugs get a numeric suffix.
+ */
+export function uniqueSlugs(labels: string[]): string[] {
+  const used = new Set<string>();
+  return labels.map((label, index) => {
+    const base = slugify(label) || `variant-${index + 1}`;
+    let candidate = base;
+    // Keep counting until the slug is genuinely free. A plain counter is not
+    // enough: "Box of 6 2" slugifies to box-of-6-2, which is also the suffix a
+    // second "box of 6" would take, and the two variants would share an id.
+    let n = 1;
+    while (used.has(candidate)) {
+      n += 1;
+      candidate = `${base}-${n}`;
+    }
+    used.add(candidate);
+    return candidate;
+  });
+}
+
 /** Signed pence: variant deltas may legitimately be negative. */
 function parseDelta(value: string): number {
   const negative = value.trim().startsWith('-');
@@ -64,13 +89,21 @@ export async function bootstrapSeller(
   return db.runTransaction(async (tx) => {
     const existing = await tx.get(sellerRef);
     const alreadySeeded = existing.exists && existing.get('demoSeeded') === true;
+    const stored = (field: string): string | undefined => {
+      const value: unknown = existing.exists ? existing.get(field) : undefined;
+      return typeof value === 'string' ? value : undefined;
+    };
 
     const seller: SellerDoc = {
       id: sellerId,
-      displayName: opts.demo ? seed.seller.displayName : 'My shop',
-      personaTone: opts.demo ? seed.seller.personaTone : '',
+      // An existing seller keeps what onboarding/Settings saved. Returning the
+      // seed defaults here made a reload show "Ola's Bakehouse" (or "My shop")
+      // instead of the name the seller actually chose.
+      displayName:
+        stored('displayName') ?? (opts.demo ? seed.seller.displayName : 'My shop'),
+      personaTone: stored('personaTone') ?? (opts.demo ? seed.seller.personaTone : ''),
       currency: 'GBP',
-      timezone: seed.seller.timezone,
+      timezone: stored('timezone') ?? seed.seller.timezone,
       demoSeeded: opts.demo || alreadySeeded,
     };
 
@@ -90,6 +123,9 @@ export async function bootstrapSeller(
 
     for (const product of seed.products) {
       const ref = db.collection(`sellers/${sellerId}/products`).doc();
+      // Same rule as saveProducts: two labels that slugify alike (or to
+      // nothing) must not share a variant id.
+      const variantIds = uniqueSlugs(product.variants.map((v) => v.label));
       tx.set(ref, {
         id: ref.id,
         name: product.name,
@@ -98,8 +134,8 @@ export async function bootstrapSeller(
         depositMinor: product.deposit === null ? null : parseGbp(product.deposit),
         currency: 'GBP',
         photoUrl: null,
-        variants: product.variants.map((v) => ({
-          id: slugify(v.label),
+        variants: product.variants.map((v, i) => ({
+          id: variantIds[i]!,
           axis: v.axis,
           label: v.label,
           priceDeltaMinor: parseDelta(v.priceDelta),

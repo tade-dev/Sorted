@@ -152,3 +152,16 @@ describe('saveProducts', () => {
     expect(created).toHaveLength(2);
   });
 });
+
+describe('uniqueSlugs via the seed module', () => {
+  it('is the same function bootstrapSeller uses, so seed variants cannot collide', async () => {
+    const seed = await import('../src/domain/seed.js');
+    expect(seed.uniqueSlugs).toBe(uniqueSlugs);
+    expect(seed.uniqueSlugs(['Box of 6', 'box of 6', '', '!!!'])).toEqual([
+      'box-of-6',
+      'box-of-6-2',
+      'variant-3',
+      'variant-4',
+    ]);
+  });
+});

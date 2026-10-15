@@ -1,7 +1,9 @@
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { applyDelta } from './money.js';
-import { slugify } from './seed.js';
+import { uniqueSlugs } from './seed.js';
+
+export { uniqueSlugs };
 
 export const variantInputSchema = z.object({
   axis: z.enum(['size', 'colour', 'flavour', 'other']),
@@ -34,31 +36,6 @@ export const productInputSchema = z
   });
 
 export type ProductInput = z.infer<typeof productInputSchema>;
-
-/**
- * Stable slugs that stay distinct.
- *
- * The model generates variant labels, so "Box of 6" and "box of 6" both
- * arriving is realistic. Sharing one id would merge two variants and lose a
- * price, so colliding slugs get a numeric suffix.
- */
-export function uniqueSlugs(labels: string[]): string[] {
-  const used = new Set<string>();
-  return labels.map((label, index) => {
-    const base = slugify(label) || `variant-${index + 1}`;
-    let candidate = base;
-    // Keep counting until the slug is genuinely free. A plain counter is not
-    // enough: "Box of 6 2" slugifies to box-of-6-2, which is also the suffix a
-    // second "box of 6" would take, and the two variants would share an id.
-    let n = 1;
-    while (used.has(candidate)) {
-      n += 1;
-      candidate = `${base}-${n}`;
-    }
-    used.add(candidate);
-    return candidate;
-  });
-}
 
 const normalise = (name: string) => name.trim().toLowerCase();
 

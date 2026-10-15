@@ -124,4 +124,14 @@ describe('bootstrapSeller', () => {
     );
     expect(ids).toEqual(['box-of-6', 'box-of-12']);
   });
+
+  it('returns the name the seller saved, not the seed default', async () => {
+    await bootstrapSeller(db, 'seller-a', { demo: true });
+    await db.doc('sellers/seller-a').set({ displayName: 'Tade Treats' }, { merge: true });
+
+    const again = await bootstrapSeller(db, 'seller-a', { demo: true });
+    expect(again.seller.displayName).toBe('Tade Treats');
+    const bare = await bootstrapSeller(db, 'seller-a', { demo: false });
+    expect(bare.seller.displayName).toBe('Tade Treats');
+  });
 });

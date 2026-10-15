@@ -18,15 +18,29 @@ export function assertMinor(value: number): Minor {
   return value;
 }
 
+/**
+ * Largest amount parseGbp accepts: £100,000. Nothing a small seller takes via
+ * DMs comes close, and an unbounded digit run would otherwise overflow
+ * Number.MAX_SAFE_INTEGER and silently lose pence.
+ */
+export const MAX_GBP_MINOR: Minor = 100_000_00;
+
 export function parseGbp(input: string): Minor {
   const trimmed = input.trim();
+  if (trimmed.startsWith('-')) {
+    throw new MoneyError(`Amount cannot be negative: "${input}"`);
+  }
   const match = GBP_PATTERN.exec(trimmed);
   if (!match) {
     throw new MoneyError(`Not a GBP amount: "${input}"`);
   }
   const pounds = Number(match[1]!.replaceAll(',', ''));
   const fraction = (match[2] ?? '').padEnd(2, '0');
-  return assertMinor(pounds * 100 + Number(fraction));
+  const minor = pounds * 100 + Number(fraction);
+  if (!Number.isSafeInteger(minor) || minor > MAX_GBP_MINOR) {
+    throw new MoneyError(`Amount is too large (max £100,000.00): "${input}"`);
+  }
+  return assertMinor(minor);
 }
 
 export function toPayPalValue(minor: Minor): string {

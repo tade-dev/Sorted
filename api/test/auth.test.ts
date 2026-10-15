@@ -63,4 +63,20 @@ describe('requireSeller', () => {
       .set('Authorization', 'Bearer expired-token');
     expect(JSON.stringify(res.body)).not.toContain('Firebase');
   });
+
+  it.each(['bearer good-token', 'BEARER good-token', 'Bearer   good-token', 'Bearer\tgood-token  '])(
+    'accepts %j',
+    async (header) => {
+      const res = await request(appWith(verifier)).get('/whoami').set('Authorization', header);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ sellerId: 'seller-a' });
+    },
+  );
+
+  it('401s when extra words follow the token', async () => {
+    const res = await request(appWith(verifier))
+      .get('/whoami')
+      .set('Authorization', 'Bearer good-token extra');
+    expect(res.status).toBe(401);
+  });
 });
