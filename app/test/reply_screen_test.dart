@@ -34,6 +34,9 @@ class _FakeApi implements OrdersApi {
     'order': _sent().toJson(),
   };
   @override
+  Future<Map<String, dynamic>> edit(String orderId, Object body) async => {'order': {}};
+
+  @override
   Future<Map<String, dynamic>> confirm(String id, Object body) async => {
     'order': _sent().toJson(),
   };

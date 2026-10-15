@@ -20,6 +20,7 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
           .toList() ??
       const <Variant>[],
   active: json['active'] as bool? ?? true,
+  inStock: json['inStock'] as bool? ?? true,
   source: json['source'] as String? ?? 'manual',
 );
 
@@ -33,5 +34,6 @@ Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
   'photoUrl': instance.photoUrl,
   'variants': instance.variants.map((e) => e.toJson()).toList(),
   'active': instance.active,
+  'inStock': instance.inStock,
   'source': instance.source,
 };

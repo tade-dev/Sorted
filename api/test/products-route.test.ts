@@ -178,6 +178,36 @@ describe('PATCH /v1/catalogue/products/:productId', () => {
   });
 });
 
+describe('PATCH variants and stock', () => {
+  it('stores edited variants with ids, keeping the id of an existing label', async () => {
+    const id = await create();
+    const res = await request(app())
+      .patch(`/v1/catalogue/products/${id}`)
+      .set('Authorization', 'Bearer good')
+      .send({
+        variants: [
+          { axis: 'size', label: '8 Inch', priceDeltaMinor: 0 },
+          { axis: 'size', label: '10 inch', priceDeltaMinor: 1000 },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.product.variants).toEqual([
+      { id: '8-inch', axis: 'size', label: '8 Inch', priceDeltaMinor: 0, active: true },
+      { id: '10-inch', axis: 'size', label: '10 inch', priceDeltaMinor: 1000, active: true },
+    ]);
+  });
+
+  it('marks a product sold out and back in stock', async () => {
+    const id = await create();
+    const off = await request(app())
+      .patch(`/v1/catalogue/products/${id}`)
+      .set('Authorization', 'Bearer good')
+      .send({ inStock: false });
+    expect(off.status).toBe(200);
+    expect(off.body.product.inStock).toBe(false);
+  });
+});
+
 describe('DELETE /v1/catalogue/products/:productId', () => {
   it('soft deletes rather than removing the document', async () => {
     // Week 3 orders reference products by id. A hard delete would orphan a

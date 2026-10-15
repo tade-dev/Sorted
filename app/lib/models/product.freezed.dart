@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Product {
 
- String get id; String get name; String get description; int get basePriceMinor; int? get depositMinor; String get currency; String? get photoUrl; List<Variant> get variants; bool get active; String get source;
+ String get id; String get name; String get description; int get basePriceMinor; int? get depositMinor; String get currency; String? get photoUrl; List<Variant> get variants; bool get active;/// False while the seller is sold out. Older products have no field.
+ bool get inStock; String get source;
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +31,20 @@ $ProductCopyWith<Product> get copyWith => _$ProductCopyWithImpl<Product>(this as
 @override
 bool operator ==(Object other) {
   final _this = this as Product;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Product&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.description, _this.description) || other.description == _this.description)&&(identical(other.basePriceMinor, _this.basePriceMinor) || other.basePriceMinor == _this.basePriceMinor)&&(identical(other.depositMinor, _this.depositMinor) || other.depositMinor == _this.depositMinor)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.photoUrl, _this.photoUrl) || other.photoUrl == _this.photoUrl)&&const DeepCollectionEquality().equals(other.variants, _this.variants)&&(identical(other.active, _this.active) || other.active == _this.active)&&(identical(other.source, _this.source) || other.source == _this.source));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Product&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.description, _this.description) || other.description == _this.description)&&(identical(other.basePriceMinor, _this.basePriceMinor) || other.basePriceMinor == _this.basePriceMinor)&&(identical(other.depositMinor, _this.depositMinor) || other.depositMinor == _this.depositMinor)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.photoUrl, _this.photoUrl) || other.photoUrl == _this.photoUrl)&&const DeepCollectionEquality().equals(other.variants, _this.variants)&&(identical(other.active, _this.active) || other.active == _this.active)&&(identical(other.inStock, _this.inStock) || other.inStock == _this.inStock)&&(identical(other.source, _this.source) || other.source == _this.source));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Product;
-  return Object.hash(runtimeType,_this.id,_this.name,_this.description,_this.basePriceMinor,_this.depositMinor,_this.currency,_this.photoUrl,const DeepCollectionEquality().hash(_this.variants),_this.active,_this.source);
+  return Object.hash(runtimeType,_this.id,_this.name,_this.description,_this.basePriceMinor,_this.depositMinor,_this.currency,_this.photoUrl,const DeepCollectionEquality().hash(_this.variants),_this.active,_this.inStock,_this.source);
 }
 
 @override
 String toString() {
   final _this = this as Product;
-  return 'Product(id: ${_this.id}, name: ${_this.name}, description: ${_this.description}, basePriceMinor: ${_this.basePriceMinor}, depositMinor: ${_this.depositMinor}, currency: ${_this.currency}, photoUrl: ${_this.photoUrl}, variants: ${_this.variants}, active: ${_this.active}, source: ${_this.source})';
+  return 'Product(id: ${_this.id}, name: ${_this.name}, description: ${_this.description}, basePriceMinor: ${_this.basePriceMinor}, depositMinor: ${_this.depositMinor}, currency: ${_this.currency}, photoUrl: ${_this.photoUrl}, variants: ${_this.variants}, active: ${_this.active}, inStock: ${_this.inStock}, source: ${_this.source})';
 }
 
 
@@ -54,7 +55,7 @@ abstract mixin class $ProductCopyWith<$Res>  {
   factory $ProductCopyWith(Product value, $Res Function(Product) _then) = _$ProductCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String description, int basePriceMinor, int? depositMinor, String currency, String? photoUrl, List<Variant> variants, bool active, String source
+ String id, String name, String description, int basePriceMinor, int? depositMinor, String currency, String? photoUrl, List<Variant> variants, bool active, bool inStock, String source
 });
 
 
@@ -71,7 +72,7 @@ class _$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? basePriceMinor = null,Object? depositMinor = freezed,Object? currency = null,Object? photoUrl = freezed,Object? variants = null,Object? active = null,Object? source = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? basePriceMinor = null,Object? depositMinor = freezed,Object? currency = null,Object? photoUrl = freezed,Object? variants = null,Object? active = null,Object? inStock = null,Object? source = null,}) {
   return _then(Product(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -82,6 +83,7 @@ as int?,currency: null == currency ? _self.currency : currency // ignore: cast_n
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,variants: null == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
 as List<Variant>,active: null == active ? _self.active : active // ignore: cast_nullable_to_non_nullable
+as bool,inStock: null == inStock ? _self.inStock : inStock // ignore: cast_nullable_to_non_nullable
 as bool,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -168,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  String source)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  bool inStock,  String source)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.source);case _:
+return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.inStock,_that.source);case _:
   return orElse();
 
 }
@@ -189,10 +191,10 @@ return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  String source)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  bool inStock,  String source)  $default,) {final _that = this;
 switch (_that) {
 case _Product():
-return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.source);case _:
+return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.inStock,_that.source);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +211,10 @@ return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  String source)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  int basePriceMinor,  int? depositMinor,  String currency,  String? photoUrl,  List<Variant> variants,  bool active,  bool inStock,  String source)?  $default,) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.source);case _:
+return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that.depositMinor,_that.currency,_that.photoUrl,_that.variants,_that.active,_that.inStock,_that.source);case _:
   return null;
 
 }
@@ -224,7 +226,7 @@ return $default(_that.id,_that.name,_that.description,_that.basePriceMinor,_that
 @JsonSerializable()
 
 class _Product extends Product {
-  const _Product({required this.id, required this.name, this.description = '', required this.basePriceMinor, this.depositMinor, this.currency = 'GBP', this.photoUrl,  List<Variant> variants = const <Variant>[], this.active = true, this.source = 'manual'}): _variants = variants,super._();
+  const _Product({required this.id, required this.name, this.description = '', required this.basePriceMinor, this.depositMinor, this.currency = 'GBP', this.photoUrl,  List<Variant> variants = const <Variant>[], this.active = true, this.inStock = true, this.source = 'manual'}): _variants = variants,super._();
   factory _Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
 
 @override final  String id;
@@ -242,6 +244,8 @@ class _Product extends Product {
 }
 
 @override@JsonKey() final  bool active;
+/// False while the seller is sold out. Older products have no field.
+@override@JsonKey() final  bool inStock;
 @override@JsonKey() final  String source;
 
 /// Create a copy of Product
@@ -257,18 +261,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Product&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.basePriceMinor, basePriceMinor) || other.basePriceMinor == basePriceMinor)&&(identical(other.depositMinor, depositMinor) || other.depositMinor == depositMinor)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.variants, _variants)&&(identical(other.active, active) || other.active == active)&&(identical(other.source, source) || other.source == source));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Product&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.basePriceMinor, basePriceMinor) || other.basePriceMinor == basePriceMinor)&&(identical(other.depositMinor, depositMinor) || other.depositMinor == depositMinor)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.variants, _variants)&&(identical(other.active, active) || other.active == active)&&(identical(other.inStock, inStock) || other.inStock == inStock)&&(identical(other.source, source) || other.source == source));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,name,description,basePriceMinor,depositMinor,currency,photoUrl,const DeepCollectionEquality().hash(_variants),active,source);
+    return Object.hash(runtimeType,id,name,description,basePriceMinor,depositMinor,currency,photoUrl,const DeepCollectionEquality().hash(_variants),active,inStock,source);
 }
 
 @override
 String toString() {
-    return 'Product(id: $id, name: $name, description: $description, basePriceMinor: $basePriceMinor, depositMinor: $depositMinor, currency: $currency, photoUrl: $photoUrl, variants: $variants, active: $active, source: $source)';
+    return 'Product(id: $id, name: $name, description: $description, basePriceMinor: $basePriceMinor, depositMinor: $depositMinor, currency: $currency, photoUrl: $photoUrl, variants: $variants, active: $active, inStock: $inStock, source: $source)';
 }
 
 
@@ -279,7 +283,7 @@ abstract mixin class _$ProductCopyWith<$Res> implements $ProductCopyWith<$Res> {
   factory _$ProductCopyWith(_Product value, $Res Function(_Product) _then) = __$ProductCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String description, int basePriceMinor, int? depositMinor, String currency, String? photoUrl, List<Variant> variants, bool active, String source
+ String id, String name, String description, int basePriceMinor, int? depositMinor, String currency, String? photoUrl, List<Variant> variants, bool active, bool inStock, String source
 });
 
 
@@ -296,7 +300,7 @@ class __$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? basePriceMinor = null,Object? depositMinor = freezed,Object? currency = null,Object? photoUrl = freezed,Object? variants = null,Object? active = null,Object? source = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? basePriceMinor = null,Object? depositMinor = freezed,Object? currency = null,Object? photoUrl = freezed,Object? variants = null,Object? active = null,Object? inStock = null,Object? source = null,}) {
   return _then(_Product(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -307,6 +311,7 @@ as int?,currency: null == currency ? _self.currency : currency // ignore: cast_n
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,variants: null == variants ? _self._variants : variants // ignore: cast_nullable_to_non_nullable
 as List<Variant>,active: null == active ? _self.active : active // ignore: cast_nullable_to_non_nullable
+as bool,inStock: null == inStock ? _self.inStock : inStock // ignore: cast_nullable_to_non_nullable
 as bool,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String,
   ));

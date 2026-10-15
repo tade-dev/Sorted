@@ -30,6 +30,8 @@ export type OrderDoc = {
   fulfilment: { mode: string; date: string | null; notes: string | null };
   ambiguities: Ambiguity[];
   paypalOrderId: string | null;
+  /** PayPal orders replaced by an edit. Their approvals are never captured. */
+  supersededPaypalOrderIds?: string[];
   approvalUrl: string | null;
   paypalCaptureId: string | null;
   paypalInvoiceId: string | null;

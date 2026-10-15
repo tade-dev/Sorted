@@ -313,4 +313,46 @@ describe('POST /v1/webhooks/paypal', () => {
     const payment = await db.doc('sellers/seller-a/orders/o1/paymentEvents/WH-REFUND').get();
     expect(payment.exists).toBe(true);
   });
+
+  describe('a PayPal order superseded by an edit', () => {
+    async function seedSuperseded() {
+      await db.doc('sellers/seller-a/orders/o1').set({
+        id: 'o1', status: 'draft', buyerName: 'Tade',
+        paypalOrderId: null, approvalUrl: null, amountDueMinor: 2800,
+        supersededPaypalOrderIds: ['PP-1'],
+      });
+    }
+
+    it('does not capture an approval on the old link', async () => {
+      await seedSuperseded();
+      const { fetch, calls } = paypal();
+      const res = await post(appWith(fetch), approved());
+      expect(res.status).toBe(200);
+      expect(calls.some((c) => c.path.endsWith('/capture'))).toBe(false);
+      const stored = await db.doc('sellers/seller-a/orders/o1').get();
+      expect(stored.get('status')).toBe('draft');
+      const ledger = await db.doc('webhookEvents/WH-APPROVED').get();
+      expect(ledger.get('handled')).toBe(true);
+      expect(ledger.get('processingError')).toMatch(/superseded/);
+    });
+
+    it('never marks the order paid from a capture on the old link', async () => {
+      await seedSuperseded();
+      const { fetch } = paypal();
+      const raw = event('PAYMENT.CAPTURE.COMPLETED', 'WH-OLDCAP', {
+        id: 'CAP-OLD', status: 'COMPLETED',
+        amount: { currency_code: 'GBP', value: '42.00' },
+        custom_id: 'seller-a:o1',
+        supplementary_data: { related_ids: { order_id: 'PP-1' } },
+      });
+      const res = await post(appWith(fetch), raw);
+      expect(res.status).toBe(200);
+      const stored = await db.doc('sellers/seller-a/orders/o1').get();
+      expect(stored.get('status')).toBe('draft');
+      expect(stored.get('paypalCaptureId')).toBeUndefined();
+      const payment = await db.doc('sellers/seller-a/orders/o1/paymentEvents/WH-OLDCAP').get();
+      expect(payment.get('processingError')).toMatch(/Refund/);
+    });
+  });
 });
+

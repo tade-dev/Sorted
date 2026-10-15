@@ -71,6 +71,9 @@ class _FakeApi implements OrdersApi {
   }
 
   @override
+  Future<Map<String, dynamic>> edit(String orderId, Object body) async => {'order': {}};
+
+  @override
   Future<Map<String, dynamic>> confirm(String id, Object body) async {
     if (confirmError != null) throw confirmError!;
     confirmed = true;

@@ -51,6 +51,26 @@ class CatalogueRepository {
     return url;
   }
 
+  /// Saves the product edit screen. Only fields that are passed are sent.
+  Future<void> updateProduct(
+    String productId, {
+    String? name,
+    int? basePriceMinor,
+    List<({String axis, String label, int priceDeltaMinor})>? variants,
+    bool? inStock,
+  }) async {
+    await api.patchProduct(productId, {
+      'name': ?name,
+      'basePriceMinor': ?basePriceMinor,
+      if (variants != null)
+        'variants': [
+          for (final v in variants)
+            {'axis': v.axis, 'label': v.label, 'priceDeltaMinor': v.priceDeltaMinor},
+        ],
+      'inStock': ?inStock,
+    });
+  }
+
   /// Reads come straight from Firestore so the list updates live.
   /// Orders server-side on `name` only, and filters `active` in Dart.
   ///
