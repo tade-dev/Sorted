@@ -35,6 +35,11 @@ export const productCandidateSchema = z.object({
   variants: z.array(variantSchema).max(12),
   confidence: z.number().min(0).max(1),
   ambiguities: z.array(ambiguitySchema).default([]),
+  /**
+   * 0-based index of the uploaded photo this product is clearest in, so the
+   * app can attach that photo to the saved product. Null when unsure.
+   */
+  photoIndex: z.number().int().min(0).nullable().default(null),
 });
 export type ProductCandidate = z.infer<typeof productCandidateSchema>;
 

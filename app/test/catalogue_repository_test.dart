@@ -38,6 +38,8 @@ class _FakeApi implements CatalogueApi {
 
 class _FakeStore implements PhotoStore {
   String? path;
+  final uploads = <String, List<int>>{};
+  Set<String> failFor = {};
   @override
   Future<String> uploadProductPhoto({
     required String sellerId,
@@ -45,6 +47,8 @@ class _FakeStore implements PhotoStore {
     required List<int> bytes,
   }) async {
     path = 'sellers/$sellerId/products/$productId';
+    if (failFor.contains(productId)) throw Exception('offline');
+    uploads[productId] = bytes;
     return 'https://firebasestorage.googleapis.com/v0/b/b/o/x.jpg?alt=media';
   }
 }
@@ -192,5 +196,51 @@ void main() {
 
     await repo.updateProduct('p1', inStock: true);
     expect(api.patched!.$2, {'inStock': true});
+  });
+
+  group('attaching snapped photos on save', () {
+    ProductCandidate c(String name, int? index) => ProductCandidate(
+          tempId: name, name: name, basePriceMinor: 100, photoIndex: index);
+
+    test('uploads each product\'s own photo and patches its URL', () async {
+      final store = _FakeStore();
+      final api = _FakeApi()
+        ..saveResponse = {
+          'created': ['p1', 'p2'],
+          'skippedDuplicates': ['Dupe'],
+          'ids': ['p1', null, 'p2'],
+        };
+      final result = await CatalogueRepository(api: api, photos: store).save(
+        [c('Cake', 1), c('Dupe', 0), c('Buns', 0)],
+        photos: [[10], [20]],
+        sellerId: 's1',
+      );
+      expect(store.uploads, {'p1': [20], 'p2': [10]});
+      expect(result.photosFailed, 0);
+    });
+
+    test('skips candidates with no photoIndex and older APIs without ids', () async {
+      final store = _FakeStore();
+      final api = _FakeApi()
+        ..saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[]};
+      await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', 0)], photos: [[1]], sellerId: 's1');
+      expect(store.uploads, isEmpty);
+
+      api.saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[], 'ids': ['p1']};
+      await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', null)], photos: [[1]], sellerId: 's1');
+      expect(store.uploads, isEmpty);
+    });
+
+    test('a failed upload is counted, not thrown', () async {
+      final store = _FakeStore()..failFor = {'p1'};
+      final api = _FakeApi()
+        ..saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[], 'ids': ['p1']};
+      final result = await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', 0)], photos: [[1]], sellerId: 's1');
+      expect(result.photosFailed, 1);
+      expect(result.created, ['p1']);
+    });
   });
 }

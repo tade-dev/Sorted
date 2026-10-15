@@ -13,6 +13,7 @@ import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../models/product_candidate.dart';
 import '../../providers/catalogue_providers.dart';
+import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/warning_card.dart';
 
@@ -243,13 +244,24 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
     final toast = SortedToast.of(context);
     final router = GoRouter.of(context);
     try {
-      final result =
-          await ref.read(catalogueRepositoryProvider).save(widget.candidates);
-      ref.read(extractionControllerProvider.notifier).clear();
+      final controller = ref.read(extractionControllerProvider.notifier);
+      final result = await ref.read(catalogueRepositoryProvider).save(
+            widget.candidates,
+            photos: controller.photos,
+            sellerId: ref.read(sellerIdProvider).value,
+          );
+      controller.clear();
 
       if (result.skippedDuplicates.isNotEmpty) {
         final names = result.skippedDuplicates.join(', ');
         toast.show('Already in your catalogue, so not added again: $names');
+      }
+      if (result.photosFailed > 0) {
+        final n = result.photosFailed;
+        toast.show(
+          "$n ${n == 1 ? 'photo' : 'photos'} didn't upload. Add ${n == 1 ? 'it' : 'them'} from the product.",
+          kind: SortedToastKind.error,
+        );
       }
       router.go('/catalogue');
     } catch (e) {

@@ -98,6 +98,15 @@ export type CatalogueDeps = {
   model: string;
 };
 
+/**
+ * Which uploaded photo a candidate came from. Out-of-range answers are dropped;
+ * with a single photo there is only one it can be.
+ */
+export function resolvePhotoIndex(index: number | null | undefined, photoCount: number): number | null {
+  if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < photoCount) return index;
+  return photoCount === 1 ? 0 : null;
+}
+
 export function catalogueRouter(deps: CatalogueDeps): Router {
   const router = Router();
 
@@ -136,7 +145,11 @@ export function catalogueRouter(deps: CatalogueDeps): Router {
         // tempId lets the app track a candidate across edits before it has a
         // Firestore id. Nothing is written here: the seller confirms first.
         res.json({
-          candidates: extraction.candidates.map((c) => ({ ...c, tempId: randomUUID() })),
+          candidates: extraction.candidates.map((c) => ({
+            ...c,
+            photoIndex: resolvePhotoIndex(c.photoIndex, files.length),
+            tempId: randomUUID(),
+          })),
         });
       } catch (err) {
         next(err);

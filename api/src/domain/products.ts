@@ -43,7 +43,7 @@ export async function saveProducts(
   db: Firestore,
   sellerId: string,
   inputs: ProductInput[],
-): Promise<{ created: string[]; skippedDuplicates: string[] }> {
+): Promise<{ created: string[]; skippedDuplicates: string[]; ids: (string | null)[] }> {
   const collection = db.collection(`sellers/${sellerId}/products`);
 
   // A transaction, not a read-then-batch. "Add 3 products" has no in-flight
@@ -56,11 +56,15 @@ export async function saveProducts(
 
   const created: string[] = [];
   const skippedDuplicates: string[] = [];
+  // One entry per input, in order: the new id, or null when skipped. Lets the
+  // app attach each snapped photo to the product it became.
+  const ids: (string | null)[] = [];
 
   for (const input of inputs) {
     const key = normalise(input.name);
     if (taken.has(key)) {
       skippedDuplicates.push(input.name);
+      ids.push(null);
       continue;
     }
     taken.add(key);
@@ -90,8 +94,9 @@ export async function saveProducts(
       updatedAt: FieldValue.serverTimestamp(),
     });
     created.push(ref.id);
+    ids.push(ref.id);
   }
 
-    return { created, skippedDuplicates };
+    return { created, skippedDuplicates, ids };
   });
 }

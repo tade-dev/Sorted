@@ -13,6 +13,7 @@ export const CATALOGUE_SYSTEM = [
   'Variants are the choices a buyer makes: size, colour, flavour. priceDeltaMinor is the difference from the base price, and may be negative.',
   'If the photo shows no sellable products at all, return an empty candidates array.',
   'Write descriptions in UK English, under 240 characters, as the seller would.',
+  'Photos are numbered from 0 in the order given. Set photoIndex to the number of the photo the product is shown most clearly in, or null if unsure.',
 ].join(' ');
 
 export const CATALOGUE_JSON_SCHEMA: Record<string, unknown> = {
@@ -25,7 +26,7 @@ export const CATALOGUE_JSON_SCHEMA: Record<string, unknown> = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['name', 'description', 'basePriceMinor', 'variants', 'confidence', 'ambiguities'],
+        required: ['name', 'description', 'basePriceMinor', 'variants', 'confidence', 'ambiguities', 'photoIndex'],
         properties: {
           name: { type: 'string' },
           description: { type: 'string' },
@@ -44,6 +45,7 @@ export const CATALOGUE_JSON_SCHEMA: Record<string, unknown> = {
             },
           },
           confidence: { type: 'number' },
+          photoIndex: { type: ['integer', 'null'] },
           ambiguities: {
             type: 'array',
             items: {

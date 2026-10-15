@@ -18,7 +18,9 @@ mixin _$ProductCandidate {
 
  String get tempId; String get name; String get description;/// Null when no price was readable. Review.dc.html shows this as
 /// "Couldn't read a price. Add one to save."
- int? get basePriceMinor; List<Variant> get variants; double get confidence; List<Ambiguity> get ambiguities;
+ int? get basePriceMinor; List<Variant> get variants; double get confidence; List<Ambiguity> get ambiguities;/// Which snapped photo (0-based) this product came from, so saving can
+/// attach it. Null when the API could not tell.
+ int? get photoIndex;
 /// Create a copy of ProductCandidate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,20 +34,20 @@ $ProductCandidateCopyWith<ProductCandidate> get copyWith => _$ProductCandidateCo
 @override
 bool operator ==(Object other) {
   final _this = this as ProductCandidate;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductCandidate&&(identical(other.tempId, _this.tempId) || other.tempId == _this.tempId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.description, _this.description) || other.description == _this.description)&&(identical(other.basePriceMinor, _this.basePriceMinor) || other.basePriceMinor == _this.basePriceMinor)&&const DeepCollectionEquality().equals(other.variants, _this.variants)&&(identical(other.confidence, _this.confidence) || other.confidence == _this.confidence)&&const DeepCollectionEquality().equals(other.ambiguities, _this.ambiguities));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductCandidate&&(identical(other.tempId, _this.tempId) || other.tempId == _this.tempId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.description, _this.description) || other.description == _this.description)&&(identical(other.basePriceMinor, _this.basePriceMinor) || other.basePriceMinor == _this.basePriceMinor)&&const DeepCollectionEquality().equals(other.variants, _this.variants)&&(identical(other.confidence, _this.confidence) || other.confidence == _this.confidence)&&const DeepCollectionEquality().equals(other.ambiguities, _this.ambiguities)&&(identical(other.photoIndex, _this.photoIndex) || other.photoIndex == _this.photoIndex));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ProductCandidate;
-  return Object.hash(runtimeType,_this.tempId,_this.name,_this.description,_this.basePriceMinor,const DeepCollectionEquality().hash(_this.variants),_this.confidence,const DeepCollectionEquality().hash(_this.ambiguities));
+  return Object.hash(runtimeType,_this.tempId,_this.name,_this.description,_this.basePriceMinor,const DeepCollectionEquality().hash(_this.variants),_this.confidence,const DeepCollectionEquality().hash(_this.ambiguities),_this.photoIndex);
 }
 
 @override
 String toString() {
   final _this = this as ProductCandidate;
-  return 'ProductCandidate(tempId: ${_this.tempId}, name: ${_this.name}, description: ${_this.description}, basePriceMinor: ${_this.basePriceMinor}, variants: ${_this.variants}, confidence: ${_this.confidence}, ambiguities: ${_this.ambiguities})';
+  return 'ProductCandidate(tempId: ${_this.tempId}, name: ${_this.name}, description: ${_this.description}, basePriceMinor: ${_this.basePriceMinor}, variants: ${_this.variants}, confidence: ${_this.confidence}, ambiguities: ${_this.ambiguities}, photoIndex: ${_this.photoIndex})';
 }
 
 
@@ -56,7 +58,7 @@ abstract mixin class $ProductCandidateCopyWith<$Res>  {
   factory $ProductCandidateCopyWith(ProductCandidate value, $Res Function(ProductCandidate) _then) = _$ProductCandidateCopyWithImpl;
 @useResult
 $Res call({
- String tempId, String name, String description, int? basePriceMinor, List<Variant> variants, double confidence, List<Ambiguity> ambiguities
+ String tempId, String name, String description, int? basePriceMinor, List<Variant> variants, double confidence, List<Ambiguity> ambiguities, int? photoIndex
 });
 
 
@@ -73,7 +75,7 @@ class _$ProductCandidateCopyWithImpl<$Res>
 
 /// Create a copy of ProductCandidate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tempId = null,Object? name = null,Object? description = null,Object? basePriceMinor = freezed,Object? variants = null,Object? confidence = null,Object? ambiguities = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tempId = null,Object? name = null,Object? description = null,Object? basePriceMinor = freezed,Object? variants = null,Object? confidence = null,Object? ambiguities = null,Object? photoIndex = freezed,}) {
   return _then(ProductCandidate(
 tempId: null == tempId ? _self.tempId : tempId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -82,7 +84,8 @@ as String,basePriceMinor: freezed == basePriceMinor ? _self.basePriceMinor : bas
 as int?,variants: null == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
 as List<Variant>,confidence: null == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
 as double,ambiguities: null == ambiguities ? _self.ambiguities : ambiguities // ignore: cast_nullable_to_non_nullable
-as List<Ambiguity>,
+as List<Ambiguity>,photoIndex: freezed == photoIndex ? _self.photoIndex : photoIndex // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -167,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities,  int? photoIndex)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductCandidate() when $default != null:
-return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities);case _:
+return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities,_that.photoIndex);case _:
   return orElse();
 
 }
@@ -188,10 +191,10 @@ return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities,  int? photoIndex)  $default,) {final _that = this;
 switch (_that) {
 case _ProductCandidate():
-return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities);case _:
+return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities,_that.photoIndex);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +211,10 @@ return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String tempId,  String name,  String description,  int? basePriceMinor,  List<Variant> variants,  double confidence,  List<Ambiguity> ambiguities,  int? photoIndex)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductCandidate() when $default != null:
-return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities);case _:
+return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_that.variants,_that.confidence,_that.ambiguities,_that.photoIndex);case _:
   return null;
 
 }
@@ -223,7 +226,7 @@ return $default(_that.tempId,_that.name,_that.description,_that.basePriceMinor,_
 @JsonSerializable()
 
 class _ProductCandidate extends ProductCandidate {
-  const _ProductCandidate({required this.tempId, required this.name, this.description = '', this.basePriceMinor,  List<Variant> variants = const <Variant>[], this.confidence = 0.0,  List<Ambiguity> ambiguities = const <Ambiguity>[]}): _variants = variants,_ambiguities = ambiguities,super._();
+  const _ProductCandidate({required this.tempId, required this.name, this.description = '', this.basePriceMinor,  List<Variant> variants = const <Variant>[], this.confidence = 0.0,  List<Ambiguity> ambiguities = const <Ambiguity>[], this.photoIndex}): _variants = variants,_ambiguities = ambiguities,super._();
   factory _ProductCandidate.fromJson(Map<String, dynamic> json) => _$ProductCandidateFromJson(json);
 
 @override final  String tempId;
@@ -247,6 +250,9 @@ class _ProductCandidate extends ProductCandidate {
   return EqualUnmodifiableListView(_ambiguities);
 }
 
+/// Which snapped photo (0-based) this product came from, so saving can
+/// attach it. Null when the API could not tell.
+@override final  int? photoIndex;
 
 /// Create a copy of ProductCandidate
 /// with the given fields replaced by the non-null parameter values.
@@ -261,18 +267,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductCandidate&&(identical(other.tempId, tempId) || other.tempId == tempId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.basePriceMinor, basePriceMinor) || other.basePriceMinor == basePriceMinor)&&const DeepCollectionEquality().equals(other.variants, _variants)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&const DeepCollectionEquality().equals(other.ambiguities, _ambiguities));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductCandidate&&(identical(other.tempId, tempId) || other.tempId == tempId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.basePriceMinor, basePriceMinor) || other.basePriceMinor == basePriceMinor)&&const DeepCollectionEquality().equals(other.variants, _variants)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&const DeepCollectionEquality().equals(other.ambiguities, _ambiguities)&&(identical(other.photoIndex, photoIndex) || other.photoIndex == photoIndex));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,tempId,name,description,basePriceMinor,const DeepCollectionEquality().hash(_variants),confidence,const DeepCollectionEquality().hash(_ambiguities));
+    return Object.hash(runtimeType,tempId,name,description,basePriceMinor,const DeepCollectionEquality().hash(_variants),confidence,const DeepCollectionEquality().hash(_ambiguities),photoIndex);
 }
 
 @override
 String toString() {
-    return 'ProductCandidate(tempId: $tempId, name: $name, description: $description, basePriceMinor: $basePriceMinor, variants: $variants, confidence: $confidence, ambiguities: $ambiguities)';
+    return 'ProductCandidate(tempId: $tempId, name: $name, description: $description, basePriceMinor: $basePriceMinor, variants: $variants, confidence: $confidence, ambiguities: $ambiguities, photoIndex: $photoIndex)';
 }
 
 
@@ -283,7 +289,7 @@ abstract mixin class _$ProductCandidateCopyWith<$Res> implements $ProductCandida
   factory _$ProductCandidateCopyWith(_ProductCandidate value, $Res Function(_ProductCandidate) _then) = __$ProductCandidateCopyWithImpl;
 @override @useResult
 $Res call({
- String tempId, String name, String description, int? basePriceMinor, List<Variant> variants, double confidence, List<Ambiguity> ambiguities
+ String tempId, String name, String description, int? basePriceMinor, List<Variant> variants, double confidence, List<Ambiguity> ambiguities, int? photoIndex
 });
 
 
@@ -300,7 +306,7 @@ class __$ProductCandidateCopyWithImpl<$Res>
 
 /// Create a copy of ProductCandidate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tempId = null,Object? name = null,Object? description = null,Object? basePriceMinor = freezed,Object? variants = null,Object? confidence = null,Object? ambiguities = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tempId = null,Object? name = null,Object? description = null,Object? basePriceMinor = freezed,Object? variants = null,Object? confidence = null,Object? ambiguities = null,Object? photoIndex = freezed,}) {
   return _then(_ProductCandidate(
 tempId: null == tempId ? _self.tempId : tempId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -309,7 +315,8 @@ as String,basePriceMinor: freezed == basePriceMinor ? _self.basePriceMinor : bas
 as int?,variants: null == variants ? _self._variants : variants // ignore: cast_nullable_to_non_nullable
 as List<Variant>,confidence: null == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
 as double,ambiguities: null == ambiguities ? _self._ambiguities : ambiguities // ignore: cast_nullable_to_non_nullable
-as List<Ambiguity>,
+as List<Ambiguity>,photoIndex: freezed == photoIndex ? _self.photoIndex : photoIndex // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

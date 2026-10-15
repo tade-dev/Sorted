@@ -93,9 +93,15 @@ class CatalogueRepository {
         .toList();
   }
 
-  Future<({List<String> created, List<String> skippedDuplicates})> save(
-    List<ProductCandidate> candidates,
-  ) async {
+  /// Saves the confirmed candidates. When [photos] and [sellerId] are given,
+  /// each new product gets the snapped photo it came from (its `photoIndex`).
+  /// A photo that fails to upload never fails the save: it is counted in
+  /// `photosFailed` so the screen can say so.
+  Future<({List<String> created, List<String> skippedDuplicates, int photosFailed})> save(
+    List<ProductCandidate> candidates, {
+    List<List<int>> photos = const [],
+    String? sellerId,
+  }) async {
     for (final c in candidates) {
       if (c.needsPrice) {
         throw ArgumentError('"${c.name}" has no price yet and cannot be saved.');
@@ -118,9 +124,28 @@ class CatalogueRepository {
       ],
     });
 
+    // `ids` lines up with the candidates sent; older APIs omit it, in which
+    // case photos are skipped rather than guessed.
+    final ids = (json['ids'] as List<dynamic>?)?.cast<String?>();
+    var photosFailed = 0;
+    if (ids != null && sellerId != null && photos.isNotEmpty && ids.length == candidates.length) {
+      final uploads = <Future<void>>[];
+      for (var i = 0; i < candidates.length; i++) {
+        final productId = ids[i];
+        final index = candidates[i].photoIndex;
+        if (productId == null || index == null || index < 0 || index >= photos.length) continue;
+        uploads.add(
+          setPhoto(sellerId: sellerId, productId: productId, bytes: photos[index])
+              .then<void>((_) {}, onError: (_) => photosFailed++),
+        );
+      }
+      await Future.wait(uploads);
+    }
+
     return (
       created: (json['created'] as List<dynamic>).cast<String>(),
       skippedDuplicates: (json['skippedDuplicates'] as List<dynamic>? ?? []).cast<String>(),
+      photosFailed: photosFailed,
     );
   }
 }

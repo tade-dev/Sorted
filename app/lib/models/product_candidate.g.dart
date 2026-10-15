@@ -23,6 +23,7 @@ _ProductCandidate _$ProductCandidateFromJson(Map<String, dynamic> json) =>
               ?.map((e) => Ambiguity.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const <Ambiguity>[],
+      photoIndex: (json['photoIndex'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$ProductCandidateToJson(_ProductCandidate instance) =>
@@ -34,4 +35,5 @@ Map<String, dynamic> _$ProductCandidateToJson(_ProductCandidate instance) =>
       'variants': instance.variants.map((e) => e.toJson()).toList(),
       'confidence': instance.confidence,
       'ambiguities': instance.ambiguities.map((e) => e.toJson()).toList(),
+      'photoIndex': instance.photoIndex,
     };

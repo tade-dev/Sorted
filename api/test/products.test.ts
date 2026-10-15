@@ -113,8 +113,22 @@ describe('saveProducts', () => {
 
     expect(second.created).toHaveLength(0);
     expect(second.skippedDuplicates).toEqual(['Lemon drizzle cake']);
+    expect(second.ids).toEqual([null]);
     const snap = await db.collection('sellers/seller-a/products').get();
     expect(snap.size).toBe(1);
+  });
+
+  it('returns ids in input order with null for skipped ones', async () => {
+    await saveProducts(db, 'seller-a', [cake]);
+    const res = await saveProducts(db, 'seller-a', [
+      { ...cake, name: 'Vanilla cupcakes' },
+      cake,
+      { ...cake, name: 'Brownies' },
+    ]);
+    expect(res.ids).toHaveLength(3);
+    expect(res.ids[1]).toBeNull();
+    expect(res.ids[0]).toBe(res.created[0]);
+    expect(res.ids[2]).toBe(res.created[1]);
   });
 
   it('matches duplicates case-insensitively and ignoring surrounding space', async () => {

@@ -21,6 +21,9 @@ abstract class ProductCandidate with _$ProductCandidate {
     @Default(<Variant>[]) List<Variant> variants,
     @Default(0.0) double confidence,
     @Default(<Ambiguity>[]) List<Ambiguity> ambiguities,
+    /// Which snapped photo (0-based) this product came from, so saving can
+    /// attach it. Null when the API could not tell.
+    int? photoIndex,
   }) = _ProductCandidate;
 
   factory ProductCandidate.fromJson(Map<String, dynamic> json) =>
