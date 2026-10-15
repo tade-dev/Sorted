@@ -99,6 +99,32 @@ function repriceLine(
   };
 }
 
+const editBodySchema = z
+  .object({
+    /** The full new list of lines. Lines with an id keep it; new ones get one. */
+    lineItems: z
+      .array(
+        z.object({
+          id: z.string().min(1).optional(),
+          productId: z.string().min(1),
+          variantIds: z.array(z.string()).max(12).default([]),
+          qty: z.number().int().min(1).max(999),
+        }),
+      )
+      .min(1)
+      .max(30)
+      .optional(),
+    note: z.string().trim().max(300).nullable().optional(),
+  })
+  .strict();
+
+/**
+ * Statuses an order can still be edited in. Paid, cancelled and expired are
+ * final; processing and pending mean the buyer is mid-payment on the old
+ * amount, so changing it under them is refused too.
+ */
+export const EDITABLE_STATUSES: ReadonlyArray<OrderDoc['status']> = ['draft', 'link_sent', 'declined'];
+
 const confirmBodySchema = z.object({
   depositMinor: z.number().int().nonnegative().nullable().optional(),
 });
@@ -297,6 +323,100 @@ export function ordersRouter(deps: OrdersDeps): Router {
       };
 
       await ref.update({ ...updated, updatedAt: FieldValue.serverTimestamp() });
+      res.json({ order: updated });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/orders/:orderId/edit', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = editBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That change is not valid.', parsed.error.format()));
+      return;
+    }
+    const ref = deps.db.doc(`sellers/${req.sellerId}/orders/${req.params.orderId}`);
+    try {
+      const products = await loadProducts(deps.db, req.sellerId!);
+      // A transaction so a capture webhook landing mid-edit cannot be
+      // overwritten: if the order turns paid, the retry sees it and refuses.
+      const updated = await deps.db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new ApiError(404, 'NOT_FOUND', 'No such order.');
+        const order = snap.data() as OrderDoc;
+        if (order.status === 'paid') {
+          throw new ApiError(409, 'ORDER_STATE_INVALID', 'This order is paid, so it can no longer be edited.');
+        }
+        if (!EDITABLE_STATUSES.includes(order.status)) {
+          throw new ApiError(409, 'ORDER_STATE_INVALID', `An order that is ${order.status} cannot be edited.`);
+        }
+
+        const patch = parsed.data;
+        let lines = order.lineItems;
+        let ambiguities = order.ambiguities;
+        if (patch.lineItems) {
+          lines = patch.lineItems.map((edit, i) => {
+            const product = products.find((p) => p.id === edit.productId);
+            if (!product) {
+              throw new ApiError(400, 'VALIDATION_FAILED', 'One of those products is no longer in your catalogue.');
+            }
+            const live = new Set(product.variants.filter((v) => v.active).map((v) => v.id));
+            if (edit.variantIds.some((id) => !live.has(id))) {
+              throw new ApiError(400, 'VALIDATION_FAILED', `That option is not available for ${product.name}.`);
+            }
+            const existing = edit.id ? order.lineItems.find((l) => l.id === edit.id) : undefined;
+            return repriceLine(
+              {
+                id: existing?.id ?? `line-${Date.now().toString(36)}-${i}`,
+                productId: product.id,
+                variantIds: edit.variantIds,
+                nameRaw: existing?.nameRaw ?? product.name,
+                nameResolved: product.name,
+                qty: edit.qty,
+                unitPriceMinor: 0,
+                lineTotalMinor: 0,
+                matchConfidence: 1,
+                matchMethod: 'exact',
+              },
+              products,
+            );
+          });
+          // Line questions are indexed by position, and the seller has just
+          // chosen every line explicitly, so none of them still apply.
+          ambiguities = ambiguities.filter((a) => !a.field.startsWith('lineItems'));
+        }
+
+        const subtotal = sumMinor(lines.map((l) => l.lineTotalMinor));
+        // A deposit larger than the new total is dropped rather than refused:
+        // the seller removed items, and charging more than the goods is wrong.
+        const deposit =
+          order.depositMinor !== null && order.depositMinor > subtotal ? null : order.depositMinor;
+        const amounts = computeAmounts(subtotal, deposit);
+        const fulfilment =
+          patch.note !== undefined
+            ? { ...order.fulfilment, notes: patch.note === '' ? null : patch.note }
+            : order.fulfilment;
+
+        const amountChanged =
+          amounts.amountDueMinor !== order.amountDueMinor || patch.lineItems !== undefined;
+        // A sent link charges the old amount, so a changed order goes back to
+        // draft and the seller creates a fresh link. The old PayPal order is
+        // no longer referenced, so a late approval on it is not captured.
+        const reopen = order.status !== 'draft' && amountChanged;
+
+        const edited: OrderDoc = {
+          ...order,
+          lineItems: lines,
+          ...amounts,
+          ambiguities,
+          fulfilment,
+          ...(reopen
+            ? { status: 'draft' as const, paypalOrderId: null, approvalUrl: null, draftedReply: null }
+            : {}),
+        };
+        tx.update(ref, { ...edited, updatedAt: FieldValue.serverTimestamp() });
+        return edited;
+      });
       res.json({ order: updated });
     } catch (err) {
       next(err);
