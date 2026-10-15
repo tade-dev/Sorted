@@ -19,6 +19,8 @@ abstract class Product with _$Product {
     String? photoUrl,
     @Default(<Variant>[]) List<Variant> variants,
     @Default(true) bool active,
+    /// False while the seller is sold out. Older products have no field.
+    @Default(true) bool inStock,
     @Default('manual') String source,
   }) = _Product;
 

@@ -39,6 +39,8 @@ class ProductTile extends StatelessWidget {
                   Text(product.name, style: text.labelLarge?.copyWith(color: c.ink)),
                   if (labels.isNotEmpty)
                     Text(labels, style: text.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (!product.inStock)
+                    Text('Sold out', style: text.bodySmall?.copyWith(color: c.warningText)),
                   if (product.depositMinor != null)
                     Text(
                       '${formatGbp(product.depositMinor!)} deposit to book',

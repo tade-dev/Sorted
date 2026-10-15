@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,10 +7,7 @@ import '../../widgets/sorted_icon.dart';
 
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
-import '../../models/product.dart';
 import '../../providers/catalogue_providers.dart';
-import '../../providers/seller_provider.dart';
-import 'snap_screen.dart' show imagePickerProvider;
 import '../../widgets/primary_button.dart';
 import '../../widgets/product_tile.dart';
 
@@ -100,7 +96,7 @@ class CatalogueScreen extends ConsumerWidget {
                     separatorBuilder: (_, _) => Divider(color: c.line, height: 1),
                     itemBuilder: (_, i) => ProductTile(
                       product: items[i],
-                      onTap: () => _editPhoto(context, ref, items[i]),
+                      onTap: () => context.push('/catalogue/${items[i].id}/edit'),
                     ),
                   ),
                 ),
@@ -109,56 +105,5 @@ class CatalogueScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-/// There is no product edit screen yet, so a tap on a product offers its
-/// photo. Picks one image (re-encoded to JPEG by the picker), uploads it to
-/// Storage, and saves the URL through the API.
-Future<void> _editPhoto(BuildContext context, WidgetRef ref, Product product) async {
-  final toast = SortedToast.of(context);
-  final fromCamera = await showModalBottomSheet<bool>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheet) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(
-              product.photoUrl == null ? 'Add a photo' : 'Change photo',
-              style: Theme.of(sheet).textTheme.titleMedium,
-            ),
-          ),
-          ListTile(
-            leading: const SortedIcon(SortedIcons.camera),
-            title: const Text('Take a photo'),
-            onTap: () => Navigator.pop(sheet, true),
-          ),
-          ListTile(
-            leading: const SortedIcon(SortedIcons.image),
-            title: const Text('Choose from library'),
-            onTap: () => Navigator.pop(sheet, false),
-          ),
-        ],
-      ),
-    ),
-  );
-  if (fromCamera == null) return;
-
-  final picked = await ref.read(imagePickerProvider).pick(fromCamera: fromCamera);
-  if (picked.isEmpty) return;
-  final sellerId = await ref.read(sellerIdProvider.future);
-  toast.show('Uploading photo…', duration: const Duration(minutes: 1));
-  try {
-    await ref.read(catalogueRepositoryProvider).setPhoto(
-          sellerId: sellerId,
-          productId: product.id,
-          bytes: picked.first.bytes,
-        );
-    toast.show('Photo saved', kind: SortedToastKind.success);
-  } catch (_) {
-    toast.show('Could not upload that photo. Try again.', kind: SortedToastKind.error);
   }
 }
