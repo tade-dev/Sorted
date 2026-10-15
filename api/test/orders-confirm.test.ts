@@ -26,6 +26,7 @@ beforeAll(async () => {
   db = getFirestore();
 });
 
+let thankYouPayload: unknown = { reply: 'Thanks Jess, payment received!' };
 const LINK = 'https://www.sandbox.paypal.com/checkoutnow?token=PP-1';
 
 const parsed = {
@@ -39,6 +40,9 @@ function transportFor(payload: unknown): ChatTransport {
   return async (body) => {
     const sent = JSON.stringify(body);
     // The reply call carries the link in its system prompt; the parse call does not.
+    if (sent.includes('thank-you message')) {
+      return { content: JSON.stringify(thankYouPayload) };
+    }
     if (sent.includes('checkoutnow')) {
       return { content: JSON.stringify({ reply: `All sorted! Pay here: ${LINK}` }) };
     }
@@ -346,6 +350,47 @@ describe('POST /v1/orders/:orderId/reply/regenerate', () => {
       .set('Authorization', 'Bearer good')
       .send({ tone: 'short' });
     expect(res.status).toBe(409);
+  });
+});
+
+describe('POST /v1/orders/:orderId/thank-you', () => {
+  async function paidOrder(app: ReturnType<typeof appWith>) {
+    const id = await draft(app);
+    await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+    await db.doc(`sellers/seller-a/orders/${id}`).update({ status: 'paid' });
+    return id;
+  }
+
+  it('writes a thank-you for a paid order', async () => {
+    thankYouPayload = { reply: 'Thanks Jess, payment received!' };
+    const app = appWith(parsed);
+    const id = await paidOrder(app);
+    const res = await request(app).post(`/v1/orders/${id}/thank-you`).set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Thanks Jess, payment received!');
+  });
+
+  it('falls back to a plain thank-you when the model slips in a link', async () => {
+    thankYouPayload = { reply: 'Thanks! https://evil.example' };
+    const app = appWith(parsed);
+    const id = await paidOrder(app);
+    const res = await request(app).post(`/v1/orders/${id}/thank-you`).set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(200);
+    expect(res.body.message).toMatch(/^Thanks so much Jess M! Payment received/);
+    expect(res.body.message).not.toMatch(/https?:/);
+    thankYouPayload = { reply: 'Thanks Jess, payment received!' };
+  });
+
+  it('409s on an unpaid order', async () => {
+    const app = appWith(parsed);
+    const id = await draft(app);
+    const res = await request(app).post(`/v1/orders/${id}/thank-you`).set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(409);
+  });
+
+  it('404s for a missing order', async () => {
+    const res = await request(appWith(parsed)).post('/v1/orders/nope/thank-you').set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(404);
   });
 });
 

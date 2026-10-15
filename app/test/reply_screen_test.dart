@@ -22,6 +22,9 @@ Order _sent({String? reply}) => Order(
 );
 
 class _FakeApi implements OrdersApi {
+  @override
+  Future<Map<String, dynamic>> thankYou(String orderId) async => {'message': 'Thanks!'};
+
   String? lastTone;
   @override
   Future<Map<String, dynamic>> draftFromImage(List<int> b, String f) async => {

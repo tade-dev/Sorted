@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/skeleton.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
@@ -15,7 +17,9 @@ import '../../models/payment_event.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/sorted_stamp.dart';
+
 import 'package:go_router/go_router.dart';
+
 import 'edit_order_screen.dart' show editableOrderStatuses;
 import 'order_presentation.dart';
 import 'status_pill.dart';
@@ -44,13 +48,25 @@ class OrderDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [SkeletonLine(width: 120), Spacer(), SkeletonLine(width: 90)]),
+                    Row(
+                      children: [
+                        SkeletonLine(width: 120),
+                        Spacer(),
+                        SkeletonLine(width: 90),
+                      ],
+                    ),
                     SizedBox(height: 18),
                     SkeletonLine(width: 180, fontSize: 15),
                     SizedBox(height: 10),
                     SkeletonLine(width: 140, fontSize: 15),
                     SizedBox(height: 22),
-                    Row(children: [SkeletonLine(width: 50, fontSize: 16), Spacer(), SkeletonBox(width: 120, height: 30, radius: 8)]),
+                    Row(
+                      children: [
+                        SkeletonLine(width: 50, fontSize: 16),
+                        Spacer(),
+                        SkeletonBox(width: 120, height: 30, radius: 8),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -58,13 +74,15 @@ class OrderDetailScreen extends ConsumerWidget {
               for (var i = 0; i < 4; i++)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 18),
-                  child: Row(children: [
-                    SkeletonBox(width: 16, height: 16, radius: 8),
-                    SizedBox(width: 18),
-                    SkeletonLine(width: 170, fontSize: 16),
-                    Spacer(),
-                    SkeletonLine(width: 40),
-                  ]),
+                  child: Row(
+                    children: [
+                      SkeletonBox(width: 16, height: 16, radius: 8),
+                      SizedBox(width: 18),
+                      SkeletonLine(width: 170, fontSize: 16),
+                      Spacer(),
+                      SkeletonLine(width: 40),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -186,7 +204,8 @@ class _DetailBody extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SortedIcon(SortedIcons.shield,
+                      SortedIcon(
+                        SortedIcons.shield,
                         size: SortedShape.iconSize,
                         color: c.primary,
                       ),
@@ -259,7 +278,17 @@ class _DetailBody extends StatelessWidget {
             ],
           ),
         ),
-        if (hasReply)
+        if (order.status == 'paid')
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SortedShape.screenPadding,
+              0,
+              SortedShape.screenPadding,
+              SortedShape.screenPadding,
+            ),
+            child: _ThankYouButton(orderId: order.id),
+          )
+        else if (hasReply)
           Padding(
             padding: const EdgeInsets.fromLTRB(
               SortedShape.screenPadding,
@@ -586,6 +615,45 @@ class _CopyRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Paid.dc.html's "Copy thank-you message". The message is written on tap.
+class _ThankYouButton extends ConsumerStatefulWidget {
+  const _ThankYouButton({required this.orderId});
+
+  final String orderId;
+
+  @override
+  ConsumerState<_ThankYouButton> createState() => _ThankYouButtonState();
+}
+
+class _ThankYouButtonState extends ConsumerState<_ThankYouButton> {
+  bool _busy = false;
+
+  Future<void> _run() async {
+    setState(() => _busy = true);
+    try {
+      final message = await ref
+          .read(ordersRepositoryProvider)
+          .thankYou(widget.orderId);
+      if (!mounted) return;
+      await _copy(context, message, 'Copied. Paste it into the chat.');
+    } catch (_) {
+      if (mounted) {
+        SortedToast.error(context, 'Could not write the thank-you. Try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PrimaryButton(
+    key: const Key('copy-thank-you'),
+    label: 'Copy thank-you message',
+    icon: SortedIcons.copy,
+    onPressed: _busy ? null : _run,
+  );
 }
 
 Future<void> _copy(BuildContext context, String value, String notice) async {

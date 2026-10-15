@@ -13,6 +13,7 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> confirm(String orderId, Object body);
   Future<Map<String, dynamic>> edit(String orderId, Object body);
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone);
+  Future<Map<String, dynamic>> thankYou(String orderId);
 }
 
 class HttpOrdersApi implements OrdersApi {
@@ -46,6 +47,10 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone) =>
       _client.postJson('/v1/orders/$orderId/reply/regenerate', {'tone': tone});
+
+  @override
+  Future<Map<String, dynamic>> thankYou(String orderId) =>
+      _client.postJson('/v1/orders/$orderId/thank-you', const {});
 }
 
 class OrdersRepository {
@@ -166,13 +171,21 @@ class OrdersRepository {
   /// draft with no link, so the seller makes a fresh one.
   Future<Order> edit(
     String orderId, {
-    required List<({String? id, String productId, List<String> variantIds, int qty})> lines,
+    required List<
+      ({String? id, String productId, List<String> variantIds, int qty})
+    >
+    lines,
     String? note,
   }) async {
     final json = await api.edit(orderId, {
       'lineItems': [
         for (final l in lines)
-          {'id': ?l.id, 'productId': l.productId, 'variantIds': l.variantIds, 'qty': l.qty},
+          {
+            'id': ?l.id,
+            'productId': l.productId,
+            'variantIds': l.variantIds,
+            'qty': l.qty,
+          },
       ],
       'note': note,
     });
@@ -182,5 +195,11 @@ class OrdersRepository {
   Future<String> regenerateReply(String orderId, String tone) async {
     final json = await api.regenerateReply(orderId, tone);
     return json['draftedReply'] as String;
+  }
+
+  /// A fresh thank-you for a paid order, written in the seller's voice.
+  Future<String> thankYou(String orderId) async {
+    final json = await api.thankYou(orderId);
+    return json['message'] as String;
   }
 }
