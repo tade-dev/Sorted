@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/motion/sorted_motion.dart';
+
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -94,9 +96,13 @@ class CatalogueScreen extends ConsumerWidget {
                   child: ListView.separated(
                     itemCount: items.length,
                     separatorBuilder: (_, _) => Divider(color: c.line, height: 1),
-                    itemBuilder: (_, i) => ProductTile(
-                      product: items[i],
-                      onTap: () => context.push('/catalogue/${items[i].id}/edit'),
+                    itemBuilder: (_, i) => EnterStagger(
+                      key: ValueKey(items[i].id),
+                      index: i,
+                      child: ProductTile(
+                        product: items[i],
+                        onTap: () => context.push('/catalogue/${items[i].id}/edit'),
+                      ),
                     ),
                   ),
                 ),

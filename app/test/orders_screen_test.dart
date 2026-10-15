@@ -246,7 +246,8 @@ void main() {
       sample(status: 'paid', buyerName: 'Jess M', paidAt: DateTime.now()),
     ]);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+    // The chip cross-fades its label (StatusPill morph), so let it finish.
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Paid'), findsOneWidget);
     expect(find.text('Link sent'), findsNothing);

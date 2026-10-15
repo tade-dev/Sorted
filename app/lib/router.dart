@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'widgets/sorted_icon.dart';
 
+import 'core/motion/sorted_motion.dart';
 import 'core/theme/sorted_colors.dart';
 import 'features/catalogue/catalogue_screen.dart';
 import 'features/catalogue/product_edit_screen.dart';
@@ -26,35 +28,80 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => _NavShell(child: child),
       routes: [
-        GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
-        GoRoute(path: '/orders', builder: (_, _) => const OrdersScreen()),
-        GoRoute(path: '/catalogue', builder: (_, _) => const CatalogueScreen()),
-        GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+        GoRoute(
+          path: '/',
+          pageBuilder: (_, s) => sortedTabPage(s, const HomeScreen()),
+        ),
+        GoRoute(
+          path: '/orders',
+          pageBuilder: (_, s) => sortedTabPage(s, const OrdersScreen()),
+        ),
+        GoRoute(
+          path: '/catalogue',
+          pageBuilder: (_, s) => sortedTabPage(s, const CatalogueScreen()),
+        ),
+        GoRoute(
+          path: '/settings',
+          pageBuilder: (_, s) => sortedTabPage(s, const SettingsScreen()),
+        ),
       ],
     ),
-    GoRoute(path: '/welcome', builder: (_, _) => const WelcomeScreen()),
-    GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
-    GoRoute(path: '/connect', builder: (_, _) => const ConnectScreen()),
-    GoRoute(path: '/catalogue/snap', builder: (_, _) => const SnapScreen()),
-    GoRoute(path: '/order/new', builder: (_, _) => const IntakeScreen()),
-    GoRoute(path: '/order/reading', builder: (_, _) => const ReadingScreen()),
-    GoRoute(path: '/order/draft', builder: (_, _) => const DraftScreen()),
-    GoRoute(path: '/order/reply', builder: (_, _) => const ReplyScreen()),
-    GoRoute(path: '/catalogue/review', builder: (_, _) => const ReviewScreen()),
+    GoRoute(
+      path: '/welcome',
+      pageBuilder: (_, s) => sortedPushPage(s, const WelcomeScreen()),
+    ),
+    GoRoute(
+      path: '/setup',
+      pageBuilder: (_, s) => sortedPushPage(s, const SetupScreen()),
+    ),
+    GoRoute(
+      path: '/connect',
+      pageBuilder: (_, s) => sortedPushPage(s, const ConnectScreen()),
+    ),
+    GoRoute(
+      path: '/catalogue/snap',
+      pageBuilder: (_, s) => sortedPushPage(s, const SnapScreen()),
+    ),
+    GoRoute(
+      path: '/order/new',
+      pageBuilder: (_, s) => sortedPushPage(s, const IntakeScreen()),
+    ),
+    GoRoute(
+      path: '/order/reading',
+      pageBuilder: (_, s) => sortedPushPage(s, const ReadingScreen()),
+    ),
+    GoRoute(
+      path: '/order/draft',
+      pageBuilder: (_, s) => sortedPushPage(s, const DraftScreen()),
+    ),
+    GoRoute(
+      path: '/order/reply',
+      pageBuilder: (_, s) => sortedPushPage(s, const ReplyScreen()),
+    ),
+    GoRoute(
+      path: '/catalogue/review',
+      pageBuilder: (_, s) => sortedPushPage(s, const ReviewScreen()),
+    ),
     GoRoute(
       path: '/catalogue/:productId/edit',
-      builder: (_, state) =>
-          ProductEditScreen(productId: state.pathParameters['productId']!),
+      pageBuilder: (_, state) => sortedPushPage(
+        state,
+        ProductEditScreen(productId: state.pathParameters['productId']!),
+      ),
     ),
     GoRoute(
       path: '/orders/:orderId/edit',
-      builder: (_, state) =>
-          EditOrderScreen(orderId: state.pathParameters['orderId']!),
+      pageBuilder: (_, state) => sortedPushPage(
+        state,
+        EditOrderScreen(orderId: state.pathParameters['orderId']!),
+      ),
     ),
     GoRoute(
       path: '/orders/:orderId',
-      builder: (_, state) =>
-          OrderDetailScreen(orderId: state.pathParameters['orderId']!),
+      pageBuilder: (_, state) => sortedPushPage(
+        state,
+        OrderDetailScreen(orderId: state.pathParameters['orderId']!),
+      ),
     ),
   ],
 );
@@ -166,7 +213,12 @@ class SortedTabBar extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const SortedIcon(SortedIcons.add, size: 20, color: Colors.white, strokeWidth: 1.8),
+                            child: const SortedIcon(
+                              SortedIcons.add,
+                              size: 20,
+                              color: Colors.white,
+                              strokeWidth: 1.8,
+                            ),
                           ),
                         ),
                       ),

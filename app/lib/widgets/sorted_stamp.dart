@@ -22,7 +22,20 @@ class _SortedStampState extends State<SortedStamp>
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 600),
-  )..forward();
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduce Motion: the stamp is simply there.
+    if (_controller.status == AnimationStatus.dismissed) {
+      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    }
+  }
 
   @override
   void dispose() {

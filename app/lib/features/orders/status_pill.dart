@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/motion/sorted_motion.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import 'order_presentation.dart';
@@ -33,7 +34,13 @@ class StatusPill extends StatelessWidget {
       StatusTone.closed => (c.neutralTint, c.muted, c.line),
     };
 
-    return Container(
+    // §4.3 chip morph: colours tween and the label cross-fades with a small
+    // lift, so Draft → Link sent → Paid reads as one chip changing.
+    final reduce = SortedMotion.reduce(context);
+    final label0 = label ?? presentation.label;
+    return AnimatedContainer(
+      duration: reduce ? Duration.zero : SortedMotion.medium,
+      curve: SortedMotion.standard,
       height: SortedShape.statusChipHeight,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       alignment: Alignment.center,
@@ -42,13 +49,30 @@ class StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(SortedShape.pillRadius),
         border: border == null ? null : Border.all(color: border),
       ),
-      child: Text(
-        label ?? presentation.label,
-        style: text.bodySmall?.copyWith(
-          color: foreground,
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-          height: 1,
+      child: AnimatedSize(
+        duration: reduce ? Duration.zero : SortedMotion.short,
+        curve: SortedMotion.standard,
+        child: AnimatedSwitcher(
+          duration: reduce ? Duration.zero : SortedMotion.short,
+          switchInCurve: SortedMotion.enter,
+          switchOutCurve: SortedMotion.exit,
+          transitionBuilder: (child, a) => FadeTransition(
+            opacity: a,
+            child: ScaleTransition(
+              scale: Tween(begin: 0.92, end: 1.0).animate(a),
+              child: child,
+            ),
+          ),
+          child: Text(
+            label0,
+            key: ValueKey(label0),
+            style: text.bodySmall?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              height: 1,
+            ),
+          ),
         ),
       ),
     );

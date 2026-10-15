@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/motion/sorted_motion.dart';
+
 import '../../widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -172,11 +174,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                               const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final order = visible[index];
-                            return _OrderCard(
-                              order: order,
-                              fresh: isFreshPaid(order, now),
-                              caption: activityCaption(order, now),
-                              onTap: () => context.push('/orders/${order.id}'),
+                            return EnterStagger(
+                              key: ValueKey(order.id),
+                              index: index,
+                              child: _OrderCard(
+                                order: order,
+                                fresh: isFreshPaid(order, now),
+                                caption: activityCaption(order, now),
+                                onTap: () => context.push('/orders/${order.id}'),
+                              ),
                             );
                           },
                         ),
