@@ -27,6 +27,18 @@ final orderByIdProvider = StreamProvider.family<Order?, String>((ref, orderId) {
   return ref.watch(ordersRepositoryProvider).watchOrder(sellerId, orderId);
 });
 
+/// The invoice link for a paid order. Null when it can't be fetched (an
+/// older API, offline), so the screen just leaves the section out.
+final invoiceUrlProvider = FutureProvider.autoDispose.family<String?, String>(
+  (ref, orderId) async {
+    try {
+      return await ref.read(ordersRepositoryProvider).invoiceUrl(orderId);
+    } catch (_) {
+      return null;
+    }
+  },
+);
+
 final paymentEventsProvider = StreamProvider.family<List<PaymentEvent>, String>(
   (ref, orderId) {
     final sellerId = ref.watch(sellerIdProvider).value;

@@ -37,6 +37,10 @@ Map<String, dynamic> orderJson({
 
 class _FakeApi implements OrdersApi {
   @override
+  Future<Map<String, dynamic>> invoice(String orderId) async =>
+      {'url': 'https://api.example.com/v1/invoice/s/$orderId/sig'};
+
+  @override
   Future<Map<String, dynamic>> refresh(String orderId) async => const {};
 
   @override

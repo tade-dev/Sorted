@@ -15,6 +15,7 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> regenerateReply(String orderId, String tone);
   Future<Map<String, dynamic>> thankYou(String orderId);
   Future<Map<String, dynamic>> refresh(String orderId);
+  Future<Map<String, dynamic>> invoice(String orderId);
 }
 
 class HttpOrdersApi implements OrdersApi {
@@ -56,6 +57,10 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> refresh(String orderId) =>
       _client.postJson('/v1/orders/$orderId/refresh', const {});
+
+  @override
+  Future<Map<String, dynamic>> invoice(String orderId) =>
+      _client.getJson('/v1/orders/$orderId/invoice');
 }
 
 class OrdersRepository {
@@ -206,6 +211,12 @@ class OrdersRepository {
   Future<String> thankYou(String orderId) async {
     final json = await api.thankYou(orderId);
     return json['message'] as String;
+  }
+
+  /// The buyer-facing invoice link for a paid order.
+  Future<String> invoiceUrl(String orderId) async {
+    final json = await api.invoice(orderId);
+    return json['url'] as String;
   }
 
   /// Asks the API to check PayPal for this order. A payment to the seller's

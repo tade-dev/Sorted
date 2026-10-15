@@ -251,6 +251,7 @@ class _DetailBody extends StatelessWidget {
                   ),
                 ),
               ],
+              if (order.status == 'paid') _InvoiceSection(orderId: order.id),
               if (hasLink) ...[
                 const SizedBox(height: 22),
                 Text('Checkout link', style: text.labelMedium),
@@ -640,6 +641,35 @@ class _CopyRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The buyer's invoice link on a paid order. No design has this, so it reuses
+/// the "Checkout link" section's label and copy row. Hidden until the link
+/// loads, and left out if it can't be fetched.
+class _InvoiceSection extends ConsumerWidget {
+  const _InvoiceSection({required this.orderId});
+
+  final String orderId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final url = ref.watch(invoiceUrlProvider(orderId)).value;
+    if (url == null) return const SizedBox.shrink();
+    return Column(
+      key: const Key('invoice-section'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 22),
+        Text('Invoice', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 8),
+        _CopyRow(
+          text: url,
+          action: 'Copy link',
+          copied: 'Copied the invoice link.',
+        ),
+      ],
     );
   }
 }
