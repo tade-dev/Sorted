@@ -105,6 +105,13 @@ describe('createPayPalOrder', () => {
     expect(unit.custom_id).toBe('seller-a:order-xyz');
   });
 
+  it('uses a fresh idempotency key after an edit supersedes a link', async () => {
+    const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
+    await createPayPalOrder(order, 'seller-a', call);
+    await createPayPalOrder({ ...order, supersededPaypalOrderIds: ['PP-OLD'] }, 'seller-a', call);
+    expect(call.mock.calls[0]![1].requestId).not.toBe(call.mock.calls[1]![1].requestId);
+  });
+
   it('sends an idempotency key derived from the order', async () => {
     const call = vi.fn<PayPalFetch>().mockResolvedValue(created);
     await createPayPalOrder(order, 'seller-a', call);

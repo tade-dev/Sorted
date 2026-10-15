@@ -99,6 +99,34 @@ function repriceLine(
   };
 }
 
+/**
+ * Best effort: looks up a PayPal order the seller just replaced and logs its
+ * state. A COMPLETED one means the buyer already paid on the old link and the
+ * seller needs to refund it. Never throws, so PayPal cannot block an edit.
+ */
+export async function checkSupersededPayPalOrder(
+  paypal: PayPalFetch,
+  paypalOrderId: string,
+  orderId: string,
+): Promise<string | null> {
+  try {
+    const body = (await paypal(`/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`, { method: 'GET' })) as {
+      status?: string;
+    };
+    const status = typeof body?.status === 'string' ? body.status : null;
+    console.info(JSON.stringify({ source: 'paypal_superseded', orderId, paypalOrderId, status }));
+    return status;
+  } catch (err) {
+    console.error(JSON.stringify({
+      source: 'paypal_superseded',
+      orderId,
+      paypalOrderId,
+      error: err instanceof Error ? err.message.slice(0, 160) : 'error',
+    }));
+    return null;
+  }
+}
+
 const editBodySchema = z
   .object({
     /** The full new list of lines. Lines with an id keep it; new ones get one. */
@@ -414,10 +442,22 @@ export function ordersRouter(deps: OrdersDeps): Router {
             ? { status: 'draft' as const, paypalOrderId: null, approvalUrl: null, draftedReply: null }
             : {}),
         };
-        tx.update(ref, { ...edited, updatedAt: FieldValue.serverTimestamp() });
-        return edited;
+        // PayPal cannot cancel a CREATED or APPROVED checkout order, so the
+        // old id is recorded as superseded and the webhook refuses it.
+        const superseded = reopen && order.paypalOrderId ? order.paypalOrderId : null;
+        tx.update(ref, {
+          ...edited,
+          ...(superseded
+            ? { supersededPaypalOrderIds: FieldValue.arrayUnion(superseded) }
+            : {}),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return { edited, superseded };
       });
-      res.json({ order: updated });
+      if (updated.superseded) {
+        await checkSupersededPayPalOrder(deps.paypal, updated.superseded, String(req.params.orderId));
+      }
+      res.json({ order: updated.edited });
     } catch (err) {
       next(err);
     }

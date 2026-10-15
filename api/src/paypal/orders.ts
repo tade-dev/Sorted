@@ -63,7 +63,9 @@ export async function createPayPalOrder(
 
   const created = (await call('/v2/checkout/orders', {
     method: 'POST',
-    requestId: `create-${order.id}`,
+    // A fresh id per link: after an edit supersedes one, reusing the same
+    // PayPal-Request-Id would hand back the old order and its old amount.
+    requestId: `create-${order.id}-${order.supersededPaypalOrderIds?.length ?? 0}`,
     body: {
       intent: 'CAPTURE',
       purchase_units: [purchaseUnit],

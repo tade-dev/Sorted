@@ -163,3 +163,64 @@ describe('POST /v1/orders/:orderId/edit', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('superseding the old PayPal order on edit', () => {
+  function appWithPayPal(paypal: (path: string, init: { method: string }) => Promise<unknown>) {
+    const transport: ChatTransport = async () => ({ content: JSON.stringify(jess) });
+    return createApp({
+      env, db, transport, paypal,
+      verify: async (t: string) => {
+        if (t === 'good') return { uid: 'seller-a' };
+        throw new Error('no');
+      },
+    });
+  }
+
+  async function sent() {
+    const order = await draft();
+    await db.doc(`sellers/seller-a/orders/${order.id}`).update({
+      status: 'link_sent', approvalUrl: 'https://paypal.test/x', paypalOrderId: 'PP1',
+    });
+    return order;
+  }
+
+  it('records the old PayPal order as superseded and checks it', async () => {
+    const order = await sent();
+    const calls: string[] = [];
+    const res = await request(appWithPayPal(async (path, init) => {
+      calls.push(`${init.method} ${path}`);
+      return { id: 'PP1', status: 'PAYER_ACTION_REQUIRED' };
+    }))
+      .post(`/v1/orders/${order.id}/edit`).set('Authorization', 'Bearer good')
+      .send({ lineItems: [{ productId: 'p2', variantIds: [], qty: 2 }] });
+    expect(res.status).toBe(200);
+    expect(res.body.order.status).toBe('draft');
+    expect(calls).toEqual(['GET /v2/checkout/orders/PP1']);
+    const stored = (await db.doc(`sellers/seller-a/orders/${order.id}`).get()).data()!;
+    expect(stored.supersededPaypalOrderIds).toEqual(['PP1']);
+    expect(stored.paypalOrderId).toBeNull();
+  });
+
+  it('still saves the edit when PayPal fails', async () => {
+    const order = await sent();
+    const res = await request(appWithPayPal(async () => { throw new Error('PayPal down'); }))
+      .post(`/v1/orders/${order.id}/edit`).set('Authorization', 'Bearer good')
+      .send({ lineItems: [{ productId: 'p2', variantIds: [], qty: 2 }] });
+    expect(res.status).toBe(200);
+    const stored = (await db.doc(`sellers/seller-a/orders/${order.id}`).get()).data()!;
+    expect(stored.supersededPaypalOrderIds).toEqual(['PP1']);
+    expect(stored.amountDueMinor).toBe(2800);
+  });
+
+  it('does not touch PayPal when only the note changes', async () => {
+    const order = await sent();
+    const calls: string[] = [];
+    const res = await request(appWithPayPal(async (path) => { calls.push(path); return {}; }))
+      .post(`/v1/orders/${order.id}/edit`).set('Authorization', 'Bearer good')
+      .send({ note: 'After 3pm' });
+    expect(res.status).toBe(200);
+    expect(calls).toEqual([]);
+    const stored = (await db.doc(`sellers/seller-a/orders/${order.id}`).get()).data()!;
+    expect(stored.supersededPaypalOrderIds).toBeUndefined();
+  });
+});

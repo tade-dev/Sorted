@@ -225,6 +225,21 @@ export function webhooksRouter(deps: WebhookDeps): Router {
         }
 
         const { ref, order, sellerId, orderId } = located;
+        // A link replaced by an edit charges the old items, so nothing it
+        // does may move this order. A capture on it is flagged for refund.
+        if (event.paypalOrderId && order.supersededPaypalOrderIds?.includes(event.paypalOrderId)) {
+          const captured = event.eventType === 'PAYMENT.CAPTURE.COMPLETED';
+          const reason = captured
+            ? 'Captured on a superseded PayPal order. Refund it in PayPal.'
+            : 'PayPal order was superseded by an edit. Ignored.';
+          console.warn(JSON.stringify({
+            source: 'paypal_superseded', orderId, paypalOrderId: event.paypalOrderId, eventType: event.eventType,
+          }));
+          await recordPayment(ref, event, reason);
+          await ledger.set({ handled: true, sellerId, orderId, processingError: reason }, { merge: true });
+          res.json({ received: true });
+          return;
+        }
         const status = STATUSES.has(order.status) ? order.status : null;
         let processingError: string | null = null;
         const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
