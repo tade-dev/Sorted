@@ -13,6 +13,7 @@ import { sessionRouter } from './routes/session.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { paypalPagesRouter } from './routes/paypal_pages.js';
 import { internalRouter } from './routes/internal.js';
+import { summaryRouter } from './routes/summary.js';
 
 export type AppDeps = {
   env: Env;
@@ -73,6 +74,15 @@ export function createApp(deps: AppDeps): express.Express {
       paypal: deps.paypal,
       model: deps.env.OPENAI_VISION_MODEL,
       publicBaseUrl: deps.env.PUBLIC_BASE_URL,
+    }),
+  );
+  app.use(
+    '/v1',
+    summaryRouter({
+      db: deps.db,
+      verify: deps.verify,
+      transport: deps.transport,
+      model: deps.env.OPENAI_VISION_MODEL,
     }),
   );
   app.use('/v1', paypalPagesRouter(deps.db));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/skeleton.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/sorted_icon.dart';
@@ -16,6 +17,7 @@ import '../../widgets/primary_button.dart';
 import '../orders/order_presentation.dart';
 import '../orders/status_pill.dart';
 import 'home_summary.dart';
+import 'today_highlights.dart';
 
 /// `Home.dc.html`: greeting, today's paid card, the oldest unpaid link, and
 /// collections coming up. A seller who has not onboarded yet is sent to the
@@ -97,7 +99,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     return [
-      _SummaryCard(summary: s),
+      _SummaryCard(
+        summary: s,
+        highlights: ref.watch(todayHighlightsProvider).value ?? const [],
+      ),
       if (s.paidTodayCount == 0) ...[
         const SizedBox(height: 16),
         PrimaryButton(
@@ -154,9 +159,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required HomeSummary this.summary});
+  const _SummaryCard({required HomeSummary this.summary, this.highlights = const []});
 
   final HomeSummary? summary;
+
+  /// AI-written lines from `GET /v1/summary/today`. The figures above them
+  /// come from the live order list, never from the model.
+  final List<String> highlights;
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +246,14 @@ class _SummaryCard extends StatelessWidget {
                 ]),
               ],
             ),
+          if (s != null && highlights.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              highlights.join(' · '),
+              key: const ValueKey('today-highlights'),
+              style: small?.copyWith(color: c.onDarkMuted),
+            ).animate(key: ValueKey(highlights.join())).fadeIn(duration: 220.ms),
+          ],
         ],
       ),
     );
