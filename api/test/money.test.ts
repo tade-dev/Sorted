@@ -122,3 +122,17 @@ describe('applyDelta', () => {
     expect(() => applyDelta(4500, -4600)).toThrow(MoneyError);
   });
 });
+
+describe('parseGbp bounds', () => {
+  it('accepts the cap exactly', () => {
+    expect(parseGbp('£100,000.00')).toBe(10_000_000);
+  });
+
+  it.each(['£100,000.01', '1000000', '9'.repeat(30)])('rejects %s as too large', (input) => {
+    expect(() => parseGbp(input)).toThrow(/too large/);
+  });
+
+  it.each(['-5', '-£5.00', ' -0.01'])('rejects negative %s clearly', (input) => {
+    expect(() => parseGbp(input)).toThrow(/negative/);
+  });
+});
