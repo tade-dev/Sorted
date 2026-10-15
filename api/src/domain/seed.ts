@@ -89,13 +89,21 @@ export async function bootstrapSeller(
   return db.runTransaction(async (tx) => {
     const existing = await tx.get(sellerRef);
     const alreadySeeded = existing.exists && existing.get('demoSeeded') === true;
+    const stored = (field: string): string | undefined => {
+      const value: unknown = existing.exists ? existing.get(field) : undefined;
+      return typeof value === 'string' ? value : undefined;
+    };
 
     const seller: SellerDoc = {
       id: sellerId,
-      displayName: opts.demo ? seed.seller.displayName : 'My shop',
-      personaTone: opts.demo ? seed.seller.personaTone : '',
+      // An existing seller keeps what onboarding/Settings saved. Returning the
+      // seed defaults here made a reload show "Ola's Bakehouse" (or "My shop")
+      // instead of the name the seller actually chose.
+      displayName:
+        stored('displayName') ?? (opts.demo ? seed.seller.displayName : 'My shop'),
+      personaTone: stored('personaTone') ?? (opts.demo ? seed.seller.personaTone : ''),
       currency: 'GBP',
-      timezone: seed.seller.timezone,
+      timezone: stored('timezone') ?? seed.seller.timezone,
       demoSeeded: opts.demo || alreadySeeded,
     };
 
