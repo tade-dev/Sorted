@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+
+export 'enter_stagger.dart';
+export 'motion_access.dart';
+export 'press_scale.dart';
 
 /// Motion tokens from motion-direction-v0.md §1. Every animation in the app
 /// reads its timing from here, and every one checks [reduce] first.
@@ -20,8 +22,6 @@ abstract final class SortedMotion {
   static const emphasised = Cubic(0.2, 0.0, 0.0, 1.0);
   static const enter = Curves.easeOutCubic;
   static const exit = Curves.easeInCubic;
-
-  static const pressScale = 0.97;
 
   /// Reduce Motion (iOS), Remove animations (Android), prefers-reduced-motion (web).
   static bool reduce(BuildContext context) =>
@@ -92,59 +92,6 @@ CustomTransitionPage<void> sortedTabPage(GoRouterState state, Widget child) =>
         );
       },
     );
-
-/// §5 list entrance: rows fade and rise 6px, 40ms apart, first six only so a
-/// long list never waits. Nothing moves under Reduce Motion.
-class EnterStagger extends StatelessWidget {
-  const EnterStagger({super.key, required this.index, required this.child});
-
-  final int index;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (index >= 6 || SortedMotion.reduce(context)) return child;
-    return child
-        .animate(delay: SortedMotion.stagger * index)
-        .fadeIn(duration: SortedMotion.short, curve: SortedMotion.enter)
-        .moveY(begin: 6, end: 0, duration: SortedMotion.short, curve: SortedMotion.enter);
-  }
-}
-
-/// §5 press: scales to 0.97 while held (touch only), springs back on release.
-class PressScale extends StatefulWidget {
-  const PressScale({super.key, required this.child, this.enabled = true});
-
-  final Widget child;
-  final bool enabled;
-
-  @override
-  State<PressScale> createState() => _PressScaleState();
-}
-
-class _PressScaleState extends State<PressScale> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.enabled || SortedMotion.reduce(context)) return widget.child;
-    return Listener(
-      onPointerDown: (e) => _set(e.kind == PointerDeviceKind.touch),
-      onPointerUp: (_) => _set(false),
-      onPointerCancel: (_) => _set(false),
-      child: AnimatedScale(
-        scale: _down ? SortedMotion.pressScale : 1,
-        duration: SortedMotion.micro,
-        curve: _down ? SortedMotion.exit : SortedMotion.enter,
-        child: widget.child,
-      ),
-    );
-  }
-}
 
 /// Paid arrival side effects (§4.3 / §8): one haptic and one screen-reader
 /// announcement per order, however many times the stream replays it.

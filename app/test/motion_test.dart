@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sorted/core/motion/sorted_motion.dart';
 import 'package:sorted/core/theme/sorted_theme.dart';
@@ -36,18 +35,6 @@ void main() {
     });
   });
 
-  testWidgets('EnterStagger shows rows at once under Reduce Motion', (tester) async {
-    await tester.pumpWidget(_wrap(const EnterStagger(index: 0, child: Text('row')), reduce: true));
-    expect(find.byType(Animate), findsNothing);
-    expect(find.text('row'), findsOneWidget);
-  });
-
-  testWidgets('EnterStagger fades the first rows in and settles', (tester) async {
-    await tester.pumpWidget(_wrap(const EnterStagger(index: 2, child: Text('row'))));
-    expect(find.byType(Animate), findsOneWidget);
-    await tester.pumpAndSettle();
-    expect(find.text('row'), findsOneWidget);
-  });
 
   testWidgets('StatusPill morphs its label when the status changes', (tester) async {
     await tester.pumpWidget(_wrap(const StatusPill(status: 'link_sent')));
@@ -59,13 +46,4 @@ void main() {
     expect(find.text('Paid'), findsOneWidget);
   });
 
-  testWidgets('PressScale shrinks while a finger is down', (tester) async {
-    await tester.pumpWidget(_wrap(const PressScale(child: SizedBox(key: Key('btn'), width: 100, height: 40, child: ColoredBox(color: Colors.blue)))));
-    final gesture = await tester.startGesture(tester.getCenter(find.byKey(const Key('btn'))));
-    await tester.pump();
-    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, SortedMotion.pressScale);
-    await gesture.up();
-    await tester.pumpAndSettle();
-    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);
-  });
 }
