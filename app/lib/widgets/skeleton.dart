@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
+import '../core/motion/motion_access.dart';
 
 /// Loading placeholders. Shapes mirror the real layout; the shimmer is one
 /// sweep across the whole group, so a screen reads as "loading" rather than
@@ -24,7 +25,7 @@ class Shimmer extends StatelessWidget {
       child: child
           .animate(onPlay: (a) => a.repeat())
           .shimmer(
-            duration: 1400.ms,
+            duration: SortedDurations.shimmer,
             color: dark ? c.darkLink : c.surface.withValues(alpha: 0.8),
           ),
     );

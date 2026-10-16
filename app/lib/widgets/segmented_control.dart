@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/sorted_colors.dart';
+import '../core/motion/motion_access.dart';
 
 /// iOS-style segmented control from Setup: a #EBEEF3 track with 4 px inset,
 /// equal 40 px segments, the selected one a raised white tile.
@@ -39,7 +40,8 @@ class SegmentedControl<T> extends StatelessWidget {
                   behavior: HitTestBehavior.opaque,
                   onTap: () => onChanged(e.key),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: Motion.duration(context, SortedDurations.short),
+                    curve: Motion.curve(context, SortedSprings.snappy),
                     height: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(

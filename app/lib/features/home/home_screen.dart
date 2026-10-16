@@ -18,6 +18,7 @@ import '../orders/order_presentation.dart';
 import '../orders/status_pill.dart';
 import 'home_summary.dart';
 import 'today_highlights.dart';
+import '../../core/motion/motion_access.dart';
 
 /// `Home.dc.html`: greeting, today's paid card, the oldest unpaid link, and
 /// collections coming up. A seller who has not onboarded yet is sent to the
@@ -252,7 +253,10 @@ class _SummaryCard extends StatelessWidget {
               highlights.join(' · '),
               key: const ValueKey('today-highlights'),
               style: small?.copyWith(color: c.onDarkMuted),
-            ).animate(key: ValueKey(highlights.join())).fadeIn(duration: 220.ms),
+            ).animate(key: ValueKey(highlights.join())).fadeIn(
+              duration: Motion.duration(context, SortedDurations.short),
+              curve: Motion.curve(context, SortedSprings.gentle),
+            ),
           ],
         ],
       ),

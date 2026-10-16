@@ -64,7 +64,7 @@ class StatusPill extends StatelessWidget {
         child: AnimatedSwitcher(
           duration: Motion.duration(context, SortedDurations.short),
           switchInCurve: Motion.curve(context, SortedSprings.gentle),
-          switchOutCurve: Curves.easeOut,
+          switchOutCurve: SortedCurves.exit,
           transitionBuilder: (child, a) => FadeTransition(
             opacity: a,
             child: ScaleTransition(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/money_roll.dart';
 import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
@@ -406,8 +407,10 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(dueLabel, style: text.titleLarge),
-                  Text(
-                    formatGbp(order.amountDueMinor),
+                  // Answering an ambiguity changes this figure while the
+                  // seller is looking at it, so it rolls the way it moved.
+                  MoneyRoll(
+                    amountMinor: order.amountDueMinor,
                     style: text.headlineLarge,
                   ),
                 ],

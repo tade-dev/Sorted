@@ -61,4 +61,29 @@ abstract final class SortedDurations {
 
   /// Gap between consecutive rows in a staggered entrance.
   static const stagger = Duration(milliseconds: 45);
+
+  /// Gap between steps the seller is meant to read one at a time, as on the
+  /// Reading screen. Much slower than [stagger], which is a list settling.
+  static const beat = Duration(milliseconds: 150);
+
+  /// One pass of the Reading screen's scan line. Long on purpose: it loops
+  /// while a model is working, so it has to read as patient rather than busy.
+  static const sweep = Duration(milliseconds: 1600);
+
+  /// One pass of a skeleton's shimmer.
+  static const shimmer = Duration(milliseconds: 1400);
+}
+
+/// The two curves that are not springs.
+///
+/// Everything that arrives gets a spring from [SortedSprings]. These are for
+/// the cases where a spring is wrong, and there are only two of them.
+abstract final class SortedCurves {
+  /// For something leaving. A departing element should not spring back
+  /// towards the position it is in the middle of giving up.
+  static const exit = Curves.easeOut;
+
+  /// For something looping, like the Reading screen's scan line, where both
+  /// ends of the travel are turning points rather than destinations.
+  static const loop = Curves.easeInOut;
 }

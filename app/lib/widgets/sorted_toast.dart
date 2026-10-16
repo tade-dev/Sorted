@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../core/theme/sorted_colors.dart';
 import 'sorted_icon.dart';
+import '../core/motion/motion_access.dart';
 
 enum SortedToastKind { success, error, info }
 
@@ -190,8 +191,13 @@ class _ToastView extends StatelessWidget {
     if (!reduceMotion) {
       card = card
           .animate()
-          .fadeIn(duration: 180.ms)
-          .slideY(begin: top ? -0.4 : 0.4, end: 0, duration: 260.ms, curve: Curves.easeOutCubic);
+          .fadeIn(duration: SortedDurations.short, curve: SortedSprings.gentle)
+          .slideY(
+            begin: top ? -0.4 : 0.4,
+            end: 0,
+            duration: SortedDurations.medium,
+            curve: SortedSprings.gentle,
+          );
     }
 
     return Positioned(

@@ -11,6 +11,7 @@ import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
+import '../../core/motion/motion_access.dart';
 
 /// The 3-10 second wait while the model reads the conversation.
 ///
@@ -189,7 +190,12 @@ class _StepRow extends StatelessWidget {
         height: 28,
         decoration: BoxDecoration(color: c.success, shape: BoxShape.circle),
         child: const SortedIcon(SortedIcons.check, size: 16, color: Colors.white, strokeWidth: 2.4),
-      ).animate().scale(begin: const Offset(0.6, 0.6), duration: 220.ms, curve: Curves.easeOutBack),
+      ).animate().scaleXY(
+        begin: 1 - Motion.move(context, 0.4),
+        end: 1,
+        duration: Motion.duration(context, SortedDurations.short),
+        curve: Motion.curve(context, SortedSprings.snappy),
+      ),
       _Step.active => SizedBox(
         width: 28,
         height: 28,
@@ -309,8 +315,17 @@ class _ScanningPaper extends StatelessWidget {
                 for (final (i, f) in [0.85, 0.70, 0.55, 0.40].indexed)
                   bubble(f)
                       .animate()
-                      .fadeIn(delay: (150 * i).ms, duration: 300.ms)
-                      .slideX(begin: -0.05, delay: (150 * i).ms, duration: 300.ms),
+                      .fadeIn(
+                        delay: SortedDurations.beat * i,
+                        duration: SortedDurations.medium,
+                        curve: SortedSprings.gentle,
+                      )
+                      .slideX(
+                        begin: -0.05,
+                        delay: SortedDurations.beat * i,
+                        duration: SortedDurations.medium,
+                        curve: SortedSprings.gentle,
+                      ),
               ],
             ),
           ),
@@ -322,7 +337,12 @@ class _ScanningPaper extends StatelessWidget {
               top: 0,
               child: line
                   .animate(onPlay: (a) => a.repeat(reverse: true))
-                  .moveY(begin: 24, end: 222, duration: 1600.ms, curve: Curves.easeInOut),
+                  .moveY(
+                    begin: 24,
+                    end: 222,
+                    duration: SortedDurations.sweep,
+                    curve: SortedCurves.loop,
+                  ),
             ),
         ],
       ),

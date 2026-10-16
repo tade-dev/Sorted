@@ -177,11 +177,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                             return EnterStagger(
                               key: ValueKey(order.id),
                               index: index,
-                              child: _OrderCard(
-                                order: order,
-                                fresh: isFreshPaid(order, now),
-                                caption: activityCaption(order, now),
-                                onTap: () => context.push('/orders/${order.id}'),
+                              child: PaidPop(
+                                paid: order.status == 'paid',
+                                child: _OrderCard(
+                                  order: order,
+                                  fresh: isFreshPaid(order, now),
+                                  caption: activityCaption(order, now),
+                                  onTap: () => context.push('/orders/${order.id}'),
+                                ),
                               ),
                             );
                           },

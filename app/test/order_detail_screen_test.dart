@@ -320,7 +320,10 @@ void main() {
       jess(status: 'paid', paidAt: DateTime(2026, 10, 10, 11, 31)),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    // Let the stamp land. It runs on flutter_animate now, which starts every
+    // animation from a Future.delayed, so the frame that builds it leaves a
+    // timer behind that only settling clears.
+    await tester.pumpAndSettle();
 
     expect(find.text('Paid'), findsOneWidget);
     expect(find.text('Sorted'), findsOneWidget);
