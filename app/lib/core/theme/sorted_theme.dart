@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import '../../widgets/sorted_icon.dart';
 
@@ -33,6 +34,13 @@ ThemeData sortedTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    // Any Navigator route outside go_router's pages slides like iOS, with
+    // the back-swipe, on Apple platforms.
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+    }),
     fontFamily: 'Plus Jakarta Sans',
     scaffoldBackgroundColor: c.background,
     colorScheme: ColorScheme.fromSeed(

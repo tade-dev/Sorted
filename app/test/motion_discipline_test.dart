@@ -87,23 +87,52 @@ void main() {
   });
 
   group('web runs the same motion as everything else', () {
-    test('the motion layer never asks what platform it is on', () {
+    test('the motion layer only asks what platform it is on with a reason', () {
       // The old page transitions bailed out to a flat cross-fade behind
       // `if (kIsWeb)`, which made the hosted build — the one judges open —
-      // the only build in the project with no motion in it. Degrade a named
-      // effect if it is measured to cost frames; never the whole platform.
+      // the only build in the project with no motion in it.
       //
-      // Scoped to the motion layer on purpose. Elsewhere kIsWeb is answering
-      // real questions — there is no camera and no share intent on the web —
-      // and those are capabilities, not animations.
+      // The invariant is that the web still animates, not that the word
+      // never appears: picking iOS's swipe-back route is a capability
+      // question, and both sides of it animate. So a platform check is
+      // allowed when the line says why, on the line or just above it, and
+      // banned when it is silent. The comment is the review, not the grep.
       final offences = <String>[];
       for (final file in _dartFiles(_motionDirectory)) {
         final lines = file.readAsLinesSync();
         for (var i = 0; i < lines.length; i++) {
           final line = lines[i];
-          if (line.contains('kIsWeb') && !line.trimLeft().startsWith('///')) {
-            offences.add('${file.path}:${i + 1}  ${line.trim()}');
+          if (!line.contains('kIsWeb') || line.trimLeft().startsWith('///')) {
+            continue;
           }
+          // The reason may run over several comment lines; read the whole
+          // block directly above the check.
+          var justified = line.contains('motion-ok:');
+          for (var j = i - 1; j >= 0 && !justified; j--) {
+            final above = lines[j].trimLeft();
+            if (!above.startsWith('//')) break;
+            justified = above.contains('motion-ok:');
+          }
+          if (!justified) offences.add('${file.path}:${i + 1}  ${line.trim()}');
+        }
+      }
+      expect(
+        offences,
+        isEmpty,
+        reason: 'Explain the platform check with a `motion-ok:` comment, or '
+            'drop it:\n${offences.join('\n')}',
+      );
+    });
+
+    test('and no transition answers a platform with no animation at all', () {
+      // The specific shape that caused the bug: a bare fade returned under a
+      // platform check. Whatever kIsWeb decides, it must not decide that.
+      final offences = <String>[];
+      for (final file in _dartFiles(_motionDirectory)) {
+        final source = file.readAsStringSync();
+        if (RegExp(r'kIsWeb[^;]*\)\s*\{?\s*return FadeTransition')
+            .hasMatch(source)) {
+          offences.add(file.path);
         }
       }
       expect(offences, isEmpty, reason: offences.join('\n'));

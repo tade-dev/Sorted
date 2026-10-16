@@ -80,7 +80,7 @@ class ReviewScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 PrimaryButton(
                   label: 'Snap again',
-                  onPressed: () => context.go('/catalogue/snap'),
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/catalogue/snap'),
                 ),
               ],
             ),

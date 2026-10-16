@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import 'motion_access.dart';
@@ -119,6 +120,29 @@ Widget sortedSheetTransition(
   );
 }
 
+/// Marks a `go` that deliberately ends a flow, so the destination can
+/// cross-fade over the stack it is replacing rather than cutting to it.
+const flowExit = #sortedFlowExit;
+
+/// Ends a flow — onboarding finished, reply sent — and lands on [location].
+///
+/// Clearing the stack is the intent here, not a side effect, so the arrival
+/// gets the longer cross-fade: the pages underneath stay put until it is done.
+void sortedFinishFlow(BuildContext context, String location) =>
+    context.go(location, extra: flowExit);
+
+bool _endsAFlow(GoRouterState? state) => identical(state?.extra, flowExit);
+
+/// iOS hands you a back-swipe from the screen edge on every pushed screen,
+/// and people reach for it without thinking. It comes from Cupertino's own
+/// route, so a plain CustomTransitionPage silently takes it away.
+///
+/// Not on the web, where the browser's own back gesture owns the edge.
+bool get _swipeBackAvailable =>
+    // motion-ok: picks the route class, not whether anything animates — the
+    // web still gets the full push transition below.
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
 /// Going back is undoing, not a second journey, so it runs shorter.
 Duration _reverseOf(Duration forward) => forward * 0.7;
 
@@ -137,12 +161,78 @@ CustomTransitionPage<void> _page(
     );
 
 /// A screen further along the task: Intake → Reading → Draft → Reply.
-CustomTransitionPage<void> sortedPushPage(GoRouterState? state, Widget child) =>
-    _page(state, child, SortedDurations.medium, sortedPushTransition);
+///
+/// On iOS this is a Cupertino route so the edge swipe-back survives, but the
+/// animation is still ours: the gesture and the motion are separable, and
+/// keeping one did not mean accepting the other.
+Page<void> sortedPushPage(GoRouterState? state, Widget child) =>
+    _swipeBackAvailable
+        ? _SwipeBackPage(key: state?.pageKey, child: child)
+        : _page(state, child, SortedDurations.medium, sortedPushTransition);
 
 /// One of the four bottom-bar destinations.
+///
+/// A tab reached by finishing a flow gets longer, because it is arriving over
+/// a stack being cleared rather than swapping with a peer.
 CustomTransitionPage<void> sortedTabPage(GoRouterState? state, Widget child) =>
-    _page(state, child, SortedDurations.short, sortedTabTransition);
+    _page(
+      state,
+      child,
+      _endsAFlow(state) ? SortedDurations.medium : SortedDurations.short,
+      sortedTabTransition,
+    );
+
+/// A pushed page that keeps iOS's interactive back-swipe.
+class _SwipeBackPage extends Page<void> {
+  const _SwipeBackPage({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Route<void> createRoute(BuildContext context) => _SwipeBackRoute(page: this);
+}
+
+class _SwipeBackRoute extends PageRoute<void>
+    with CupertinoRouteTransitionMixin<void> {
+  _SwipeBackRoute({required _SwipeBackPage page}) : super(settings: page);
+
+  _SwipeBackPage get _page => settings as _SwipeBackPage;
+
+  @override
+  Widget buildContent(BuildContext context) => _page.child;
+
+  @override
+  String? get title => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => SortedDurations.medium;
+
+  @override
+  String get debugLabel => '${super.debugLabel}(${_page.name})';
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondary,
+    Widget child,
+  ) {
+    // The back-swipe detector lives inside Cupertino's own page transition,
+    // so it has to stay. Driving it with a finished animation keeps the
+    // gesture and drops the slide, leaving the travel to us.
+    final swipeable = CupertinoRouteTransitionMixin.buildPageTransitions<void>(
+      this,
+      context,
+      kAlwaysCompleteAnimation,
+      kAlwaysDismissedAnimation,
+      child,
+    );
+    return sortedPushTransition(context, animation, secondary, swipeable);
+  }
+}
 
 /// Something presented over the current task, to be dismissed back to it.
 CustomTransitionPage<void> sortedSheetPage(GoRouterState? state, Widget child) =>

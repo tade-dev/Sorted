@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -142,7 +144,10 @@ void main() {
 
   group('the pages wire the transitions up', () {
     test('each kind gets its own duration, and reverse is quicker', () {
-      final push = sortedPushPage(null, const SizedBox.shrink());
+      // Off iOS, which is where `flutter test` runs, the push is still a
+      // CustomTransitionPage. The iOS route has its own test below.
+      final push =
+          sortedPushPage(null, const SizedBox.shrink()) as CustomTransitionPage<void>;
       final tab = sortedTabPage(null, const SizedBox.shrink());
       final sheet = sortedSheetPage(null, const SizedBox.shrink());
 
@@ -163,7 +168,7 @@ void main() {
     Widget app(GoRouter router) => MaterialApp.router(routerConfig: router);
 
     GoRouter routerFor(
-      CustomTransitionPage<void> Function(GoRouterState?, Widget) second,
+      Page<void> Function(GoRouterState?, Widget) second,
     ) =>
         GoRouter(routes: [
           GoRoute(
@@ -236,6 +241,73 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('second')), findsNothing);
       expect(find.text('go'), findsOneWidget);
+    });
+  });
+
+  group('iOS keeps its back-swipe', () {
+    // Reset inside each body: flutter_test checks the foundation debug vars
+    // when the body returns, before tearDown gets a turn.
+    testWidgets('a pushed page is a route that can be swiped back',
+        (tester) async {
+      // iOS hands you an edge swipe on every pushed screen and people reach
+      // for it without thinking. It comes from Cupertino's own route, so a
+      // plain CustomTransitionPage takes it away silently.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final page = sortedPushPage(null, const SizedBox.shrink());
+      expect(page, isNot(isA<CustomTransitionPage<void>>()));
+
+      late Route<void> route;
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(builder: (context) {
+          route = page.createRoute(context);
+          return const SizedBox.shrink();
+        }),
+      ));
+      // The gesture comes from this mixin; popGestureEnabled itself cannot
+      // be asked until the route is installed in a Navigator.
+      expect(route, isA<CupertinoRouteTransitionMixin<void>>());
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    testWidgets('and still travels our way, not Cupertino\'s', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      // Keeping the gesture did not mean accepting the full-width native
+      // slide: the page comes in on the shared axis, a fraction of the way.
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: GoRouter(routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, _) => TextButton(
+              onPressed: () => context.push('/next'),
+              child: const Text('go'),
+            ),
+          ),
+          GoRoute(
+            path: '/next',
+            pageBuilder: (_, s) => sortedPushPage(
+              s,
+              const ColoredBox(
+                key: Key('pushed'),
+                color: Color(0xFF111111),
+                child: SizedBox.expand(),
+              ),
+            ),
+          ),
+        ]),
+      ));
+      await tester.tap(find.text('go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      final width = tester.getSize(find.byType(MaterialApp)).width;
+      final x = tester.getTopLeft(find.byKey(const Key('pushed'))).dx;
+      expect(x, greaterThan(0), reason: 'still on its way in');
+      expect(x, lessThan(width * 0.5),
+          reason: 'our 18% travel, not a full-width native slide');
+
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.byKey(const Key('pushed'))).dx, 0);
+      debugDefaultTargetPlatformOverride = null;
     });
   });
 }

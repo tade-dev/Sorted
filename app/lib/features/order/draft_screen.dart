@@ -261,7 +261,7 @@ class _DraftScreenState extends ConsumerState<DraftScreen> {
       final confirmed = await ref.read(ordersRepositoryProvider).confirm(order);
       if (!mounted) return;
       ref.read(draftControllerProvider.notifier).replace(confirmed);
-      router.go('/order/reply');
+      router.pushReplacement('/order/reply');
     } catch (e) {
       if (!mounted) return;
       toast.show(describeApiError(e), kind: SortedToastKind.error);
