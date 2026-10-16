@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/motion/sorted_motion.dart';
 
 import '../../widgets/skeleton.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/theme/sorted_colors.dart';
@@ -46,26 +48,28 @@ class CatalogueScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Catalogue', style: text.headlineMedium),
-                      Text(
-                        '${items.length} ${items.length == 1 ? 'product' : 'products'}',
-                        style: text.bodySmall,
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => context.push('/catalogue/snap'),
-                    icon: const SortedIcon(SortedIcons.camera, size: SortedShape.iconSize),
-                    label: const Text('Snap more'),
-                  ),
-                ],
+              Reveal(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Catalogue', style: text.headlineMedium),
+                        Text(
+                          '${items.length} ${items.length == 1 ? 'product' : 'products'}',
+                          style: text.bodySmall,
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () => context.push('/catalogue/snap'),
+                      icon: const SortedIcon(SortedIcons.camera, size: SortedShape.iconSize),
+                      label: const Text('Snap more'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               if (items.isEmpty)

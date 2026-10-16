@@ -1,6 +1,8 @@
 // app/lib/widgets/selectable_chip.dart
 import 'package:flutter/material.dart';
 
+import '../core/motion/motion_access.dart';
+import '../core/motion/press_scale.dart';
 import '../core/theme/sorted_colors.dart';
 import '../core/theme/sorted_shape.dart';
 
@@ -24,27 +26,39 @@ class SelectableChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      child: Material(
-        color: selected ? c.ink : c.surface,
-        shape: StadiumBorder(
-          side: BorderSide(color: selected ? c.ink : c.line, width: 1.5),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const StadiumBorder(),
-          child: Container(
-            height: SortedShape.selectableChipHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: selected ? Colors.white : c.ink,
-                  ),
+      // Decorator mode: the InkWell below already owns the tap and the
+      // semantics, so PressScale only adds the feel — on every pointer kind,
+      // which is the point.
+      child: PressScale(
+        // Selecting a chip travels between the two states rather than
+        // cutting. One t drives the fill, the edge and the label together, so
+        // they cannot drift out of step.
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: selected ? 1 : 0),
+          duration: Motion.duration(context, SortedDurations.short),
+          curve: Motion.curve(context, SortedSprings.gentle),
+          builder: (context, t, _) => Material(
+            color: Color.lerp(c.surface, c.ink, t),
+            shape: StadiumBorder(
+              side: BorderSide(color: Color.lerp(c.line, c.ink, t)!, width: 1.5),
+            ),
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const StadiumBorder(),
+              child: Container(
+                height: SortedShape.selectableChipHeight,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelMedium
+                          ?.copyWith(color: Color.lerp(c.ink, Colors.white, t)),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

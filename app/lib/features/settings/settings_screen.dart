@@ -12,6 +12,7 @@ import '../../core/api_client.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../providers/seller_provider.dart';
 import '../../widgets/primary_button.dart';
+import '../../core/motion/reveal.dart';
 
 const repoUrl = 'https://github.com/tade-dev/sorted';
 
@@ -104,7 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
-          Text('Settings', style: text.headlineLarge),
+          Reveal(child: Text('Settings', style: text.headlineLarge)),
           const SizedBox(height: 24),
           section('Shop', [
             TextField(
@@ -112,10 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               maxLength: 60,
               textCapitalization: TextCapitalization.words,
               style: text.bodyLarge,
-              decoration: const InputDecoration(
-                hintText: 'Shop name',
-                counterText: '',
-              ),
+              decoration: const InputDecoration(hintText: 'Shop name', counterText: ''),
               onChanged: (_) => setState(() {}),
             ),
           ]),
@@ -159,8 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ]),
           PrimaryButton(
             label: _saving ? 'Saving…' : 'Save changes',
-            onPressed:
-                _saving || !_dirty || _name.text.trim().isEmpty || !_paypalValid
+            onPressed: _saving || !_dirty || _name.text.trim().isEmpty || !_paypalValid
                 ? null
                 : _save,
           ),
@@ -219,5 +216,4 @@ class _SettingsSkeleton extends StatelessWidget {
 }
 
 /// A light check; PayPal is the real judge when it creates the order.
-bool isPlausibleEmail(String value) =>
-    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+bool isPlausibleEmail(String value) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);

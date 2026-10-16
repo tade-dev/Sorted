@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/skeleton.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
@@ -19,6 +21,7 @@ import '../orders/status_pill.dart';
 import 'home_summary.dart';
 import 'today_highlights.dart';
 import '../../core/motion/motion_access.dart';
+import '../../core/motion/reveal.dart';
 
 /// `Home.dc.html`: greeting, today's paid card, the oldest unpaid link, and
 /// collections coming up. A seller who has not onboarded yet is sent to the
@@ -56,27 +59,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(longDate(now), style: text.bodySmall?.copyWith(fontSize: 14)),
-                    Text(greeting(now, name), style: text.headlineMedium?.copyWith(fontSize: 30)),
-                  ],
+          Reveal(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(longDate(now), style: text.bodySmall?.copyWith(fontSize: 14)),
+                      Text(greeting(now, name), style: text.headlineMedium?.copyWith(fontSize: 30)),
+                    ],
+                  ),
                 ),
-              ),
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: c.ink,
-                child: Text(
-                  name.trim().isEmpty ? 'S' : name.trim()[0].toUpperCase(),
-                  style: text.titleLarge?.copyWith(fontSize: 18, color: Colors.white),
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: c.ink,
+                  child: Text(
+                    name.trim().isEmpty ? 'S' : name.trim()[0].toUpperCase(),
+                    style: text.titleLarge?.copyWith(fontSize: 18, color: Colors.white),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           ...orders.when(
@@ -100,10 +105,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     return [
-      _SummaryCard(
-        summary: s,
-        highlights: ref.watch(todayHighlightsProvider).value ?? const [],
-      ),
+      _SummaryCard(summary: s, highlights: ref.watch(todayHighlightsProvider).value ?? const []),
       if (s.paidTodayCount == 0) ...[
         const SizedBox(height: 16),
         PrimaryButton(
@@ -215,8 +217,16 @@ class _SummaryCard extends StatelessWidget {
                   if (total == 0)
                     Expanded(child: Container(color: c.darkTrack))
                   else ...[
-                    if (paid > 0) Expanded(flex: paid, child: Container(color: c.paidBar)),
-                    if (waiting > 0) Expanded(flex: waiting, child: Container(color: c.highlight)),
+                    if (paid > 0)
+                      Expanded(
+                        flex: paid,
+                        child: Container(color: c.paidBar),
+                      ),
+                    if (waiting > 0)
+                      Expanded(
+                        flex: waiting,
+                        child: Container(color: c.highlight),
+                      ),
                   ],
                 ],
               ),
@@ -232,31 +242,39 @@ class _SummaryCard extends StatelessWidget {
               spacing: 18,
               runSpacing: 6,
               children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  dot(c.paidBar),
-                  const SizedBox(width: 6),
-                  Text('$paid paid', style: small),
-                ]),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  dot(c.highlight),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$waiting waiting${waiting > 0 ? ', ${formatGbpCompact(s.waitingMinor)}' : ''}',
-                    style: small,
-                  ),
-                ]),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    dot(c.paidBar),
+                    const SizedBox(width: 6),
+                    Text('$paid paid', style: small),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    dot(c.highlight),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$waiting waiting${waiting > 0 ? ', ${formatGbpCompact(s.waitingMinor)}' : ''}',
+                      style: small,
+                    ),
+                  ],
+                ),
               ],
             ),
           if (s != null && highlights.isNotEmpty) ...[
             const SizedBox(height: 14),
             Text(
-              highlights.join(' · '),
-              key: const ValueKey('today-highlights'),
-              style: small?.copyWith(color: c.onDarkMuted),
-            ).animate(key: ValueKey(highlights.join())).fadeIn(
-              duration: Motion.duration(context, SortedDurations.short),
-              curve: Motion.curve(context, SortedSprings.gentle),
-            ),
+                  highlights.join(' · '),
+                  key: const ValueKey('today-highlights'),
+                  style: small?.copyWith(color: c.onDarkMuted),
+                )
+                .animate(key: ValueKey(highlights.join()))
+                .fadeIn(
+                  duration: Motion.duration(context, SortedDurations.short),
+                  curve: Motion.curve(context, SortedSprings.gentle),
+                ),
           ],
         ],
       ),
@@ -278,7 +296,9 @@ class _UpcomingRow extends StatelessWidget {
       onTap: () => context.push('/orders/${order.id}'),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: c.line)),
+        ),
         child: Row(
           children: [
             SizedBox(
@@ -314,8 +334,8 @@ class _UpcomingRow extends StatelessWidget {
               label: depositDue
                   ? 'Deposit due'
                   : order.status == 'link_sent'
-                      ? 'Waiting'
-                      : null,
+                  ? 'Waiting'
+                  : null,
             ),
           ],
         ),
@@ -376,11 +396,13 @@ class HomeSkeleton extends StatelessWidget {
                 SizedBox(height: 14),
                 SkeletonBox(height: 10, radius: 999, dark: true),
                 SizedBox(height: 14),
-                Row(children: [
-                  SkeletonLine(width: 60, dark: true),
-                  SizedBox(width: 18),
-                  SkeletonLine(width: 110, dark: true),
-                ]),
+                Row(
+                  children: [
+                    SkeletonLine(width: 60, dark: true),
+                    SizedBox(width: 18),
+                    SkeletonLine(width: 110, dark: true),
+                  ],
+                ),
               ],
             ),
           ),
@@ -394,7 +416,9 @@ class HomeSkeleton extends StatelessWidget {
               const SizedBox(height: 10),
               for (var i = 0; i < 3; i++)
                 Container(
-                  decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: c.line)),
+                  ),
                   child: const RowSkeleton(leading: 40, leadingRadius: 8),
                 ),
             ],
