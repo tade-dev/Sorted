@@ -233,6 +233,54 @@ void main() {
       expect(store.uploads, isEmpty);
     });
 
+    test('a photo that could not be attached is reported, not dropped', () async {
+      // The silence is what hid the real bug for a week: when save() cannot
+      // attach a photo at all — no ids from the API, or no sellerId — it
+      // skipped the upload and reported photosFailed: 0, so the screen said
+      // nothing and the seller found out by noticing the gap in their
+      // catalogue. A photo the seller took and did not get is a failure.
+      final store = _FakeStore();
+      final api = _FakeApi()
+        ..saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[]};
+
+      final noIds = await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', 0)], photos: [[1]], sellerId: 's1');
+      expect(store.uploads, isEmpty);
+      expect(noIds.photosFailed, 1);
+
+      api.saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[], 'ids': ['p1']};
+      final noSeller = await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', 0)], photos: [[1]]);
+      expect(store.uploads, isEmpty);
+      expect(noSeller.photosFailed, 1);
+    });
+
+    test('a duplicate that was never created is not a failed photo', () async {
+      // Nothing went wrong for a product that already existed: there is no
+      // new product to put a photo on, and the seller is told about the
+      // duplicate separately.
+      final store = _FakeStore();
+      final api = _FakeApi()
+        ..saveResponse = {
+          'created': <String>[],
+          'skippedDuplicates': ['Cake'],
+          'ids': [null],
+        };
+      final result = await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', 0)], photos: [[1]], sellerId: 's1');
+      expect(result.photosFailed, 0);
+    });
+
+    test('a candidate with no photo of its own is not a failed photo', () async {
+      final store = _FakeStore();
+      final api = _FakeApi()
+        ..saveResponse = {'created': ['p1'], 'skippedDuplicates': <String>[], 'ids': ['p1']};
+      final result = await CatalogueRepository(api: api, photos: store)
+          .save([c('Cake', null)], photos: [[1]], sellerId: 's1');
+      expect(store.uploads, isEmpty);
+      expect(result.photosFailed, 0);
+    });
+
     test('a failed upload is counted, not thrown', () async {
       final store = _FakeStore()..failFor = {'p1'};
       final api = _FakeApi()

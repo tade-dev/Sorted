@@ -125,22 +125,37 @@ class CatalogueRepository {
     });
 
     // `ids` lines up with the candidates sent; older APIs omit it, in which
-    // case photos are skipped rather than guessed.
+    // case there is no way to know which product a photo belongs to.
     final ids = (json['ids'] as List<dynamic>?)?.cast<String?>();
+    final canAttach = ids != null && ids.length == candidates.length && sellerId != null;
+
     var photosFailed = 0;
-    if (ids != null && sellerId != null && photos.isNotEmpty && ids.length == candidates.length) {
-      final uploads = <Future<void>>[];
-      for (var i = 0; i < candidates.length; i++) {
-        final productId = ids[i];
-        final index = candidates[i].photoIndex;
-        if (productId == null || index == null || index < 0 || index >= photos.length) continue;
-        uploads.add(
-          setPhoto(sellerId: sellerId, productId: productId, bytes: photos[index])
-              .then<void>((_) {}, onError: (_) => photosFailed++),
-        );
+    final uploads = <Future<void>>[];
+    for (var i = 0; i < candidates.length; i++) {
+      final index = candidates[i].photoIndex;
+      // This product came with no photo of its own, so none is missing.
+      if (index == null || index < 0 || index >= photos.length) continue;
+
+      // A photo the seller took and did not get is a failure, even when the
+      // reason is that we never tried. Reporting 0 here is how a broken
+      // upload path stayed invisible: the save looked clean and the photos
+      // simply were not there.
+      if (!canAttach) {
+        photosFailed++;
+        continue;
       }
-      await Future.wait(uploads);
+
+      // A duplicate was not created, so there is no product to put a photo
+      // on. The seller is told about duplicates separately.
+      final productId = ids[i];
+      if (productId == null) continue;
+
+      uploads.add(
+        setPhoto(sellerId: sellerId, productId: productId, bytes: photos[index])
+            .then<void>((_) {}, onError: (_) => photosFailed++),
+      );
     }
+    await Future.wait(uploads);
 
     return (
       created: (json['created'] as List<dynamic>).cast<String>(),
