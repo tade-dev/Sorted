@@ -15,3 +15,4 @@ export 'motion_access.dart';
 export 'page_transitions.dart';
 export 'paid_announcer.dart';
 export 'press_scale.dart';
+export 'reveal.dart';

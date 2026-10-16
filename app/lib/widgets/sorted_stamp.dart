@@ -1,61 +1,35 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../core/motion/motion_access.dart';
+import '../core/theme/sorted_colors.dart';
 import 'sorted_icon.dart';
 
-import '../core/theme/sorted_colors.dart';
-
-/// The mark that lands on an order once it is paid. Scales in with a slight
-/// overshoot and sits at the design's −10° tilt.
-class SortedStamp extends StatefulWidget {
+/// The mark that lands on an order once it is paid.
+///
+/// One of the two places [SortedSprings.bouncy] is allowed. A stamp that eased
+/// into place would be a label; the overshoot is what makes it land. The
+/// other use is the paid celebration, and there are no others — overshoot
+/// everywhere is how springy turns childish.
+class SortedStamp extends StatelessWidget {
   const SortedStamp({super.key, this.degrees = -10});
 
-  /// Tilt. The order slip uses −10°, the Welcome hero −12°.
+  /// Tilt. The order slip uses −10°, the Welcome hero −12°. Static design,
+  /// not motion, so reduced motion keeps it.
   final double degrees;
 
-  @override
-  State<SortedStamp> createState() => _SortedStampState();
-}
-
-class _SortedStampState extends State<SortedStamp>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 600),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reduce Motion: the stamp is simply there.
-    if (_controller.status == AnimationStatus.dismissed) {
-      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
-        _controller.value = 1;
-      } else {
-        _controller.forward();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  /// The size it lands from.
+  static const _from = 0.6;
 
   @override
   Widget build(BuildContext context) {
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = Curves.easeOutBack.transform(_controller.value.clamp(0, 1));
-        return Transform.rotate(
-          angle: widget.degrees * math.pi / 180,
-          child: Transform.scale(scale: 0.6 + 0.4 * t, child: child),
-        );
-      },
+
+    final mark = Transform.rotate(
+      angle: degrees * math.pi / 180,
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 4, 12, 6),
         decoration: BoxDecoration(
@@ -81,5 +55,12 @@ class _SortedStampState extends State<SortedStamp>
         ),
       ),
     );
+
+    return mark.animate().scaleXY(
+          begin: 1 - Motion.move(context, 1 - _from),
+          end: 1,
+          duration: Motion.duration(context, SortedDurations.long),
+          curve: Motion.curve(context, SortedSprings.bouncy),
+        );
   }
 }
