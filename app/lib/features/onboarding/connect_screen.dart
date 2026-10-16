@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import '../../core/motion/sorted_motion.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/theme/sorted_colors.dart';
@@ -32,7 +32,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
       await ref
           .read(sellerUpdaterProvider)
           .update(connectPaypal: true, finishOnboarding: true);
-      if (mounted) context.go('/');
+      if (mounted) sortedFinishFlow(context, '/');
     } catch (e) {
       if (mounted) {
         showOnboardingError(context, e);

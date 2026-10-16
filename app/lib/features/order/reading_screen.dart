@@ -50,7 +50,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (ref.read(draftControllerProvider) is DraftReady) {
-        context.go('/order/draft');
+        context.pushReplacement('/order/draft');
       }
     });
   }
@@ -68,7 +68,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
     final state = ref.watch(draftControllerProvider);
 
     ref.listen(draftControllerProvider, (_, next) {
-      if (next is DraftReady) context.go('/order/draft');
+      if (next is DraftReady) context.pushReplacement('/order/draft');
     });
 
     if (state is DraftEmpty || state is DraftFailed) {
@@ -99,7 +99,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
                   label: 'Try again',
                   onPressed: () {
                     ref.read(draftControllerProvider.notifier).clear();
-                    context.go('/order/new');
+                    context.canPop() ? context.pop() : context.go('/order/new');
                   },
                 ),
               ],
@@ -159,7 +159,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
                       borderRadius: BorderRadius.circular(SortedShape.primaryButtonRadius),
                     ),
                   ),
-                  onPressed: ready ? () => context.go('/order/draft') : null,
+                  onPressed: ready ? () => context.pushReplacement('/order/draft') : null,
                   child: const Text('See order draft'),
                 ),
               ),

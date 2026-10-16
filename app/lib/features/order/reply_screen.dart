@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/motion/sorted_motion.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/sorted_app_bar.dart';
 import '../../widgets/sorted_toast.dart';
@@ -356,7 +357,7 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                 child: TextButton(
                   onPressed: () {
                     ref.read(draftControllerProvider.notifier).clear();
-                    context.go('/orders');
+                    sortedFinishFlow(context, '/orders');
                   },
                   child: const Text('Go to orders'),
                 ),
