@@ -26,7 +26,12 @@ const _steps = [
 ];
 
 class ReadingScreen extends ConsumerStatefulWidget {
-  const ReadingScreen({super.key});
+  const ReadingScreen({super.key, this.handedIn = false});
+
+  /// True when the seller got here by sharing a screenshot from another app,
+  /// rather than walking through New order. Nothing in Sorted preceded it, so
+  /// it arrives as a sheet and the chat lands before it is read.
+  final bool handedIn;
 
   @override
   ConsumerState<ReadingScreen> createState() => _ReadingScreenState();
@@ -129,7 +134,7 @@ class _ReadingScreenState extends ConsumerState<ReadingScreen> {
                 children: [
                   Text('Reading the message', style: text.headlineLarge?.copyWith(height: 1.1)),
                   const SizedBox(height: 26),
-                  const Center(child: _ScanningPaper()),
+                  Center(child: _ScanningPaper(handedIn: widget.handedIn)),
                   const SizedBox(height: 26),
                   for (var i = 0; i < _steps.length; i++)
                     Padding(
@@ -236,14 +241,50 @@ class _StepRow extends StatelessWidget {
 /// four message bubbles) with a glowing blue scan line sweeping down and up.
 /// The same card is shown for a screenshot and for pasted text; the design
 /// has one processing screen for both.
-class _ScanningPaper extends StatelessWidget {
-  const _ScanningPaper();
+class _ScanningPaper extends StatefulWidget {
+  const _ScanningPaper({this.handedIn = false});
+
+  /// True when the seller arrived by sharing a screenshot from another app.
+  /// The paper then lands before it is read, rather than being there already.
+  final bool handedIn;
 
   static const _w = 210.0;
   static const _h = 250.0;
 
   @override
+  State<_ScanningPaper> createState() => _ScanningPaperState();
+}
+
+class _ScanningPaperState extends State<_ScanningPaper> {
+  /// How long the paper takes to come to rest. The scan waits for it.
+  static const _landing = SortedDurations.long;
+
+  /// How far over the paper is when it arrives.
+  static const _tilt = 3.0;
+
+  late bool _settled = !widget.handedIn;
+  Timer? _land;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_settled) {
+      _land = Timer(_landing, () {
+        if (mounted) setState(() => _settled = true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _land?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    const w = _ScanningPaper._w;
+    const h = _ScanningPaper._h;
     final c = SortedColors.of(context);
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     Widget bubble(double f) => Padding(
@@ -267,7 +308,7 @@ class _ScanningPaper extends StatelessWidget {
     );
 
     final line = Container(
-      width: _w,
+      width: w,
       height: 3,
       decoration: BoxDecoration(
         color: c.primary,
@@ -277,9 +318,9 @@ class _ScanningPaper extends StatelessWidget {
       ),
     );
 
-    return Container(
-      width: _w,
-      height: _h,
+    final Widget paper = Container(
+      width: w,
+      height: h,
       decoration: BoxDecoration(
         color: c.surface,
         border: Border.all(color: c.line),
@@ -331,7 +372,8 @@ class _ScanningPaper extends StatelessWidget {
           ),
           if (reduceMotion)
             Positioned(left: 0, top: 118, child: line)
-          else
+          // Nothing is being read while the paper is still in the air.
+          else if (_settled)
             Positioned(
               left: 0,
               top: 0,
@@ -347,5 +389,29 @@ class _ScanningPaper extends StatelessWidget {
         ],
       ),
     );
+
+    if (!widget.handedIn) return paper;
+
+    // Handed in: it arrives a little large and askew, like a sheet put down
+    // on a desk, and settles square. Motion routes through the gate, so under
+    // reduced motion it simply fades.
+    return paper
+        .animate()
+        .fadeIn(
+          duration: Motion.duration(context, SortedDurations.medium),
+          curve: Motion.curve(context, SortedSprings.gentle),
+        )
+        .scaleXY(
+          begin: 1 + Motion.move(context, 0.04),
+          end: 1,
+          duration: Motion.duration(context, _landing),
+          curve: Motion.curve(context, SortedSprings.gentle),
+        )
+        .rotate(
+          begin: Motion.move(context, _tilt) / 360,
+          end: 0,
+          duration: Motion.duration(context, _landing),
+          curve: Motion.curve(context, SortedSprings.gentle),
+        );
   }
 }

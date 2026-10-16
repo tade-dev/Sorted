@@ -14,14 +14,17 @@ class _StubController extends DraftController {
   DraftState build() => _initial;
 }
 
-Widget _host(DraftState state) => ProviderScope(
+Widget _host(DraftState state, {bool handedIn = false}) => ProviderScope(
       overrides: [draftControllerProvider.overrideWith(() => _StubController(state))],
       child: MaterialApp.router(
         theme: sortedTheme(),
         routerConfig: GoRouter(
           initialLocation: '/order/reading',
           routes: [
-            GoRoute(path: '/order/reading', builder: (_, _) => const ReadingScreen()),
+            GoRoute(
+              path: '/order/reading',
+              builder: (_, _) => ReadingScreen(handedIn: handedIn),
+            ),
             GoRoute(path: '/order/draft', builder: (_, _) => const Scaffold(body: Text('draft landed'))),
             GoRoute(path: '/order/new', builder: (_, _) => const Scaffold(body: Text('intake landed'))),
           ],
@@ -68,5 +71,40 @@ void main() {
     await tester.pumpWidget(_host(const DraftFailed('Sorted could not reach the server.')));
     await tester.pumpAndSettle();
     expect(find.textContaining('could not reach the server'), findsOneWidget);
+  });
+
+  group('a screenshot handed in from another app', () {
+    /// The glowing scan bar. It is the only 3px-tall box on the screen.
+    Finder scanLine() => find.byWidgetPredicate((w) =>
+        w is Container &&
+        w.constraints?.maxHeight == 3 &&
+        w.decoration is BoxDecoration);
+
+    testWidgets('nothing is scanned while the paper is still in the air',
+        (tester) async {
+      await tester.pumpWidget(_host(const DraftReading(0), handedIn: true));
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(scanLine(), findsNothing,
+          reason: 'the chat has not come to rest yet');
+
+      // It lands, and only then is it read.
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(scanLine(), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(Duration.zero);
+    });
+
+    testWidgets('arriving the ordinary way reads it straight away',
+        (tester) async {
+      // Walking through New order means the screen was already on its way in,
+      // so there is nothing to land.
+      await tester.pumpWidget(_host(const DraftReading(0)));
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(scanLine(), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(Duration.zero);
+    });
   });
 }

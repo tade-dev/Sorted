@@ -23,7 +23,7 @@ Future<void> main() async {
 final shareIntakeProvider = Provider<ShareIntake?>((ref) {
   final source = ref.watch(shareSourceProvider);
   if (source == null) return null;
-  final intake = ShareIntake(ref, source, openReading: () => appRouter.push('/order/reading'));
+  final intake = ShareIntake(ref, source, openReading: () => appRouter.push('/order/reading?from=share'));
   ref.onDispose(intake.dispose);
   intake.start();
   return intake;

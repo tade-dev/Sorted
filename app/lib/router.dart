@@ -71,7 +71,14 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/order/reading',
-      pageBuilder: (_, s) => sortedPushPage(s, const ReadingScreen()),
+      // A share comes from another app, so nothing in Sorted preceded it: a
+      // sideways push would claim a journey that never happened. It rises
+      // instead, the way something handed to you does.
+      pageBuilder: (_, s) {
+        final handedIn = s.uri.queryParameters['from'] == 'share';
+        final screen = ReadingScreen(handedIn: handedIn);
+        return handedIn ? sortedSheetPage(s, screen) : sortedPushPage(s, screen);
+      },
     ),
     GoRoute(
       path: '/order/draft',
