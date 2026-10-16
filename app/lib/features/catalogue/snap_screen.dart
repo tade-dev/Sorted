@@ -130,7 +130,10 @@ class _SnapScreenState extends ConsumerState<SnapScreen> with WidgetsBindingObse
     setState(() => _busy = true);
     try {
       await ref.read(extractionControllerProvider.notifier).extract(_photos);
-      if (mounted) context.go('/catalogue/review');
+      if (!mounted) return;
+      // Push, not go: back from Review returns to the camera with the shots kept.
+      await context.push('/catalogue/review');
+      if (mounted) setState(() => _busy = false);
     } catch (e) {
       if (mounted) setState(() { _busy = false; _notice = describeApiError(e); });
     }
