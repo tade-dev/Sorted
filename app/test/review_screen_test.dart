@@ -9,6 +9,7 @@ import 'package:sorted/models/ambiguity.dart';
 import 'package:sorted/models/product_candidate.dart';
 import 'package:sorted/models/variant.dart';
 import 'package:sorted/providers/catalogue_providers.dart';
+import 'package:sorted/providers/seller_provider.dart';
 
 const _priced = ProductCandidate(
   tempId: 't1', name: 'Lemon drizzle cake', description: 'Zesty.',
@@ -54,6 +55,10 @@ class _FakeApi implements CatalogueApi {
 Widget _host(List<ProductCandidate>? candidates, {_FakeApi? api}) => ProviderScope(
       overrides: [
         extractionControllerProvider.overrideWith(() => _StubController(candidates)),
+        // Saving awaits the seller id now, so these need one. Reading
+        // .value instead of awaiting the future was the bug that stopped
+        // snapped photos ever reaching Storage.
+        sellerIdProvider.overrideWith((ref) async => 's1'),
         if (api != null)
           catalogueRepositoryProvider.overrideWithValue(CatalogueRepository(api: api)),
       ],

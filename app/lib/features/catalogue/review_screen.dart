@@ -245,10 +245,17 @@ class _SaveButtonState extends ConsumerState<_SaveButton> {
     final router = GoRouter.of(context);
     try {
       final controller = ref.read(extractionControllerProvider.notifier);
+      // Awaited, not peeked at. `ref.read(sellerIdProvider).value` answers
+      // null while the provider is still loading — or has failed — and save()
+      // responds to a null sellerId by skipping every photo upload and
+      // reporting none failed. The products saved, the photos quietly did
+      // not, and the only way to get one on was to reopen the product and
+      // snap it again. product_edit_screen has always awaited the future.
+      final sellerId = await ref.read(sellerIdProvider.future);
       final result = await ref.read(catalogueRepositoryProvider).save(
             widget.candidates,
             photos: controller.photos,
-            sellerId: ref.read(sellerIdProvider).value,
+            sellerId: sellerId,
           );
       controller.clear();
 
