@@ -22,6 +22,9 @@ import 'features/orders/order_detail_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/settings/settings_screen.dart';
 
+/// Three kinds of navigation, three transitions. A tab is a peer, a push is
+/// further along the task, and a sheet sits over the task to be dismissed
+/// back to it: the camera, the intake, and the two edit screens.
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
@@ -60,11 +63,11 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/catalogue/snap',
-      pageBuilder: (_, s) => sortedPushPage(s, const SnapScreen()),
+      pageBuilder: (_, s) => sortedSheetPage(s, const SnapScreen()),
     ),
     GoRoute(
       path: '/order/new',
-      pageBuilder: (_, s) => sortedPushPage(s, const IntakeScreen()),
+      pageBuilder: (_, s) => sortedSheetPage(s, const IntakeScreen()),
     ),
     GoRoute(
       path: '/order/reading',
@@ -84,14 +87,14 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/catalogue/:productId/edit',
-      pageBuilder: (_, state) => sortedPushPage(
+      pageBuilder: (_, state) => sortedSheetPage(
         state,
         ProductEditScreen(productId: state.pathParameters['productId']!),
       ),
     ),
     GoRoute(
       path: '/orders/:orderId/edit',
-      pageBuilder: (_, state) => sortedPushPage(
+      pageBuilder: (_, state) => sortedSheetPage(
         state,
         EditOrderScreen(orderId: state.pathParameters['orderId']!),
       ),
