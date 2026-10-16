@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sorted/core/motion/page_transitions.dart';
 
 typedef _Transition = Widget Function(
@@ -151,6 +152,90 @@ void main() {
       }
       // Going back should feel like undoing, not like a second journey.
       expect(tab.transitionDuration, lessThan(push.transitionDuration));
+    });
+  });
+
+  group('driven through a real router', () {
+    // The tests above drive the transition functions directly. These check
+    // the other half: that a page built by sortedPushPage actually animates
+    // when a Navigator pushes it, rather than the builder being wired up
+    // somewhere it never runs.
+    Widget app(GoRouter router) => MaterialApp.router(routerConfig: router);
+
+    GoRouter routerFor(
+      CustomTransitionPage<void> Function(GoRouterState?, Widget) second,
+    ) =>
+        GoRouter(routes: [
+          GoRoute(
+            path: '/',
+            pageBuilder: (_, s) => sortedTabPage(
+              s,
+              Scaffold(
+                body: Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () => context.push('/next'),
+                    child: const Text('go'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/next',
+            pageBuilder: (_, s) => second(
+              s,
+              const Scaffold(
+                body: ColoredBox(
+                  key: Key('second'),
+                  color: Color(0xFF111111),
+                  child: SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+        ]);
+
+    testWidgets('a push really travels, and arrives', (tester) async {
+      await tester.pumpWidget(app(routerFor(sortedPushPage)));
+      await tester.tap(find.text('go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      final midway = tester.getTopLeft(find.byKey(const Key('second'))).dx;
+      expect(midway, greaterThan(0), reason: 'still on its way in');
+
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.byKey(const Key('second'))).dx, 0);
+    });
+
+    testWidgets('a sheet really rises, and arrives', (tester) async {
+      await tester.pumpWidget(app(routerFor(sortedSheetPage)));
+      await tester.tap(find.text('go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      final sheet = find.byKey(const Key('second'));
+      expect(tester.getTopLeft(sheet).dy, greaterThan(0));
+      expect(tester.getTopLeft(sheet).dx, 0, reason: 'a sheet has no sideways');
+
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(sheet), Offset.zero);
+    });
+
+    testWidgets('popping takes it back off the way it came', (tester) async {
+      await tester.pumpWidget(app(routerFor(sortedPushPage)));
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byKey(const Key('second')));
+      GoRouter.of(context).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(tester.getTopLeft(find.byKey(const Key('second'))).dx, greaterThan(0));
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('second')), findsNothing);
+      expect(find.text('go'), findsOneWidget);
     });
   });
 }
