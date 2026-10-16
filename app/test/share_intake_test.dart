@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
@@ -14,6 +16,9 @@ SharedMediaFile _file(String path, SharedMediaType type, {String? message}) =>
 class _Source implements ShareSource {
   final controller = StreamController<List<SharedMediaFile>>.broadcast();
   List<SharedMediaFile> first = const [];
+  /// What the Share Extension left in the App Group but could not hand over.
+  List<SharedMediaFile> waiting = const [];
+  int pendingChecks = 0;
   int resets = 0;
   @override
   Stream<List<SharedMediaFile>> get stream => controller.stream;
@@ -23,6 +28,13 @@ class _Source implements ShareSource {
   Future<void> reset() async => resets++;
   @override
   Future<List<int>> readBytes(String path) async => [1, 2, 3];
+  @override
+  Future<List<SharedMediaFile>> pending() async {
+    pendingChecks++;
+    final out = waiting;
+    waiting = const [];
+    return out;
+  }
 }
 
 class _Api extends Fake implements OrdersApi {
@@ -41,6 +53,10 @@ class _Api extends Fake implements OrdersApi {
 }
 
 void main() {
+  // ShareIntake now listens for resumes, and AppLifecycleListener needs a
+  // binding to attach to.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('pickSharedPayload', () {
     test('prefers a screenshot over text', () {
       final p = pickSharedPayload([
@@ -113,6 +129,45 @@ void main() {
       await intake().start();
       expect(api.calls, isEmpty);
       expect(opened, 0);
+    });
+
+    test('a share the extension could not hand over is picked up anyway', () async {
+      // The extension always saves the share, then tries to open the app by
+      // looking for a UIApplication in its responder chain. An extension has
+      // none, so on current iOS the open does nothing, the sheet closes, and
+      // the plugin — which only reads the App Group when the app is opened by
+      // its own URL — never sees it. That is a seller sharing a screenshot
+      // and nothing happening at all.
+      source.waiting = [_file('/tmp/chat.png', SharedMediaType.image)];
+      await intake().start();
+
+      expect(api.calls, ['image:chat.png:3']);
+      expect(opened, 1);
+    });
+
+    test('and is checked for again when the app comes back', () async {
+      // The seller shares, the sheet closes with nothing, so they open Sorted
+      // themselves. That is a resume, and the share should be waiting.
+      final i = intake();
+      await i.start();
+      expect(source.pendingChecks, 1);
+      expect(opened, 0);
+
+      source.waiting = [_file('/tmp/chat.png', SharedMediaType.image)];
+      WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpEventQueue();
+
+      expect(opened, 1);
+      expect(api.calls, ['image:chat.png:3']);
+      i.dispose();
+    });
+
+    test('an empty App Group opens nothing', () async {
+      await intake().start();
+      expect(api.calls, isEmpty);
+      expect(opened, 0);
+      expect(source.pendingChecks, 1);
     });
   });
 }

@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
@@ -50,9 +53,47 @@ abstract class ShareSource {
   Future<List<SharedMediaFile>> initial();
   Future<void> reset();
   Future<List<int>> readBytes(String path);
+
+  /// A share the iOS extension saved but could not hand over, if any.
+  ///
+  /// The extension writes what was shared into the App Group and then tries
+  /// to open the app by looking for a UIApplication in its responder chain.
+  /// An extension has no UIApplication, so on current iOS that open quietly
+  /// does nothing: the share sheet closes and the plugin, which only reads
+  /// the App Group when the app is opened by its own URL, never sees it.
+  /// Checking here is what turns that silence into a share.
+  Future<List<SharedMediaFile>> pending() async => const [];
 }
 
 class PluginShareSource implements ShareSource {
+  static const _pendingChannel = MethodChannel('sorted/pending_share');
+
+  @override
+  Future<List<SharedMediaFile>> pending() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return const [];
+    try {
+      final result = await _pendingChannel.invokeMapMethod<String, dynamic>('take');
+      final payload = result?['payload'] as String?;
+      if (payload == null || payload.isEmpty) return const [];
+      final composed = result?['message'] as String?;
+      return [
+        for (final entry in (jsonDecode(payload) as List<dynamic>))
+          if (entry is Map)
+            SharedMediaFile.fromMap({
+              ...Map<String, dynamic>.from(entry),
+              // The extension stores a file URL; readBytes wants a path.
+              'path': (entry['path'] as String? ?? '').replaceFirst('file://', ''),
+              // Duration is written as a double and the model wants an int.
+              'duration': (entry['duration'] as num?)?.toInt(),
+              'message': entry['message'] ?? composed,
+            }),
+      ];
+    } catch (_) {
+      // A share we cannot read is not worth taking the app down for.
+      return const [];
+    }
+  }
+
   @override
   Stream<List<SharedMediaFile>> get stream => ReceiveSharingIntent.instance.getMediaStream();
   @override
@@ -84,11 +125,23 @@ class ShareIntake {
   final ShareSource _source;
   final void Function() openReading;
   StreamSubscription<List<SharedMediaFile>>? _sub;
+  AppLifecycleListener? _lifecycle;
 
   Future<void> start() async {
     _sub = _source.stream.listen(_handle, onError: (_) {});
+    // Also on every resume: when the extension cannot open the app itself,
+    // the seller opens it, and the share should be waiting for them rather
+    // than lost. Coming back from the share sheet is a resume.
+    _lifecycle = AppLifecycleListener(onResume: () => unawaited(_collect()));
     try {
       await _handle(await _source.initial());
+    } catch (_) {}
+    await _collect();
+  }
+
+  Future<void> _collect() async {
+    try {
+      await _handle(await _source.pending());
     } catch (_) {}
   }
 
@@ -117,5 +170,8 @@ class ShareIntake {
     unawaited(_source.reset());
   }
 
-  void dispose() => _sub?.cancel();
+  void dispose() {
+    _sub?.cancel();
+    _lifecycle?.dispose();
+  }
 }

@@ -12,5 +12,7 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // Lets the app collect a share the extension could not hand over itself.
+    PendingShare.register(with: engineBridge.pluginRegistry)
   }
 }
