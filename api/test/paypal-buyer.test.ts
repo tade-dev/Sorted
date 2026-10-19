@@ -101,6 +101,32 @@ describe('GET /v1/paypal/return', () => {
   });
 });
 
+describe('GET /v1/paypal/return on a closed order', () => {
+  it('tells the buyer the shop cancelled it, and captures nothing', async () => {
+    await seed('cancelled', { supersededPaypalOrderIds: ['PPORDER1'] });
+    const calls: string[] = [];
+    const fetch: PayPalFetch = async (path) => {
+      calls.push(path);
+      return { id: 'PPORDER1', status: 'APPROVED', purchase_units: [] };
+    };
+    const res = await request(appWith(fetch)).get('/v1/paypal/return').query({ token: 'PPORDER1' });
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Ola&#39;s Bakehouse cancelled this order.');
+    expect(res.text).toContain('Nothing was charged.');
+    expect(res.text).not.toContain('Thanks, payment sent');
+    expect(calls).toEqual([]);
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('cancelled');
+  });
+
+  it('tells the buyer an expired link has expired', async () => {
+    await seed('expired');
+    const res = await request(appWith()).get('/v1/paypal/return').query({ token: 'PPORDER1' });
+    expect(res.text).toContain('This checkout link has expired.');
+    expect(res.text).toContain('Ask the shop for a new link.');
+  });
+});
+
 describe('GET /v1/paypal/cancel', () => {
   it('says the payment was cancelled and changes nothing', async () => {
     await seed('link_sent');

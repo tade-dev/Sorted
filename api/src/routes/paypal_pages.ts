@@ -69,6 +69,24 @@ export function paypalPagesRouter(db: Firestore, paypal?: PayPalFetch, invoices?
     } catch (err) {
       console.error('paypal return lookup failed', err instanceof Error ? err.name : 'error');
     }
+    // A buyer can still approve on a link the shop has closed. Sorted never
+    // captures those, so thanking them for a payment would be untrue.
+    if (status === 'cancelled' || status === 'expired') {
+      const who = shop ?? 'The shop';
+      sendPage(
+        res,
+        buyerPage({
+          title: 'Order closed',
+          headline: status === 'cancelled'
+            ? `${who} cancelled this order.`
+            : 'This checkout link has expired.',
+          detail: status === 'cancelled'
+            ? 'Nothing was charged. You can close this page.'
+            : 'Nothing was charged. Ask the shop for a new link.',
+        }),
+      );
+      return;
+    }
     const headline = shop
       ? `Thanks, payment sent to ${shop}.`
       : 'Thanks, payment sent.';

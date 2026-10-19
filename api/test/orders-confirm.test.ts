@@ -342,6 +342,20 @@ describe('POST /v1/orders/:orderId/reply/regenerate', () => {
     expect(res.body.draftedReply).toContain(LINK);
   });
 
+  it('409s on a cancelled order, whose link no longer takes payment', async () => {
+    const app = appWith(parsed);
+    const id = await draft(app);
+    await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+    await db.doc(`sellers/seller-a/orders/${id}`).update({ status: 'cancelled' });
+
+    const res = await request(app)
+      .post(`/v1/orders/${id}/reply/regenerate`)
+      .set('Authorization', 'Bearer good')
+      .send({ tone: 'short' });
+    expect(res.status).toBe(409);
+    expect(res.body.error.message).toMatch(/cancelled/);
+  });
+
   it('409s on an order with no link yet', async () => {
     const app = appWith(parsed);
     const id = await draft(app);

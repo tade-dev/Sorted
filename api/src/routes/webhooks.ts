@@ -18,6 +18,7 @@ import {
   type PayPalEvent,
 } from '../paypal/events.js';
 import { assertTransition, type OrderDoc, type OrderStatus } from '../domain/orders.js';
+import { isClosed } from '../domain/closing.js';
 
 export type WebhookDeps = {
   env: Env;
@@ -104,6 +105,7 @@ async function recordPayment(
   ref: DocumentReference,
   event: PayPalEvent,
   processingError: string | null,
+  refundDue = false,
 ) {
   await ref.collection('paymentEvents').doc(event.id).set({
     id: event.id,
@@ -115,6 +117,9 @@ async function recordPayment(
     receivedAt: FieldValue.serverTimestamp(),
     processedAt: FieldValue.serverTimestamp(),
     processingError,
+    // Money landed on a link Sorted had already closed. The app shows it so
+    // the seller refunds it; the order itself does not move.
+    ...(refundDue ? { refundDue: true } : {}),
   });
 }
 
@@ -225,17 +230,29 @@ export function webhooksRouter(deps: WebhookDeps): Router {
         }
 
         const { ref, order, sellerId, orderId } = located;
-        // A link replaced by an edit charges the old items, so nothing it
-        // does may move this order. A capture on it is flagged for refund.
-        if (event.paypalOrderId && order.supersededPaypalOrderIds?.includes(event.paypalOrderId)) {
+        // A link replaced by an edit charges the old items, and a cancelled
+        // or expired order is closed, so nothing these do may move the order.
+        // Cancel and expiry put the order's own PayPal id on the superseded
+        // list too; the status check also covers orders closed before that.
+        // A capture here is real money and is flagged for refund.
+        const superseded = Boolean(
+          event.paypalOrderId && order.supersededPaypalOrderIds?.includes(event.paypalOrderId),
+        );
+        const closed = isClosed(order.status);
+        if (superseded || closed) {
           const captured = event.eventType === 'PAYMENT.CAPTURE.COMPLETED';
-          const reason = captured
-            ? 'Captured on a superseded PayPal order. Refund it in PayPal.'
-            : 'PayPal order was superseded by an edit. Ignored.';
+          const reason = closed
+            ? captured
+              ? `Captured after the order was ${order.status}. Refund it in PayPal.`
+              : `The order was ${order.status}. Ignored.`
+            : captured
+              ? 'Captured on a superseded PayPal order. Refund it in PayPal.'
+              : 'PayPal order was superseded by an edit. Ignored.';
           console.warn(JSON.stringify({
-            source: 'paypal_superseded', orderId, paypalOrderId: event.paypalOrderId, eventType: event.eventType,
+            source: closed ? 'paypal_closed' : 'paypal_superseded',
+            orderId, paypalOrderId: event.paypalOrderId, eventType: event.eventType,
           }));
-          await recordPayment(ref, event, reason);
+          await recordPayment(ref, event, reason, captured);
           await ledger.set({ handled: true, sellerId, orderId, processingError: reason }, { merge: true });
           res.json({ received: true });
           return;
