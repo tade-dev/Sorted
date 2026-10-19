@@ -186,7 +186,8 @@ void main() {
     expect(find.text('Waiting for Jess M to pay'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 30));
-    await tester.pump();
+    // The banner's words cross over rather than cut, so let the old ones out.
+    await tester.pumpAndSettle();
 
     expect(find.text('Jess M paid'), findsOneWidget);
     expect(find.text('Waiting for Jess M to pay'), findsNothing);

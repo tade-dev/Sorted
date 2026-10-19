@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
+import '../../core/motion/sorted_motion.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../providers/catalogue_providers.dart';
 import '../../widgets/primary_button.dart';
@@ -174,7 +176,15 @@ class _SnapScreenState extends ConsumerState<SnapScreen> with WidgetsBindingObse
                   borderRadius: BorderRadius.circular(26),
                   child: ColoredBox(
                     color: c.darkSurface,
-                    child: _busy ? _processing(c, text) : _viewfinder(c, text),
+                    // Done freezes the viewfinder on the photo being read,
+                    // and it crosses over rather than cutting, so the seller
+                    // watches the shot they took become the thing Sorted reads.
+                    child: _Crossfade(
+                      child: KeyedSubtree(
+                        key: ValueKey(_busy),
+                        child: _busy ? _processing(c, text) : _viewfinder(c, text),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -249,10 +259,23 @@ class _SnapScreenState extends ConsumerState<SnapScreen> with WidgetsBindingObse
       main = _CameraMessage(status: _status, onRetry: _openCamera);
     }
 
+    // What the box is showing. The live picture is one thing however many
+    // shots are taken; without it, each newest shot is its own.
+    final Key showing = _status == CameraStatus.ready
+        ? const ValueKey('live')
+        : count > 0
+            ? ObjectKey(_photos.last.bytes)
+            : ValueKey(_status);
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        main,
+        // The spinner gives way to the live picture, and one photo to the
+        // next, as a cross-fade: the camera coming on is a change of light,
+        // not a change of screen.
+        _Crossfade(
+          child: KeyedSubtree(key: showing, child: main),
+        ),
         const _Brackets(),
         if (count > 0)
           Positioned(
@@ -402,7 +425,16 @@ class _ThumbStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: photos.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => SizedBox(
+        // Each thumbnail keeps its own State by identity, so removing one
+        // does not make the ones after it land a second time.
+        findItemIndexCallback: (key) {
+          final i = photos.indexWhere((p) => ObjectKey(p.bytes) == key);
+          return i < 0 ? null : i;
+        },
+        itemBuilder: (_, i) => _ThumbLands(
+          // The bytes, not the record: a record has no identity to key on.
+          key: ObjectKey(photos[i].bytes),
+          child: SizedBox(
           width: 60,
           child: Stack(
             clipBehavior: Clip.none,
@@ -454,9 +486,57 @@ class _ThumbStrip extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
+}
+
+/// A shot dropping into the strip: it lands small and springs to size, on the
+/// snappy spring the flow's ticks use, so each press of the shutter visibly
+/// put something somewhere. Thumbnails already there stay still.
+class _ThumbLands extends StatelessWidget {
+  const _ThumbLands({super.key, required this.child});
+
+  final Widget child;
+
+  /// The size it lands from, as a shortfall from full size.
+  static const _shortfall = 0.4;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = Motion.duration(context, SortedDurations.short);
+    return child
+        .animate()
+        .fadeIn(duration: duration, curve: SortedCurves.exit)
+        .scaleXY(
+          begin: 1 - Motion.move(context, _shortfall),
+          end: 1,
+          alignment: Alignment.bottomLeft,
+          duration: duration,
+          curve: Motion.curve(context, SortedSprings.snappy),
+        );
+  }
+}
+
+/// One picture giving way to another where it stands. Fade only: the frame
+/// does not move, only what is in it.
+class _Crossfade extends StatelessWidget {
+  const _Crossfade({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+        duration: Motion.duration(context, SortedDurations.medium),
+        switchInCurve: Motion.curve(context, SortedSprings.gentle),
+        switchOutCurve: SortedCurves.exit,
+        layoutBuilder: (current, previous) => Stack(
+          fit: StackFit.expand,
+          children: [...previous, ?current],
+        ),
+        child: child,
+      );
 }
 
 /// 44px tile from the design: the latest photo (or a gallery icon), a yellow
@@ -551,7 +631,11 @@ class _Shutter extends StatelessWidget {
       button: true,
       label: 'Take photo',
       enabled: onTap != null,
-      child: GestureDetector(
+      // Decorator mode: the detector below owns the tap and its semantics.
+      child: PressScale(
+        enabled: onTap != null,
+        scale: 0.92,
+        child: GestureDetector(
         key: const Key('snap-shutter'),
         onTap: onTap,
         child: Opacity(
@@ -568,6 +652,7 @@ class _Shutter extends StatelessWidget {
               decoration: BoxDecoration(color: white, shape: BoxShape.circle),
             ),
           ),
+        ),
         ),
       ),
     );

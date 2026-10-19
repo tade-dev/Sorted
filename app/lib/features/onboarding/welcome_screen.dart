@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/motion/sorted_motion.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/sorted_stamp.dart';
@@ -64,9 +68,14 @@ class WelcomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    const SizedBox(
+                    SizedBox(
                       height: 330,
-                      child: FittedBox(fit: BoxFit.scaleDown, child: _HeroSlip()),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: AfterArrival(
+                          builder: (_, arrived) => _SlipLanding(arrived: arrived),
+                        ),
+                      ),
                     ),
                     const Spacer(),
                     Padding(
@@ -103,10 +112,95 @@ class WelcomeScreen extends ConsumerWidget {
   }
 }
 
+/// The first thing Sorted ever shows a seller, told as what the app does: an
+/// order slip is put down, and then it gets stamped.
+///
+/// The page arrives with its words; once it is still, the slip lands the way
+/// a shared chat lands on Reading — a little large and askew, settling square
+/// on the gentle spring — and only when it has come to rest does the stamp hit
+/// it. A stamp landing on paper that is still moving would be two things
+/// happening at once instead of one thing and then its consequence.
+class _SlipLanding extends StatefulWidget {
+  const _SlipLanding({required this.arrived});
+
+  final bool arrived;
+
+  @override
+  State<_SlipLanding> createState() => _SlipLandingState();
+}
+
+class _SlipLandingState extends State<_SlipLanding> {
+  /// How long the slip takes to come to rest. The stamp waits for it.
+  static const _landing = SortedDurations.long;
+
+  /// How far over the slip is when it arrives. Reading's handed-in chat.
+  static const _tilt = 3.0;
+
+  /// How much larger it arrives than it sits.
+  static const _lift = 0.04;
+
+  bool _stamped = false;
+  Timer? _stamp;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Under reduced motion the stamp is design, not motion: it is simply
+    // there, as the tilts are.
+    if (Motion.reduced(context)) _stamped = true;
+    _wait();
+  }
+
+  @override
+  void didUpdateWidget(_SlipLanding old) {
+    super.didUpdateWidget(old);
+    _wait();
+  }
+
+  void _wait() {
+    if (!widget.arrived || _stamped || _stamp != null) return;
+    _stamp = Timer(_landing, () {
+      if (mounted) setState(() => _stamped = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _stamp?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = Motion.duration(context, _landing);
+    final curve = Motion.curve(context, SortedSprings.gentle);
+    return _HeroSlip(stamped: _stamped)
+        .animate(target: widget.arrived ? 1 : 0)
+        .fadeIn(
+          duration: Motion.duration(context, SortedDurations.medium),
+          curve: curve,
+        )
+        .scaleXY(
+          begin: 1 + Motion.move(context, _lift),
+          end: 1,
+          duration: duration,
+          curve: curve,
+        )
+        .rotate(
+          begin: Motion.move(context, _tilt) / 360,
+          end: 0,
+          duration: duration,
+          curve: curve,
+        );
+  }
+}
+
 /// The 330 px hero: a #0F3488 card tilted 6° behind a white slip tilted −4°,
-/// with the stamp at −12° over its lower right.
+/// with the stamp at −12° over its lower right once [stamped].
 class _HeroSlip extends StatelessWidget {
-  const _HeroSlip();
+  const _HeroSlip({required this.stamped});
+
+  final bool stamped;
 
   static const _deg = 3.1415926535 / 180;
 
@@ -188,7 +282,8 @@ class _HeroSlip extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(left: 180, top: 196, child: SortedStamp(degrees: -12)),
+          if (stamped)
+            const Positioned(left: 180, top: 196, child: SortedStamp(degrees: -12)),
         ],
       ),
     );

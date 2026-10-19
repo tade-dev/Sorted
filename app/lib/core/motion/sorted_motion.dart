@@ -10,6 +10,7 @@
 /// which is also where the rules about using them are written down.
 library;
 
+export 'after_arrival.dart';
 export 'enter_stagger.dart';
 export 'motion_access.dart';
 export 'page_transitions.dart';

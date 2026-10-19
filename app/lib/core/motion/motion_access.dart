@@ -72,6 +72,12 @@ abstract final class SortedDurations {
 
   /// One pass of a skeleton's shimmer.
   static const shimmer = Duration(milliseconds: 1400);
+
+  /// How long a control that confirmed by itself — Copy reply's tick — holds
+  /// that confirmation before going back to what it was. Long enough to be
+  /// seen after the finger lifts, short enough that a second copy finds the
+  /// button it expects.
+  static const confirmHold = Duration(milliseconds: 1800);
 }
 
 /// The two curves that are not springs.

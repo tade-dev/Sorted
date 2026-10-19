@@ -7,12 +7,27 @@ import 'sorted_icon.dart';
 /// a tail at the bottom right, the message, then the checkout link in its
 /// own darker chip so the seller can see it survived.
 class ReplyBubble extends StatelessWidget {
-  const ReplyBubble({super.key, this.text, this.placeholder, this.link});
+  const ReplyBubble({
+    super.key,
+    this.text,
+    this.placeholder,
+    this.link,
+    this.wrapMessage,
+    this.wrapLink,
+  });
 
   /// The message. When null, [placeholder] is shown in muted ink instead.
   final String? text;
   final Widget? placeholder;
   final String? link;
+
+  /// Wraps the message. Reply ready crossfades a rewritten tone through this;
+  /// Order detail and the nudge sheet leave it unset and the words just sit.
+  final Widget Function(Widget child)? wrapMessage;
+
+  /// Wraps the checkout-link chip. Reply ready lands the link a beat after
+  /// the words through this. Other screens leave it unset.
+  final Widget Function(Widget child)? wrapLink;
 
   @override
   Widget build(BuildContext context) {
@@ -38,52 +53,68 @@ class ReplyBubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (text != null)
-                Text(
-                  text!,
-                  style: style.bodyLarge?.copyWith(color: c.background),
-                )
-              else
-                ?placeholder,
+              _message(style, c),
               if (url.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c.darkLink,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      SortedIcon(
-                        SortedIcons.link,
-                        size: 18,
-                        color: c.highlight,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          url,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: style.bodySmall?.copyWith(
-                            color: c.highlight,
-                            decoration: TextDecoration.underline,
-                            decorationColor: c.highlight,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _linkChip(style, c, url),
               ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// The words, keyed when something is going to crossfade them, so a new
+  /// tone replaces the old one instead of repainting it.
+  Widget _message(TextTheme style, SortedColors c) {
+    final Widget message;
+    if (text != null) {
+      message = Text(
+        text!,
+        key: wrapMessage == null ? null : ValueKey(text),
+        style: style.bodyLarge?.copyWith(color: c.background),
+      );
+    } else {
+      final fallback = placeholder ?? const SizedBox.shrink();
+      message = wrapMessage == null || fallback.key != null
+          ? fallback
+          : KeyedSubtree(
+              key: const ValueKey('reply-placeholder'),
+              child: fallback,
+            );
+    }
+    final wrap = wrapMessage;
+    return wrap == null ? message : wrap(message);
+  }
+
+  Widget _linkChip(TextTheme style, SortedColors c, String url) {
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: c.darkLink,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          SortedIcon(SortedIcons.link, size: 18, color: c.highlight),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              url,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style.bodySmall?.copyWith(
+                color: c.highlight,
+                decoration: TextDecoration.underline,
+                decorationColor: c.highlight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    final wrap = wrapLink;
+    return wrap == null ? chip : wrap(chip);
   }
 }
