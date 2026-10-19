@@ -29,6 +29,8 @@ import {
   isClosed,
 } from '../domain/closing.js';
 import { DEFAULT_ORDER_EXPIRY_HOURS } from '../env.js';
+import { draftNudge, type NudgeTone } from '../ai/draft_nudge.js';
+import { millis, nudgeRefusal, snoozeUntil } from '../domain/nudge.js';
 import {
   applyBlockingPolicy,
   stillOpen,
@@ -166,6 +168,40 @@ export const EDITABLE_STATUSES: ReadonlyArray<OrderDoc['status']> = ['draft', 'l
 const confirmBodySchema = z.object({
   depositMinor: z.number().int().nonnegative().nullable().optional(),
 });
+const nudgeBodySchema = z.object({
+  tone: z.enum(['friendly', 'gentle', 'firm']).default('friendly'),
+});
+const nudgeSentBodySchema = z.object({
+  text: z.string().trim().min(1).max(500),
+});
+/** A second Copy tap within this window is the same nudge, not another one. */
+const SAME_NUDGE_MS = 10 * 60 * 1000;
+
+type StoredNudge = {
+  count?: number;
+  lastSentAt?: unknown;
+  lastText?: string | null;
+  channel?: string | null;
+  snoozedUntil?: unknown;
+  draftText?: string | null;
+};
+
+function iso(value: unknown): string | null {
+  const ms = millis(value);
+  return ms === null ? null : new Date(ms).toISOString();
+}
+
+/** The nudge as the API returns it. Timestamps as ISO strings. */
+function nudgeView(nudge: StoredNudge | undefined, text: string | null) {
+  return {
+    text,
+    channel: 'manual_copy' as const,
+    count: typeof nudge?.count === 'number' ? nudge.count : 0,
+    sentAt: iso(nudge?.lastSentAt),
+    snoozedUntil: iso(nudge?.snoozedUntil),
+  };
+}
+
 const regenerateBodySchema = z.object({
   tone: z.enum(['friendly', 'short', 'formal']).default('friendly'),
 });
@@ -763,6 +799,109 @@ export function ordersRouter(deps: OrdersDeps): Router {
 
       const { order: closed } = await closeOrder(ref, 'cancelled', CANCELLABLE_STATUSES);
       res.json({ order: closed });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Drafts a reminder for an unpaid link. Sorted never sends it: the seller
+  // copies it into the chat, then tells us with /nudge/sent.
+  router.post('/orders/:orderId/nudge', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = nudgeBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'That tone is not one Sorted knows.'));
+      return;
+    }
+    const sellerId = req.sellerId!;
+    const ref = deps.db.doc(`sellers/${sellerId}/orders/${req.params.orderId}`);
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      const order = snap.data() as OrderDoc & { linkSentAt?: unknown };
+      const now = (deps.now ?? Date.now)();
+      const refusal = nudgeRefusal(order, now);
+      if (refusal) { next(new ApiError(409, 'ORDER_STATE_INVALID', refusal)); return; }
+
+      const sellerSnap = await deps.db.doc(`sellers/${sellerId}`).get();
+      const prior = (order.nudge as StoredNudge | undefined)?.count ?? 0;
+      const drafted = await draftNudge(
+        {
+          order,
+          approvalUrl: order.approvalUrl!,
+          personaTone: (sellerSnap.data()?.personaTone as string | undefined) ?? '',
+          tone: parsed.data.tone as NudgeTone,
+          priorCount: prior,
+          daysUnpaid: Math.floor((now - millis(order.linkSentAt)!) / (24 * 60 * 60 * 1000)),
+        },
+        deps.transport,
+        deps.model,
+      );
+      // The seller asked, so a model that would rather not chase is overruled.
+      await ref.update({
+        'nudge.draftText': drafted.text,
+        'nudge.draftedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      res.json({ nudge: nudgeView(order.nudge as StoredNudge, drafted.text), source: drafted.source });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // The seller copied the nudge to paste it. Counts it as sent. Copying the
+  // same text again within a few minutes is one nudge, not two.
+  router.post('/orders/:orderId/nudge/sent', requireSeller(deps.verify), async (req, res, next) => {
+    const parsed = nudgeSentBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      next(new ApiError(400, 'VALIDATION_FAILED', 'Say which nudge was sent.'));
+      return;
+    }
+    const ref = deps.db.doc(`sellers/${req.sellerId}/orders/${req.params.orderId}`);
+    const now = (deps.now ?? Date.now)();
+    try {
+      const nudge = await deps.db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new ApiError(404, 'NOT_FOUND', 'No such order.');
+        const order = snap.data() as OrderDoc & { linkSentAt?: unknown };
+        const refusal = nudgeRefusal(order, now);
+        if (refusal) throw new ApiError(409, 'ORDER_STATE_INVALID', refusal);
+        const current = (order.nudge ?? {}) as StoredNudge;
+        const last = millis(current.lastSentAt);
+        const repeat = last !== null && now - last < SAME_NUDGE_MS && current.lastText === parsed.data.text;
+        if (repeat) return current;
+        const next: StoredNudge = {
+          ...current,
+          count: (current.count ?? 0) + 1,
+          lastSentAt: Timestamp.fromMillis(now),
+          lastText: parsed.data.text,
+          channel: 'manual_copy',
+          snoozedUntil: null,
+          draftText: null,
+        };
+        tx.update(ref, { nudge: next, updatedAt: FieldValue.serverTimestamp() });
+        return next;
+      });
+      res.json({ nudge: nudgeView(nudge, nudge.lastText ?? null) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Nudge.dc.html's "Remind me tomorrow".
+  router.post('/orders/:orderId/nudge/snooze', requireSeller(deps.verify), async (req, res, next) => {
+    const ref = deps.db.doc(`sellers/${req.sellerId}/orders/${req.params.orderId}`);
+    const now = (deps.now ?? Date.now)();
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      const order = snap.data() as OrderDoc & { linkSentAt?: unknown };
+      if (order.status !== 'link_sent') {
+        next(new ApiError(409, 'ORDER_STATE_INVALID', nudgeRefusal(order, now) ?? 'That order cannot be nudged.'));
+        return;
+      }
+      const until = Timestamp.fromMillis(snoozeUntil(now));
+      await ref.update({ 'nudge.snoozedUntil': until, updatedAt: FieldValue.serverTimestamp() });
+      res.json({ nudge: nudgeView({ ...(order.nudge as StoredNudge), snoozedUntil: until }, null) });
     } catch (err) {
       next(err);
     }

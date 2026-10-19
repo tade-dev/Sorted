@@ -18,11 +18,13 @@ import '../../models/order.dart';
 import '../../models/payment_event.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/reply_bubble.dart';
 import '../../widgets/sorted_stamp.dart';
 
 import 'package:go_router/go_router.dart';
 
 import 'edit_order_screen.dart' show editableOrderStatuses;
+import 'nudge_rules.dart';
 import 'order_presentation.dart';
 import 'status_pill.dart';
 
@@ -286,29 +288,7 @@ class _DetailBody extends StatelessWidget {
                 const SizedBox(height: 22),
                 Text('Reply', style: text.labelMedium),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: c.ink,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(22),
-                          topRight: Radius.circular(22),
-                          bottomLeft: Radius.circular(22),
-                          bottomRight: Radius.circular(6),
-                        ),
-                      ),
-                      child: Text(
-                        reply,
-                        style: text.bodyLarge?.copyWith(color: c.background),
-                      ),
-                    ),
-                  ),
-                ),
+                ReplyBubble(text: reply),
               ] else if (order.status != 'draft') ...[
                 const SizedBox(height: 22),
                 Text(
@@ -318,7 +298,19 @@ class _DetailBody extends StatelessWidget {
               ],
               if (waiting) ...[
                 const SizedBox(height: 22),
-                Text('No reminder has been sent yet.', style: text.bodySmall),
+                Text(
+                  reminderHistory(order, DateTime.now()),
+                  key: const Key('reminder-history'),
+                  style: text.bodySmall,
+                ),
+                if (canNudge(order, DateTime.now())) ...[
+                  const SizedBox(height: 10),
+                  CompactButton(
+                    key: const Key('draft-nudge'),
+                    label: 'Draft a nudge',
+                    onPressed: () => context.push('/orders/${order.id}/nudge'),
+                  ),
+                ],
               ],
               if (cancellableOrderStatuses.contains(order.status)) ...[
                 const SizedBox(height: 12),

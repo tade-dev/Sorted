@@ -17,6 +17,9 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> refresh(String orderId);
   Future<Map<String, dynamic>> invoice(String orderId);
   Future<Map<String, dynamic>> cancel(String orderId);
+  Future<Map<String, dynamic>> draftNudge(String orderId, String tone);
+  Future<Map<String, dynamic>> nudgeSent(String orderId, String text);
+  Future<Map<String, dynamic>> snoozeNudge(String orderId);
 }
 
 class HttpOrdersApi implements OrdersApi {
@@ -66,6 +69,18 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> cancel(String orderId) =>
       _client.postJson('/v1/orders/$orderId/cancel', const {});
+
+  @override
+  Future<Map<String, dynamic>> draftNudge(String orderId, String tone) =>
+      _client.postJson('/v1/orders/$orderId/nudge', {'tone': tone});
+
+  @override
+  Future<Map<String, dynamic>> nudgeSent(String orderId, String text) =>
+      _client.postJson('/v1/orders/$orderId/nudge/sent', {'text': text});
+
+  @override
+  Future<Map<String, dynamic>> snoozeNudge(String orderId) =>
+      _client.postJson('/v1/orders/$orderId/nudge/snooze', const {});
 }
 
 class OrdersRepository {
@@ -231,6 +246,21 @@ class OrdersRepository {
     final json = await api.cancel(orderId);
     return Order.fromJson(json['order'] as Map<String, dynamic>);
   }
+
+  /// A reminder for an unpaid link, in one of Nudge.dc.html's tones. The
+  /// server falls back to a template, so this only fails when the order
+  /// cannot be nudged at all, and then with a reason worth showing.
+  Future<String> draftNudge(String orderId, {String tone = 'friendly'}) async {
+    final json = await api.draftNudge(orderId, tone);
+    return (json['nudge'] as Map)['text'] as String;
+  }
+
+  /// The seller copied [text] to send. Counts it; a repeat copy does not.
+  Future<void> nudgeSent(String orderId, String text) =>
+      api.nudgeSent(orderId, text);
+
+  /// "Remind me tomorrow".
+  Future<void> snoozeNudge(String orderId) => api.snoozeNudge(orderId);
 
   /// Asks the API to check PayPal for this order. A payment to the seller's
   /// own PayPal may not webhook Sorted, so opening the order is the fallback.

@@ -2,11 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sorted/core/money.dart';
 import 'package:sorted/features/home/home_summary.dart';
 import 'package:sorted/models/order.dart';
+import 'package:sorted/models/order_nudge.dart';
 
 void main() {
   final now = DateTime(2026, 10, 10, 9);
 
-  Order o(String id, String status, {int amount = 1000, DateTime? paidAt, DateTime? linkSentAt, String? date, int? deposit}) =>
+  Order o(String id, String status, {int amount = 1000, DateTime? paidAt, DateTime? linkSentAt, String? date, int? deposit, OrderNudge nudge = const OrderNudge()}) =>
       Order(
         id: id,
         status: status,
@@ -15,6 +16,8 @@ void main() {
         depositMinor: deposit,
         paidAt: paidAt,
         linkSentAt: linkSentAt,
+        approvalUrl: linkSentAt == null ? null : 'https://paypal.test/pay',
+        nudge: nudge,
         fulfilment: Fulfilment(mode: 'collection', date: date),
       );
 
@@ -63,5 +66,51 @@ void main() {
     expect(greeting(now, "Ola's Bakehouse"), 'Morning, Ola');
     expect(greeting(DateTime(2026, 10, 10, 19), ''), 'Evening');
     expect(longDate(now), 'Saturday 10 October');
+  });
+
+  group('the nudge card leaves alone', () {
+    final sent = now.subtract(const Duration(hours: 80));
+
+    test('an order snoozed until tomorrow', () {
+      final s = summarise([
+        o('s', 'link_sent', linkSentAt: sent,
+            nudge: OrderNudge(snoozedUntil: now.add(const Duration(hours: 20)))),
+      ], now);
+      expect(s.nudge, isNull);
+    });
+
+    test('an order nudged in the last day', () {
+      final s = summarise([
+        o('n', 'link_sent', linkSentAt: sent,
+            nudge: OrderNudge(count: 1, lastSentAt: now.subtract(const Duration(hours: 5)))),
+      ], now);
+      expect(s.nudge, isNull);
+    });
+
+    test('an order nudged once, until three days have passed', () {
+      final early = now.subtract(const Duration(hours: 60));
+      final s = summarise([
+        o('n', 'link_sent', linkSentAt: early,
+            nudge: OrderNudge(count: 1, lastSentAt: now.subtract(const Duration(hours: 30)))),
+      ], now);
+      expect(s.nudge, isNull);
+    });
+
+    test('an order already nudged twice', () {
+      final s = summarise([
+        o('n', 'link_sent', linkSentAt: now.subtract(const Duration(days: 6)),
+            nudge: OrderNudge(count: 2, lastSentAt: now.subtract(const Duration(days: 2)))),
+      ], now);
+      expect(s.nudge, isNull);
+    });
+
+    test('but brings up the second reminder once it is due', () {
+      final s = summarise([
+        o('n', 'link_sent', linkSentAt: sent,
+            nudge: OrderNudge(count: 1, lastSentAt: now.subtract(const Duration(hours: 30)),
+                snoozedUntil: now.subtract(const Duration(hours: 1)))),
+      ], now);
+      expect(s.nudge?.id, 'n');
+    });
   });
 }

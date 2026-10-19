@@ -4,20 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/motion/sorted_motion.dart';
 import 'package:go_router/go_router.dart';
-import '../../widgets/sorted_app_bar.dart';
-import '../../widgets/sorted_toast.dart';
-import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
 import '../../core/money.dart';
+import '../../core/motion/sorted_motion.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../models/order.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/reply_bubble.dart';
 import '../../widgets/selectable_chip.dart';
+import '../../widgets/sorted_app_bar.dart';
+import '../../widgets/sorted_icon.dart';
+import '../../widgets/sorted_toast.dart';
 
 const _tones = [
   ('Friendly', 'friendly'),
@@ -239,92 +240,19 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                       children: [
                         _Sent(
                           arrived: arrived,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 320),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: c.ink,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(22),
-                                    topRight: Radius.circular(22),
-                                    bottomLeft: Radius.circular(22),
-                                    bottomRight: Radius.circular(6),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _Retoned(
-                                      child: order.draftedReply != null
-                                          ? Text(
-                                              order.draftedReply!,
-                                              key: ValueKey(order.draftedReply),
-                                              style: text.bodyLarge?.copyWith(
-                                                color: c.background,
-                                              ),
-                                            )
-                                          : Text(
-                                              'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
-                                              key: const ValueKey('no-reply'),
-                                              style: text.bodyMedium?.copyWith(
-                                                color: c.onDarkMuted,
-                                              ),
-                                            ),
-                                    ),
-                                    if ((order.approvalUrl ?? '')
-                                        .isNotEmpty) ...[
-                                      const SizedBox(height: 12),
-                                      _LinkLands(
-                                        arrived: arrived,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: c.darkLink,
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              SortedIcon(
-                                                SortedIcons.link,
-                                                size: 18,
-                                                color: c.highlight,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  order.approvalUrl!,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: text.bodySmall
-                                                      ?.copyWith(
-                                                        color: c.highlight,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .underline,
-                                                        decorationColor:
-                                                            c.highlight,
-                                                      ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                          child: ReplyBubble(
+                            text: order.draftedReply,
+                            placeholder: Text(
+                              'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
+                              key: const ValueKey('no-reply'),
+                              style: text.bodyMedium?.copyWith(
+                                color: c.onDarkMuted,
                               ),
                             ),
+                            link: order.approvalUrl,
+                            wrapMessage: (child) => _Retoned(child: child),
+                            wrapLink: (child) =>
+                                _LinkLands(arrived: arrived, child: child),
                           ),
                         ),
                         const SizedBox(height: 18),

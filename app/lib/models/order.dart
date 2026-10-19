@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import '../core/firestore_time.dart';
 import 'ambiguity.dart';
 import 'line_item.dart';
+import 'order_nudge.dart';
 
 part 'order.freezed.dart';
 part 'order.g.dart';
@@ -55,6 +56,11 @@ abstract class Order with _$Order {
     /// Set only when a capture completes. Null on every earlier status.
     @JsonKey(fromJson: dateTimeFromJson, toJson: dateTimeToJson)
     DateTime? paidAt,
+
+    /// Reminders for an unpaid link. Missing on older orders reads as none.
+    @JsonKey(fromJson: OrderNudge.fromJson, toJson: OrderNudge.toJson)
+    @Default(OrderNudge())
+    OrderNudge nudge,
   }) = _Order;
 
   factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);

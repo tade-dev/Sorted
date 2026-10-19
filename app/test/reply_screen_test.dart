@@ -33,6 +33,17 @@ class _FakeApi implements OrdersApi {
   Future<Map<String, dynamic>> cancel(String orderId) async => const {};
 
   @override
+  Future<Map<String, dynamic>> draftNudge(String orderId, String tone) async =>
+      const {};
+
+  @override
+  Future<Map<String, dynamic>> nudgeSent(String orderId, String text) async =>
+      const {};
+
+  @override
+  Future<Map<String, dynamic>> snoozeNudge(String orderId) async => const {};
+
+  @override
   Future<Map<String, dynamic>> thankYou(String orderId) async => {'message': 'Thanks!'};
 
   String? lastTone;

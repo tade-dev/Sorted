@@ -51,6 +51,9 @@ _Order _$OrderFromJson(Map<String, dynamic> json) => _Order(
   updatedAt: dateTimeFromJson(json['updatedAt']),
   linkSentAt: dateTimeFromJson(json['linkSentAt']),
   paidAt: dateTimeFromJson(json['paidAt']),
+  nudge: json['nudge'] == null
+      ? const OrderNudge()
+      : OrderNudge.fromJson(json['nudge']),
 );
 
 Map<String, dynamic> _$OrderToJson(_Order instance) => <String, dynamic>{
@@ -75,4 +78,5 @@ Map<String, dynamic> _$OrderToJson(_Order instance) => <String, dynamic>{
   'updatedAt': dateTimeToJson(instance.updatedAt),
   'linkSentAt': dateTimeToJson(instance.linkSentAt),
   'paidAt': dateTimeToJson(instance.paidAt),
+  'nudge': OrderNudge.toJson(instance.nudge),
 };

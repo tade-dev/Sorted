@@ -1,4 +1,5 @@
 import '../../models/order.dart';
+import '../orders/nudge_rules.dart';
 import '../orders/order_presentation.dart';
 
 /// Today's numbers for the Home card, worked out from the live order list.
@@ -17,7 +18,8 @@ class HomeSummary {
   final int waitingCount;
   final int waitingMinor;
 
-  /// The longest-unpaid link that is at least a day old, if any.
+  /// The longest-unpaid link that is due a reminder, if any. One already
+  /// nudged today, snoozed, or chased twice is left alone.
   final Order? nudge;
 
   /// Live orders with a collection or delivery date from today, soonest first.
@@ -53,11 +55,8 @@ HomeSummary summarise(List<Order> orders, DateTime now, {int maxUpcoming = 5}) {
     if (_waiting.contains(o.status)) {
       waitingCount++;
       waitingMinor += o.amountDueMinor;
-      final sent = o.linkSentAt;
-      if (o.status == 'link_sent' &&
-          sent != null &&
-          now.difference(sent).inHours >= 24 &&
-          (nudge == null || sent.isBefore(nudge.linkSentAt!))) {
+      if (nudgeDue(o, now) &&
+          (nudge == null || o.linkSentAt!.isBefore(nudge.linkSentAt!))) {
         nudge = o;
       }
     }

@@ -251,10 +251,12 @@ Idempotency: `Idempotency-Key` header honoured on every POST that creates a mone
 | 10 | `POST /orders/:orderId/reply/regenerate` | `{ tone?: 'warm'\|'brief'\|'formal' }` | `{ draftedReply: string }` |
 | 11 | `POST /orders/:orderId/cancel` | — | `{ order: Order }` |
 | 12 | `GET /orders` | `?status=&limit=&cursor=` | `{ orders: Order[], nextCursor: string\|null }` |
-| 13 | `POST /orders/:orderId/nudge` | — | `{ nudge: { text, channel, sentAt\|null } }` |
+| 13 | `POST /orders/:orderId/nudge` | `{ tone?: 'friendly'\|'gentle'\|'firm' }` | `{ nudge: { text, channel, count, sentAt\|null, snoozedUntil\|null }, source: 'ai'\|'template' }` — drafts only; `link_sent` at least 24h old |
+| 13a | `POST /orders/:orderId/nudge/sent` | `{ text }` | `{ nudge }` — the seller copied it; `count+1`, `lastSentAt`, `lastText`. A repeat copy within 10 min is not counted |
+| 13b | `POST /orders/:orderId/nudge/snooze` | — | `{ nudge }` — "Remind me tomorrow": `snoozedUntil = now + 24h` |
 | 14 | `GET /summary/today` | — | `{ summary: Summary }` — regenerated when `generatedAt` is over 15 min old or an order changed status since |
 | 15 | `POST /webhooks/paypal` | PayPal event body + 5 signature headers | `{ received: true }`, or `401` on invalid signature |
-| 16 | `POST /internal/workflows/nudge-sweep` | header `X-Internal-Token` | `{ scanned, nudged, skipped }` |
+| 16 | `POST /internal/workflows/nudge-sweep` | header `X-Internal-Token` | `{ scanned, nudged, skipped }` — drafts `nudge.draftText` for orders that are due; never sends |
 | 17 | `POST /internal/workflows/reconcile` | header `X-Internal-Token` | `{ checked, promoted }` |
 | 18 | `POST /internal/workflows/expire-sweep` | header `X-Internal-Token` | `{ scanned, expired, kept, failed }` — `link_sent`/`declined` older than `ORDER_EXPIRY_HOURS` (default 168) since `linkSentAt` |
 
