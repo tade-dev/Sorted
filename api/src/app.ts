@@ -75,6 +75,7 @@ export function createApp(deps: AppDeps): express.Express {
       model: deps.env.OPENAI_VISION_MODEL,
       publicBaseUrl: deps.env.PUBLIC_BASE_URL,
       invoiceSecret: deps.env.INTERNAL_TOKEN,
+      orderExpiryHours: deps.env.ORDER_EXPIRY_HOURS,
     }),
   );
   app.use(

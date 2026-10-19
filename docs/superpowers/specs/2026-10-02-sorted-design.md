@@ -256,6 +256,7 @@ Idempotency: `Idempotency-Key` header honoured on every POST that creates a mone
 | 15 | `POST /webhooks/paypal` | PayPal event body + 5 signature headers | `{ received: true }`, or `401` on invalid signature |
 | 16 | `POST /internal/workflows/nudge-sweep` | header `X-Internal-Token` | `{ scanned, nudged, skipped }` |
 | 17 | `POST /internal/workflows/reconcile` | header `X-Internal-Token` | `{ checked, promoted }` |
+| 18 | `POST /internal/workflows/expire-sweep` | header `X-Internal-Token` | `{ scanned, expired, kept, failed }` — `link_sent`/`declined` older than `ORDER_EXPIRY_HOURS` (default 168) since `linkSentAt` |
 
 **`ProductCandidate`**: `{ tempId, name, description, basePriceMinor, currency, variants: Variant[], confidence, ambiguities: Ambiguity[] }`. Note that `/catalogue/extract` **does not write to Firestore** — the seller confirms first, which is the brief's 3.1 requirement.
 

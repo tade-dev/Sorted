@@ -283,6 +283,7 @@ List<TimelineEntry> buildTimeline(Order order, List<PaymentEvent> events) {
 int _eventOrder(String eventType) => switch (eventType) {
   'CHECKOUT.ORDER.APPROVED' => 0,
   'PAYMENT.CAPTURE.COMPLETED' || 'reconcile' => 2,
+  'cancelled' || 'expired' => 3,
   _ => 1,
 };
 
@@ -291,6 +292,9 @@ bool _emphasise(String label) =>
 
 String paymentEventLabel(PaymentEvent event, String firstName) {
   final buyer = firstName.isEmpty ? 'The buyer' : firstName;
+  // Checked first: it is a capture, but calling it "Payment received" on a
+  // closed order would tell the seller to fulfil something they cancelled.
+  if (event.refundDue) return 'Paid on a closed link. Refund it in PayPal';
   switch (event.eventType) {
     case 'CHECKOUT.ORDER.APPROVED':
       return '$buyer paid with PayPal';
@@ -304,6 +308,10 @@ String paymentEventLabel(PaymentEvent event, String firstName) {
       return 'Payment refunded';
     case 'CHECKOUT.PAYMENT-APPROVAL.REVERSED':
       return 'Checkout was reversed';
+    case 'cancelled':
+      return 'You cancelled the order';
+    case 'expired':
+      return 'The link expired unpaid';
     case 'reconcile':
       return switch (event.rawStatus) {
         'paid' => 'Payment received',
@@ -315,6 +323,28 @@ String paymentEventLabel(PaymentEvent event, String firstName) {
     default:
       return 'PayPal update';
   }
+}
+
+/// Statuses the seller can cancel from. The API refuses the rest: paid is a
+/// refund, and processing or pending means the buyer is paying right now.
+const cancellableOrderStatuses = {'draft', 'link_sent', 'declined'};
+
+bool isClosedStatus(String status) =>
+    status == 'cancelled' || status == 'expired';
+
+/// What Order detail says in place of the link and reply once it is closed.
+String closedOrderNote(Order order) => order.status == 'expired'
+    ? 'This link expired unpaid, so it no longer takes payment. Start a new order if they still want it.'
+    : 'You cancelled this order. Its checkout link no longer takes payment.';
+
+/// The confirm sheet's body. A sent link is the part worth warning about.
+String cancelOrderWarning(Order order) {
+  if (order.status == 'draft' || !order.hasLink) {
+    return "The draft is closed and can't be sent. You can't undo this.";
+  }
+  final who = _firstName(order);
+  final buyer = who.isEmpty ? 'The buyer' : who;
+  return "The checkout link stops working, so $buyer can't pay on it. You can't undo this.";
 }
 
 String paidProtectionNote(Order order) {

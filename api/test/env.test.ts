@@ -97,6 +97,14 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, PUBLIC_BASE_URL: 'not a url' })).toThrow(/PUBLIC_BASE_URL/);
   });
 
+  it('gives unpaid links seven days unless ORDER_EXPIRY_HOURS says otherwise', () => {
+    expect(loadEnv(valid).ORDER_EXPIRY_HOURS).toBe(168);
+    expect(loadEnv({ ...valid, ORDER_EXPIRY_HOURS: '' }).ORDER_EXPIRY_HOURS).toBe(168);
+    expect(loadEnv({ ...valid, ORDER_EXPIRY_HOURS: '48' }).ORDER_EXPIRY_HOURS).toBe(48);
+    expect(() => loadEnv({ ...valid, ORDER_EXPIRY_HOURS: '0' })).toThrow(/invalid: ORDER_EXPIRY_HOURS/);
+    expect(() => loadEnv({ ...valid, ORDER_EXPIRY_HOURS: 'a week' })).toThrow(/invalid: ORDER_EXPIRY_HOURS/);
+  });
+
   it('separates a genuinely invalid value from a missing one', () => {
     const { INTERNAL_TOKEN, ...rest } = valid;
     const msg = (() => {

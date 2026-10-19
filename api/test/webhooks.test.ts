@@ -356,3 +356,63 @@ describe('POST /v1/webhooks/paypal', () => {
   });
 });
 
+describe('a late PayPal event on a closed order', () => {
+  const lateCapture = (id: string) => event('PAYMENT.CAPTURE.COMPLETED', id, {
+    id: 'CAP-LATE', status: 'COMPLETED',
+    amount: { currency_code: 'GBP', value: '42.00' },
+    custom_id: 'seller-a:o1',
+    supplementary_data: { related_ids: { order_id: 'PP-1' } },
+  });
+
+  async function seedClosed(status: OrderStatus, superseded: boolean) {
+    await seed(status);
+    if (superseded) {
+      await db.doc('sellers/seller-a/orders/o1').update({ supersededPaypalOrderIds: ['PP-1'] });
+    }
+  }
+
+  it.each([
+    ['cancelled', true],
+    ['expired', true],
+    ['cancelled', false],
+  ] as const)('keeps a %s order closed and flags the money for refund (superseded: %s)', async (status, superseded) => {
+    await seedClosed(status, superseded);
+    const { fetch } = paypal();
+    const res = await post(appWith(fetch), lateCapture('WH-LATE'));
+
+    expect(res.status).toBe(200);
+    const stored = await db.doc('sellers/seller-a/orders/o1').get();
+    expect(stored.get('status')).toBe(status);
+    expect(stored.get('paidAt')).toBeUndefined();
+    expect(stored.get('paypalCaptureId')).toBeUndefined();
+    const payment = await db.doc('sellers/seller-a/orders/o1/paymentEvents/WH-LATE').get();
+    expect(payment.get('refundDue')).toBe(true);
+    expect(payment.get('processingError')).toBe(`Captured after the order was ${status}. Refund it in PayPal.`);
+    const ledger = await db.doc('webhookEvents/WH-LATE').get();
+    expect(ledger.get('handled')).toBe(true);
+  });
+
+  it('does not capture an approval on a cancelled order', async () => {
+    await seedClosed('cancelled', true);
+    const { fetch, calls } = paypal();
+    const res = await post(appWith(fetch), approved());
+
+    expect(res.status).toBe(200);
+    expect(calls.some((c) => c.path.endsWith('/capture'))).toBe(false);
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('cancelled');
+    const payment = await db.doc('sellers/seller-a/orders/o1/paymentEvents/WH-APPROVED').get();
+    expect(payment.get('refundDue')).toBeUndefined();
+    expect(payment.get('processingError')).toBe('The order was cancelled. Ignored.');
+  });
+
+  it('does not let a denied capture reopen an expired order', async () => {
+    await seedClosed('expired', true);
+    const { fetch } = paypal();
+    const raw = event('PAYMENT.CAPTURE.DENIED', 'WH-DENIED-LATE', {
+      id: 'CAP-X', status: 'DECLINED', custom_id: 'seller-a:o1',
+      supplementary_data: { related_ids: { order_id: 'PP-1' } },
+    });
+    await post(appWith(fetch), raw);
+    expect((await db.doc('sellers/seller-a/orders/o1').get()).get('status')).toBe('expired');
+  });
+});

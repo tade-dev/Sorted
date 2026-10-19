@@ -16,6 +16,7 @@ abstract class OrdersApi {
   Future<Map<String, dynamic>> thankYou(String orderId);
   Future<Map<String, dynamic>> refresh(String orderId);
   Future<Map<String, dynamic>> invoice(String orderId);
+  Future<Map<String, dynamic>> cancel(String orderId);
 }
 
 class HttpOrdersApi implements OrdersApi {
@@ -61,6 +62,10 @@ class HttpOrdersApi implements OrdersApi {
   @override
   Future<Map<String, dynamic>> invoice(String orderId) =>
       _client.getJson('/v1/orders/$orderId/invoice');
+
+  @override
+  Future<Map<String, dynamic>> cancel(String orderId) =>
+      _client.postJson('/v1/orders/$orderId/cancel', const {});
 }
 
 class OrdersRepository {
@@ -217,6 +222,14 @@ class OrdersRepository {
   Future<String> invoiceUrl(String orderId) async {
     final json = await api.invoice(orderId);
     return json['url'] as String;
+  }
+
+  /// Cancels an unpaid order. The server checks PayPal first and refuses if
+  /// the buyer has already paid, so a failure here carries a reason worth
+  /// showing. Asking for an order that is already cancelled is fine.
+  Future<Order> cancel(String orderId) async {
+    final json = await api.cancel(orderId);
+    return Order.fromJson(json['order'] as Map<String, dynamic>);
   }
 
   /// Asks the API to check PayPal for this order. A payment to the seller's

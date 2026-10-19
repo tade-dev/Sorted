@@ -5,6 +5,9 @@ const required = (name: string) => z.string().min(1, `${name} must not be empty`
 /** Where PayPal sends the buyer after checkout, when PUBLIC_BASE_URL is unset. */
 export const DEFAULT_PUBLIC_BASE_URL = 'https://sorted-api-a4zo.onrender.com';
 
+/** Seven days: the design spec's lifecycle table. */
+export const DEFAULT_ORDER_EXPIRY_HOURS = 168;
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -15,6 +18,16 @@ const schema = z.object({
   OPENAI_VISION_MODEL: required('OPENAI_VISION_MODEL'),
   FIREBASE_PROJECT_ID: required('FIREBASE_PROJECT_ID'),
   INTERNAL_TOKEN: required('INTERNAL_TOKEN'),
+  /**
+   * How long a checkout link stays open unpaid before the expiry sweep closes
+   * it, counted from when the link was sent. Seven days, per the lifecycle
+   * table in the design spec; PayPal's own TTL for an unapproved order is not
+   * documented, so Sorted keeps its own clock.
+   */
+  ORDER_EXPIRY_HOURS: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.coerce.number().int().positive().max(24 * 90).default(DEFAULT_ORDER_EXPIRY_HOURS),
+  ),
 });
 
 export type Env = z.infer<typeof schema> & {

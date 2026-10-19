@@ -14,6 +14,7 @@ class PaymentEvent {
     this.processedAt,
     this.processingError,
     this.rawStatus,
+    this.refundDue = false,
   });
 
   final String id;
@@ -26,6 +27,10 @@ class PaymentEvent {
 
   /// Set by the reconcile sweep (`raw.status`). Webhook events leave it null.
   final String? rawStatus;
+
+  /// PayPal took money on a link Sorted had already closed (cancelled,
+  /// expired, or replaced by an edit). The seller has to refund it.
+  final bool refundDue;
 
   factory PaymentEvent.fromMap(Map<String, dynamic> json) {
     final raw = json['raw'];
@@ -44,6 +49,7 @@ class PaymentEvent {
       processedAt: dateTimeFromJson(json['processedAt']),
       processingError: json['processingError'] as String?,
       rawStatus: rawStatus,
+      refundDue: json['refundDue'] == true,
     );
   }
 }

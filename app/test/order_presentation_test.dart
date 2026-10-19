@@ -78,6 +78,72 @@ void main() {
     expect(orderMatchesFilter('cancelled', OrderFilter.paid), isFalse);
   });
 
+  test('cancelled and expired are closed: not waiting, not cancellable', () {
+    for (final status in ['cancelled', 'expired']) {
+      expect(orderMatchesFilter(status, OrderFilter.waiting), isFalse);
+      expect(orderMatchesFilter(status, OrderFilter.drafts), isFalse);
+      expect(isClosedStatus(status), isTrue);
+      expect(cancellableOrderStatuses.contains(status), isFalse);
+      expect(statusPresentation(status).tone, StatusTone.closed);
+    }
+    expect(cancellableOrderStatuses, {'draft', 'link_sent', 'declined'});
+    expect(isClosedStatus('paid'), isFalse);
+  });
+
+  test('the cancel warning names the buyer only when a link is out', () {
+    expect(
+      cancelOrderWarning(_order(status: 'draft')),
+      "The draft is closed and can't be sent. You can't undo this.",
+    );
+    expect(
+      cancelOrderWarning(
+        _order().copyWith(approvalUrl: 'https://paypal.test/x'),
+      ),
+      "The checkout link stops working, so Jess can't pay on it. You can't undo this.",
+    );
+    expect(
+      cancelOrderWarning(
+        _order(buyerName: null).copyWith(approvalUrl: 'https://paypal.test/x'),
+      ),
+      "The checkout link stops working, so The buyer can't pay on it. You can't undo this.",
+    );
+  });
+
+  test('a closed order says why its link is gone', () {
+    expect(closedOrderNote(_order(status: 'cancelled')), contains('You cancelled'));
+    expect(closedOrderNote(_order(status: 'expired')), contains('expired unpaid'));
+  });
+
+  test('cancel and expiry read as the last thing on the timeline', () {
+    final at = DateTime(2026, 10, 10, 12);
+    final timeline = buildTimeline(_order(status: 'cancelled'), [
+      PaymentEvent(id: 'cancel-o1', eventType: 'cancelled', receivedAt: at),
+      PaymentEvent(id: 'WH-1', eventType: 'CHECKOUT.ORDER.APPROVED', receivedAt: at),
+    ]);
+    expect(timeline.map((e) => e.label), [
+      'Jess paid with PayPal',
+      'You cancelled the order',
+    ]);
+    expect(
+      paymentEventLabel(const PaymentEvent(id: 'e', eventType: 'expired'), 'Jess'),
+      'The link expired unpaid',
+    );
+  });
+
+  test('a capture on a closed link is a refund to make, never Payment received', () {
+    const late = PaymentEvent(
+      id: 'WH-LATE',
+      eventType: 'PAYMENT.CAPTURE.COMPLETED',
+      refundDue: true,
+    );
+    expect(paymentEventLabel(late, 'Jess'), 'Paid on a closed link. Refund it in PayPal');
+    expect(
+      PaymentEvent.fromMap({'id': 'x', 'eventType': 'PAYMENT.CAPTURE.COMPLETED', 'refundDue': true}).refundDue,
+      isTrue,
+    );
+    expect(PaymentEvent.fromMap({'id': 'x', 'eventType': 'reconcile'}).refundDue, isFalse);
+  });
+
   test('buyer falls back to a handle, then a neutral word', () {
     expect(buyerLabel(_order()), 'Jess M');
     expect(

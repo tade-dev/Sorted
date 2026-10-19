@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer, { MulterError } from 'multer';
 import { z } from 'zod';
-import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { looksLikeUpload, visionMime } from '../lib/image_type.js';
 import { ApiError } from '../lib/errors.js';
 import { requireSeller, type TokenVerifier } from '../lib/auth.js';
@@ -18,9 +18,17 @@ import { sumMinor, multiplyMinor, applyDelta } from '../domain/money.js';
 import { createPayPalOrder } from '../paypal/orders.js';
 import type { PayPalFetch } from '../paypal/client.js';
 import { OPEN_STATUSES, reconcileOrder } from '../paypal/reconcile.js';
+import { getPayPalOrder, reconcileAction } from '../paypal/events.js';
 import { draftReply, fallbackReply, fallbackThankYou, type ReplyTone } from '../ai/draft_reply.js';
 import { assertTransition, blockingAmbiguities } from '../domain/orders.js';
 import { invoiceNumber, invoiceUrl } from '../domain/invoice.js';
+import {
+  CANCELLABLE_STATUSES,
+  closeOrder,
+  expiryFromNow,
+  isClosed,
+} from '../domain/closing.js';
+import { DEFAULT_ORDER_EXPIRY_HOURS } from '../env.js';
 import {
   applyBlockingPolicy,
   stillOpen,
@@ -171,7 +179,33 @@ export type OrdersDeps = {
   publicBaseUrl: string;
   /** Signs buyer invoice links. Optional so older callers keep working. */
   invoiceSecret?: string;
+  /** Hours an unpaid link stays open. Defaults to the env default. */
+  orderExpiryHours?: number;
+  now?: () => number;
 };
+
+/** Why an order the seller asked to cancel cannot be, in their words. */
+function cannotCancel(status: OrderDoc['status']): ApiError {
+  switch (status) {
+    case 'paid':
+      return new ApiError(
+        409,
+        'ORDER_STATE_INVALID',
+        'That order is already paid, so Sorted cannot cancel it. Refund it in PayPal instead.',
+      );
+    case 'processing':
+    case 'pending':
+      return new ApiError(
+        409,
+        'ORDER_STATE_INVALID',
+        'The buyer is paying for this right now. Wait for PayPal to finish, then try again.',
+      );
+    case 'expired':
+      return new ApiError(409, 'ORDER_STATE_INVALID', 'That order has already expired.');
+    default:
+      return new ApiError(409, 'ORDER_STATE_INVALID', `An order that is ${status} cannot be cancelled.`);
+  }
+}
 
 export function ordersRouter(deps: OrdersDeps): Router {
   const router = Router();
@@ -538,6 +572,14 @@ export function ordersRouter(deps: OrdersDeps): Router {
         approvalUrl,
         draftedReply,
         paypalPayee: payeeEmail ?? 'shared_sandbox',
+        // The expiry sweep counts from linkSentAt; this is the same moment,
+        // stored so the app and the Devpost write-up can show it.
+        expiresAt: Timestamp.fromMillis(
+          expiryFromNow(
+            (deps.now ?? Date.now)(),
+            deps.orderExpiryHours ?? DEFAULT_ORDER_EXPIRY_HOURS,
+          ),
+        ),
       };
 
       await ref.update({
@@ -567,6 +609,10 @@ export function ordersRouter(deps: OrdersDeps): Router {
       if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
 
       const order = snap.data() as OrderDoc;
+      if (isClosed(order.status)) {
+        next(new ApiError(409, 'ORDER_STATE_INVALID', `That order is ${order.status}, so its link no longer takes payment.`));
+        return;
+      }
       if (!order.approvalUrl) {
         next(new ApiError(409, 'ORDER_STATE_INVALID', 'That order has no payment link yet.'));
         return;
@@ -669,6 +715,54 @@ export function ordersRouter(deps: OrdersDeps): Router {
       }
       const status = changed ? ((await ref.get()).get('status') as string) : order.status;
       res.json({ status, changed });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Seller cancels an unpaid order. Asking twice is fine: an order that is
+  // already cancelled comes back as it is.
+  router.post('/orders/:orderId/cancel', requireSeller(deps.verify), async (req, res, next) => {
+    const orderId = String(req.params.orderId);
+    const ref = deps.db.doc(`sellers/${req.sellerId}/orders/${orderId}`);
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) { next(new ApiError(404, 'NOT_FOUND', 'No such order.')); return; }
+      const order = snap.data() as OrderDoc;
+      if (order.status === 'cancelled') { res.json({ order }); return; }
+      if (!CANCELLABLE_STATUSES.includes(order.status)) { next(cannotCancel(order.status)); return; }
+
+      // A sent link may already be paid with no webhook yet. Ask PayPal first,
+      // so a payment that landed is marked paid rather than cancelled over.
+      // If PayPal cannot be asked, nothing is cancelled: guessing wrong here
+      // closes an order the buyer has paid for. An approval that was never
+      // captured is not money yet, so it does not block the cancel; the
+      // superseded id means Sorted will not capture it afterwards either.
+      if (order.status !== 'draft' && order.paypalOrderId) {
+        let action: ReturnType<typeof reconcileAction>;
+        try {
+          action = reconcileAction(await getPayPalOrder(deps.paypal, order.paypalOrderId));
+        } catch {
+          next(new ApiError(
+            502,
+            'PAYPAL_UNAVAILABLE',
+            'Sorted could not check this order with PayPal, so it was not cancelled. Try again in a moment.',
+          ));
+          return;
+        }
+        if (action.kind === 'move' && action.status !== 'declined') {
+          try {
+            await reconcileOrder(deps.paypal, ref, orderId, order.status, order.paypalOrderId);
+          } catch {
+            // The refusal below stands either way; the sweep will catch up.
+          }
+          next(cannotCancel(action.status));
+          return;
+        }
+      }
+
+      const { order: closed } = await closeOrder(ref, 'cancelled', CANCELLABLE_STATUSES);
+      res.json({ order: closed });
     } catch (err) {
       next(err);
     }

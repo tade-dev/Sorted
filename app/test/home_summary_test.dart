@@ -18,6 +18,21 @@ void main() {
         fulfilment: Fulfilment(mode: 'collection', date: date),
       );
 
+  test('cancelled and expired orders count as nothing on Home', () {
+    final old = now.subtract(const Duration(days: 3));
+    final s = summarise([
+      o('c', 'cancelled', amount: 2000, linkSentAt: old, date: '2026-10-12'),
+      o('x', 'expired', amount: 3000, linkSentAt: old, date: '2026-10-12'),
+      o('w', 'link_sent', amount: 1500, linkSentAt: now.subtract(const Duration(hours: 2))),
+    ], now);
+
+    expect(s.waitingCount, 1);
+    expect(s.waitingMinor, 1500);
+    expect(s.paidTodayCount, 0);
+    expect(s.nudge, isNull);
+    expect(s.upcoming, isEmpty);
+  });
+
   test('counts today, waiting, the oldest day-old link and upcoming dates', () {
     final s = summarise([
       o('a', 'paid', amount: 5600, paidAt: now.subtract(const Duration(hours: 1)), date: '2026-10-17'),

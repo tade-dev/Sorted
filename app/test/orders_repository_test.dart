@@ -44,6 +44,13 @@ class _FakeApi implements OrdersApi {
   Future<Map<String, dynamic>> refresh(String orderId) async => const {};
 
   @override
+  Future<Map<String, dynamic>> cancel(String orderId) async {
+    lastPath = 'cancel/$orderId';
+    if (throwOn != null) throw throwOn!;
+    return orderResponse;
+  }
+
+  @override
   Future<Map<String, dynamic>> thankYou(String orderId) async {
     lastPath = 'thank-you/$orderId';
     if (throwOn != null) throw throwOn!;
@@ -219,5 +226,17 @@ void main() {
       ],
       'note': 'Happy birthday',
     });
+  });
+
+  test('cancel posts to the cancel route and returns the closed order', () async {
+    api.orderResponse = {'order': orderJson(status: 'cancelled')};
+    final out = await repo.cancel('o1');
+    expect(api.lastPath, 'cancel/o1');
+    expect(out.status, 'cancelled');
+  });
+
+  test('cancel passes the API refusal through for the screen to show', () async {
+    api.throwOn = StateError('already paid');
+    expect(() => repo.cancel('o1'), throwsA(isA<StateError>()));
   });
 }
