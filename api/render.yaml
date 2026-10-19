@@ -41,3 +41,13 @@ services:
       # Buyer return and cancel pages. Unset uses the hosted Render URL in code.
       - key: PUBLIC_BASE_URL
         sync: false
+      # Hours an unpaid link stays open before it expires. Unset is 168 (7 days).
+      - key: ORDER_EXPIRY_HOURS
+        sync: false
+# Scheduled calls. Each is a POST with header X-Internal-Token: $INTERNAL_TOKEN.
+# They are not services in this file, because a cron service is billed on its
+# own; point the scheduler you already use (a Render Workflow or cron job, or
+# any external cron) at them:
+#   every 10 min  /v1/internal/workflows/reconcile     paid status a webhook missed
+#   hourly        /v1/internal/workflows/expire-sweep  unpaid links past ORDER_EXPIRY_HOURS
+#   hourly        /v1/internal/workflows/nudge-sweep   (not built yet)

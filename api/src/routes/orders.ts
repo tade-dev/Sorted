@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer, { MulterError } from 'multer';
 import { z } from 'zod';
-import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { looksLikeUpload, visionMime } from '../lib/image_type.js';
 import { ApiError } from '../lib/errors.js';
 import { requireSeller, type TokenVerifier } from '../lib/auth.js';
@@ -25,8 +25,10 @@ import { invoiceNumber, invoiceUrl } from '../domain/invoice.js';
 import {
   CANCELLABLE_STATUSES,
   closeOrder,
+  expiryFromNow,
   isClosed,
 } from '../domain/closing.js';
+import { DEFAULT_ORDER_EXPIRY_HOURS } from '../env.js';
 import {
   applyBlockingPolicy,
   stillOpen,
@@ -177,6 +179,9 @@ export type OrdersDeps = {
   publicBaseUrl: string;
   /** Signs buyer invoice links. Optional so older callers keep working. */
   invoiceSecret?: string;
+  /** Hours an unpaid link stays open. Defaults to the env default. */
+  orderExpiryHours?: number;
+  now?: () => number;
 };
 
 /** Why an order the seller asked to cancel cannot be, in their words. */
@@ -567,6 +572,14 @@ export function ordersRouter(deps: OrdersDeps): Router {
         approvalUrl,
         draftedReply,
         paypalPayee: payeeEmail ?? 'shared_sandbox',
+        // The expiry sweep counts from linkSentAt; this is the same moment,
+        // stored so the app and the Devpost write-up can show it.
+        expiresAt: Timestamp.fromMillis(
+          expiryFromNow(
+            (deps.now ?? Date.now)(),
+            deps.orderExpiryHours ?? DEFAULT_ORDER_EXPIRY_HOURS,
+          ),
+        ),
       };
 
       await ref.update({

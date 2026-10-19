@@ -108,6 +108,43 @@ describe('POST /v1/orders/:orderId/confirm', () => {
     expect(res.body.order.draftedReply).toContain(LINK);
   });
 
+  it('starts the expiry clock when the link goes out, seven days by default', async () => {
+    const app = appWith(parsed);
+    const id = await draft(app);
+    const before = Date.now();
+    const res = await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+    expect(res.status).toBe(200);
+
+    const stored = await db.doc(`sellers/seller-a/orders/${id}`).get();
+    const expiresAt = stored.get('expiresAt').toMillis() as number;
+    const week = 168 * 60 * 60 * 1000;
+    expect(expiresAt).toBeGreaterThanOrEqual(before + week);
+    expect(expiresAt).toBeLessThanOrEqual(Date.now() + week);
+  });
+
+  it('uses ORDER_EXPIRY_HOURS for the expiry clock when it is set', async () => {
+    const short = loadEnv({
+      NODE_ENV: 'test',
+      PAYPAL_CLIENT_ID: 'x', PAYPAL_CLIENT_SECRET: 'x', PAYPAL_WEBHOOK_ID: 'x',
+      OPENAI_API_KEY: 'x', OPENAI_VISION_MODEL: 'test-model',
+      FIREBASE_PROJECT_ID: 'sorted-confirm-test', INTERNAL_TOKEN: 't',
+      ORDER_EXPIRY_HOURS: '48',
+    });
+    const app = createApp({
+      env: short, db, paypal: happyPayPal,
+      transport: transportFor(parsed),
+      verify: async () => ({ uid: 'seller-a' }),
+    });
+    const id = await draft(app);
+    const before = Date.now();
+    await request(app).post(`/v1/orders/${id}/confirm`).set('Authorization', 'Bearer good').send({});
+
+    const stored = await db.doc(`sellers/seller-a/orders/${id}`).get();
+    const expiresAt = stored.get('expiresAt').toMillis() as number;
+    expect(expiresAt).toBeGreaterThanOrEqual(before + 48 * 60 * 60 * 1000);
+    expect(expiresAt).toBeLessThan(before + 49 * 60 * 60 * 1000);
+  });
+
   it('stores a human-dated reply when the model cannot write one', async () => {
     const app = createApp({
       env, db, paypal: happyPayPal,
