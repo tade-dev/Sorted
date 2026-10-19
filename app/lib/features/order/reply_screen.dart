@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/motion/sorted_motion.dart';
 import 'package:go_router/go_router.dart';
@@ -100,6 +103,29 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
   String _tone = 'friendly';
   bool _busy = false;
 
+  /// True for a moment after Copy reply, while its icon shows a tick.
+  bool _copied = false;
+  Timer? _uncopy;
+
+  @override
+  void dispose() {
+    _uncopy?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copy(String toCopy) async {
+    await Clipboard.setData(ClipboardData(text: toCopy));
+    if (!mounted) return;
+    // The toast says it in words and gives the tap; the button answers on the
+    // spot, so the confirmation is where the finger is.
+    SortedToast.success(context, 'Copied. Paste it into the chat.');
+    _uncopy?.cancel();
+    setState(() => _copied = true);
+    _uncopy = Timer(SortedDurations.confirmHold, () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
   Future<void> _retone(Order order, String tone) async {
     setState(() {
       _tone = tone;
@@ -181,191 +207,354 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
             SortedShape.screenPadding,
             SortedShape.screenPadding,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.success,
-                      shape: BoxShape.circle,
+          // The page arrives first, then the link does: the tick lands, the
+          // reply comes in like a message being sent, and the link follows
+          // it. Played during the push it would be two moves at once.
+          child: AfterArrival(
+            builder: (context, arrived) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _LinkTick(arrived: arrived),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Link created for ${formatGbp(order.amountDueMinor)}',
+                        style: text.headlineMedium,
+                      ),
                     ),
-                    child: const SortedIcon(SortedIcons.check, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Link created for ${formatGbp(order.amountDueMinor)}',
-                      style: text.headlineMedium,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Paste this back into the chat. The order turns paid on its own as soon as they pay.',
-                style: text.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: c.ink,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(22),
-                                topRight: Radius.circular(22),
-                                bottomLeft: Radius.circular(22),
-                                bottomRight: Radius.circular(6),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (order.draftedReply != null)
-                                  Text(
-                                    order.draftedReply!,
-                                    style: text.bodyLarge?.copyWith(
-                                      color: c.background,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
-                                    style: text.bodyMedium?.copyWith(
-                                      color: c.onDarkMuted,
-                                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Paste this back into the chat. The order turns paid on its own as soon as they pay.',
+                  style: text.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _Sent(
+                          arrived: arrived,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: c.ink,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(22),
+                                    topRight: Radius.circular(22),
+                                    bottomLeft: Radius.circular(22),
+                                    bottomRight: Radius.circular(6),
                                   ),
-                                if ((order.approvalUrl ?? '').isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _Retoned(
+                                      child: order.draftedReply != null
+                                          ? Text(
+                                              order.draftedReply!,
+                                              key: ValueKey(order.draftedReply),
+                                              style: text.bodyLarge?.copyWith(
+                                                color: c.background,
+                                              ),
+                                            )
+                                          : Text(
+                                              'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
+                                              key: const ValueKey('no-reply'),
+                                              style: text.bodyMedium?.copyWith(
+                                                color: c.onDarkMuted,
+                                              ),
+                                            ),
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: c.darkLink,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        SortedIcon(SortedIcons.link,
-                                          size: 18,
-                                          color: c.highlight,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            order.approvalUrl!,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: text.bodySmall?.copyWith(
-                                              color: c.highlight,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                              decorationColor: c.highlight,
+                                    if ((order.approvalUrl ?? '')
+                                        .isNotEmpty) ...[
+                                      const SizedBox(height: 12),
+                                      _LinkLands(
+                                        arrived: arrived,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: c.darkLink,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
                                             ),
                                           ),
+                                          child: Row(
+                                            children: [
+                                              SortedIcon(
+                                                SortedIcons.link,
+                                                size: 18,
+                                                color: c.highlight,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  order.approvalUrl!,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: text.bodySmall
+                                                      ?.copyWith(
+                                                        color: c.highlight,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .underline,
+                                                        decorationColor:
+                                                            c.highlight,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text('Tone', style: text.labelMedium),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final (label, value) in _tones)
-                            SelectableChip(
-                              label: label,
-                              selected: _tone == value,
-                              onTap: _busy
-                                  ? () {}
-                                  : () => _retone(order, value),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: banner.background(c),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            SortedIcon(banner.icon,
-                              size: 20,
-                              color: banner.foreground(c),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                banner.label,
-                                style: text.bodyMedium?.copyWith(
-                                  color: banner.foreground(c),
-                                  fontWeight: FontWeight.w600,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text('Tone', style: text.labelMedium),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final (label, value) in _tones)
+                              SelectableChip(
+                                label: label,
+                                selected: _tone == value,
+                                onTap: _busy
+                                    ? () {}
+                                    : () => _retone(order, value),
+                              ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 18),
+                        // Watched live, so a buyer paying while the seller is
+                        // still here turns this green in front of them: the
+                        // colour travels, the words cross over, and the paid
+                        // celebration the Orders cards use lands on it.
+                        PaidPop(
+                          paid: order.status == 'paid',
+                          child: AnimatedContainer(
+                            duration: Motion.duration(
+                              context,
+                              SortedDurations.medium,
+                            ),
+                            curve: Motion.curve(context, SortedSprings.gentle),
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: banner.background(c),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: _Retoned(
+                              child: Row(
+                                key: ValueKey(banner.label),
+                                children: [
+                                  SortedIcon(
+                                    banner.icon,
+                                    size: 20,
+                                    color: banner.foreground(c),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      banner.label,
+                                      style: text.bodyMedium?.copyWith(
+                                        color: banner.foreground(c),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              PrimaryButton(
-                label: 'Copy reply',
-                icon: SortedIcons.copy,
-                onPressed: _busy || toCopy.isEmpty
-                    ? null
-                    : () async {
-                        await Clipboard.setData(ClipboardData(text: toCopy));
-                        if (!context.mounted) return;
-                        SortedToast.success(context, 'Copied. Paste it into the chat.');
-                      },
-              ),
-              SizedBox(
-                width: double.infinity,
-                height: SortedShape.secondaryButtonHeight,
-                child: TextButton(
-                  onPressed: () {
-                    ref.read(draftControllerProvider.notifier).clear();
-                    sortedFinishFlow(context, '/orders');
-                  },
-                  child: const Text('Go to orders'),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  label: 'Copy reply',
+                  icon: _copied ? SortedIcons.check : SortedIcons.copy,
+                  onPressed: _busy || toCopy.isEmpty
+                      ? null
+                      : () => _copy(toCopy),
                 ),
-              ),
-            ],
+                SizedBox(
+                  width: double.infinity,
+                  height: SortedShape.secondaryButtonHeight,
+                  child: TextButton(
+                    onPressed: () {
+                      ref.read(draftControllerProvider.notifier).clear();
+                      sortedFinishFlow(context, '/orders');
+                    },
+                    child: const Text('Go to orders'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The green tick beside "Link created": the first thing to land once the
+/// page is still, on the same snappy spring as Reading's step ticks, so the
+/// flow's ticks all land alike.
+class _LinkTick extends StatelessWidget {
+  const _LinkTick({required this.arrived});
+
+  final bool arrived;
+
+  /// The size it lands from, as a shortfall from full size. Reading's ticks.
+  static const _shortfall = 0.4;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    final duration = Motion.duration(context, SortedDurations.short);
+    return Container(
+          key: const Key('reply-tick'),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: c.success, shape: BoxShape.circle),
+          child: const SortedIcon(SortedIcons.check, color: Colors.white),
+        )
+        .animate(target: arrived ? 1 : 0)
+        .fadeIn(duration: duration, curve: SortedCurves.exit)
+        .scaleXY(
+          begin: 1 - Motion.move(context, _shortfall),
+          end: 1,
+          duration: duration,
+          curve: Motion.curve(context, SortedSprings.snappy),
+        );
+  }
+}
+
+/// The reply bubble arriving the way a sent message does: up from below and
+/// out of its own tail corner, a beat after the tick.
+class _Sent extends StatelessWidget {
+  const _Sent({required this.arrived, required this.child});
+
+  final bool arrived;
+  final Widget child;
+
+  /// How far it rises. A list row's travel: it is one message, not a screen.
+  static const _rise = 10.0;
+
+  /// How small it starts, as a shortfall from full size.
+  static const _shortfall = 0.04;
+
+  @override
+  Widget build(BuildContext context) {
+    const delay = SortedDurations.beat;
+    final duration = Motion.duration(context, SortedDurations.medium);
+    final curve = Motion.curve(context, SortedSprings.gentle);
+    return child
+        .animate(target: arrived ? 1 : 0)
+        .fadeIn(delay: delay, duration: duration, curve: curve)
+        .moveY(
+          delay: delay,
+          begin: Motion.move(context, _rise),
+          end: 0,
+          duration: duration,
+          curve: curve,
+        )
+        .scaleXY(
+          delay: delay,
+          begin: 1 - Motion.move(context, _shortfall),
+          end: 1,
+          alignment: Alignment.bottomRight,
+          duration: duration,
+          curve: curve,
+        );
+  }
+}
+
+/// The pay link, last in: it is what the whole flow was for, so it gets its
+/// own beat after the words around it, sliding in the way Reading's chat
+/// lines do.
+class _LinkLands extends StatelessWidget {
+  const _LinkLands({required this.arrived, required this.child});
+
+  final bool arrived;
+  final Widget child;
+
+  /// How far it slides, as a fraction of its width.
+  static const _slide = 0.05;
+
+  @override
+  Widget build(BuildContext context) {
+    final delay = SortedDurations.beat * 2;
+    final duration = Motion.duration(context, SortedDurations.medium);
+    final curve = Motion.curve(context, SortedSprings.gentle);
+    return child
+        .animate(target: arrived ? 1 : 0)
+        .fadeIn(delay: delay, duration: duration, curve: curve)
+        .slideX(
+          delay: delay,
+          begin: -Motion.move(context, _slide),
+          end: 0,
+          duration: duration,
+          curve: curve,
+        );
+  }
+}
+
+/// Words that get rewritten in place — a new tone, a new payment state —
+/// cross over rather than cut, and the box they sit in grows or shrinks to
+/// the new length instead of jumping. Children are keyed by what they say.
+class _Retoned extends StatelessWidget {
+  const _Retoned({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final swap = AnimatedSwitcher(
+      duration: Motion.duration(context, SortedDurations.short),
+      switchInCurve: Motion.curve(context, SortedSprings.gentle),
+      switchOutCurve: SortedCurves.exit,
+      // Stacked from the top-left, so the old words leave from where they
+      // were rather than re-centring as the box changes size.
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topLeft,
+        children: [...previous, ?current],
+      ),
+      child: child,
+    );
+    // AnimatedSize asserts on a zero-length animation, so under reduced
+    // motion there is no animator at all, as with the status pill.
+    if (Motion.reduced(context)) return swap;
+    return AnimatedSize(
+      duration: SortedDurations.medium,
+      curve: SortedSprings.gentle,
+      alignment: Alignment.topLeft,
+      child: swap,
     );
   }
 }

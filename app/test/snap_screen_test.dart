@@ -59,6 +59,12 @@ Widget _host(_FakePicker picker, {CameraPort? camera, CatalogueApi? api}) => Pro
       child: MaterialApp(theme: sortedTheme(), home: const SnapScreen()),
     );
 
+/// A thumbnail lands in the strip with flutter_animate, which starts on a
+/// zero-length timer. A test that ends the frame a photo arrives would leave
+/// that timer pending, so it lets a moment pass for the landing to start.
+Future<void> _letThumbsLand(WidgetTester tester) =>
+    tester.pump(const Duration(milliseconds: 1));
+
 void main() {
   testWidgets('Done is disabled until at least one photo is taken', (tester) async {
     await tester.pumpWidget(_host(_FakePicker([])));
@@ -72,6 +78,7 @@ void main() {
     await tester.tap(find.byKey(const Key('snap-shutter')));
     await tester.pump();
     expect(find.text('1 photo'), findsOneWidget);
+    await _letThumbsLand(tester);
   });
 
   testWidgets('pluralises the counter', (tester) async {
@@ -83,6 +90,7 @@ void main() {
     await tester.tap(find.byKey(const Key('snap-shutter')));
     await tester.pump();
     expect(find.text('2 photos'), findsOneWidget);
+    await _letThumbsLand(tester);
   });
 
   testWidgets('refuses a sixth photo, matching the API limit', (tester) async {
@@ -94,6 +102,7 @@ void main() {
     await tester.pump();
     expect(find.text('5 photos'), findsOneWidget);
     expect(find.textContaining('five photos'), findsOneWidget);
+    await _letThumbsLand(tester);
   });
 
   testWidgets('shows the design hint copy', (tester) async {
@@ -127,6 +136,7 @@ void main() {
     expect(picker.calls, 0);
     expect(find.text('1 photo'), findsOneWidget);
     expect(find.byKey(const Key('snap-count-badge')), findsOneWidget);
+    await _letThumbsLand(tester);
   });
 
   testWidgets('uploads several and removes one from the strip', (tester) async {
@@ -142,6 +152,7 @@ void main() {
     await tester.tap(find.byKey(const Key('remove-photo-1')));
     await tester.pump();
     expect(find.text('2 photos'), findsOneWidget);
+    await _letThumbsLand(tester);
   });
 
   testWidgets('releases the camera when leaving', (tester) async {
@@ -162,5 +173,6 @@ void main() {
     expect(find.byKey(const Key('snap-reading-photo')), findsOneWidget);
     expect(find.text('Reading 2 photos…'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).enabled, isFalse);
+    await _letThumbsLand(tester);
   });
 }

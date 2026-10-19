@@ -60,7 +60,7 @@ class PrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                SortedIcon(icon!, size: 20),
+                _IconSwap(icon: icon!),
                 const SizedBox(width: 8),
               ],
               Text(label),
@@ -68,6 +68,39 @@ class PrimaryButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The leading icon, which can change to say the press worked — Copy reply's
+/// copy turning into a tick. The new icon lands small and springs to size
+/// while the old one fades, the same move the status pill's label makes, so
+/// a confirmation reads as the control answering rather than a repaint.
+class _IconSwap extends StatelessWidget {
+  const _IconSwap({required this.icon});
+
+  final SortedIconData icon;
+
+  /// The size a changed icon lands from, as a shortfall from full size.
+  static const _shortfall = 0.4;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: Motion.duration(context, SortedDurations.short),
+      switchInCurve: Motion.curve(context, SortedSprings.snappy),
+      switchOutCurve: SortedCurves.exit,
+      transitionBuilder: (child, a) => FadeTransition(
+        opacity: a,
+        child: ScaleTransition(
+          scale: Tween(
+            begin: 1 - Motion.move(context, _shortfall),
+            end: 1.0,
+          ).animate(a),
+          child: child,
+        ),
+      ),
+      child: SortedIcon(icon, key: ValueKey(icon), size: 20),
     );
   }
 }
