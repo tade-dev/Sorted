@@ -18,6 +18,7 @@ import 'features/order/intake_screen.dart';
 import 'features/order/reading_screen.dart';
 import 'features/order/reply_screen.dart';
 import 'features/orders/edit_order_screen.dart';
+import 'features/orders/nudge_screen.dart';
 import 'features/orders/order_detail_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -104,6 +105,13 @@ final appRouter = GoRouter(
       pageBuilder: (_, state) => sortedSheetPage(
         state,
         EditOrderScreen(orderId: state.pathParameters['orderId']!),
+      ),
+    ),
+    GoRoute(
+      path: '/orders/:orderId/nudge',
+      pageBuilder: (_, state) => sortedSheetPage(
+        state,
+        NudgeScreen(orderId: state.pathParameters['orderId']!),
       ),
     ),
     GoRoute(

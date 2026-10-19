@@ -44,6 +44,29 @@ class _FakeApi implements OrdersApi {
   Future<Map<String, dynamic>> refresh(String orderId) async => const {};
 
   @override
+  Future<Map<String, dynamic>> draftNudge(String orderId, String tone) async {
+    lastPath = 'nudge/$orderId';
+    lastBody = tone;
+    if (throwOn != null) throw throwOn!;
+    return {
+      'nudge': {'text': 'Hi Jess! Here it is again: https://x', 'count': 0},
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> nudgeSent(String orderId, String text) async {
+    lastPath = 'nudge/sent/$orderId';
+    lastBody = text;
+    return const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> snoozeNudge(String orderId) async {
+    lastPath = 'nudge/snooze/$orderId';
+    return const {};
+  }
+
+  @override
   Future<Map<String, dynamic>> cancel(String orderId) async {
     lastPath = 'cancel/$orderId';
     if (throwOn != null) throw throwOn!;
@@ -238,5 +261,20 @@ void main() {
   test('cancel passes the API refusal through for the screen to show', () async {
     api.throwOn = StateError('already paid');
     expect(() => repo.cancel('o1'), throwsA(isA<StateError>()));
+  });
+
+  test('drafts a nudge in the tone asked for', () async {
+    final text = await repo.draftNudge('o1', tone: 'gentle');
+    expect(api.lastPath, 'nudge/o1');
+    expect(api.lastBody, 'gentle');
+    expect(text, contains('Here it is again'));
+  });
+
+  test('records the nudge that was copied, and a snooze', () async {
+    await repo.nudgeSent('o1', 'Hi Jess!');
+    expect(api.lastPath, 'nudge/sent/o1');
+    expect(api.lastBody, 'Hi Jess!');
+    await repo.snoozeNudge('o1');
+    expect(api.lastPath, 'nudge/snooze/o1');
   });
 }

@@ -14,6 +14,7 @@ import '../../core/theme/sorted_shape.dart';
 import '../../models/order.dart';
 import '../../providers/orders_providers.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/reply_bubble.dart';
 import '../../widgets/selectable_chip.dart';
 
 const _tones = [
@@ -215,78 +216,15 @@ class _ReplyScreenState extends ConsumerState<ReplyScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: c.ink,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(22),
-                                topRight: Radius.circular(22),
-                                bottomLeft: Radius.circular(22),
-                                bottomRight: Radius.circular(6),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (order.draftedReply != null)
-                                  Text(
-                                    order.draftedReply!,
-                                    style: text.bodyLarge?.copyWith(
-                                      color: c.background,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
-                                    style: text.bodyMedium?.copyWith(
-                                      color: c.onDarkMuted,
-                                    ),
-                                  ),
-                                if ((order.approvalUrl ?? '').isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: c.darkLink,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        SortedIcon(SortedIcons.link,
-                                          size: 18,
-                                          color: c.highlight,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            order.approvalUrl!,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: text.bodySmall?.copyWith(
-                                              color: c.highlight,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                              decorationColor: c.highlight,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                      ReplyBubble(
+                        text: order.draftedReply,
+                        placeholder: Text(
+                          'Sorted could not write the message this time. The link below still works — send it with a line of your own.',
+                          style: text.bodyMedium?.copyWith(
+                            color: c.onDarkMuted,
                           ),
                         ),
+                        link: order.approvalUrl,
                       ),
                       const SizedBox(height: 18),
                       Text('Tone', style: text.labelMedium),

@@ -139,11 +139,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // The nudge sheet is not built yet, so this opens the order,
-              // which already has the reply and link to copy.
               CompactButton(
-                label: 'Open the order',
-                onPressed: () => context.push('/orders/${s.nudge!.id}'),
+                key: const Key('draft-nudge'),
+                label: 'Draft a nudge',
+                onPressed: () => context.push('/orders/${s.nudge!.id}/nudge'),
               ),
             ],
           ),

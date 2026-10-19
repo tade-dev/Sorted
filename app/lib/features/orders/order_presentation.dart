@@ -267,6 +267,21 @@ List<TimelineEntry> buildTimeline(Order order, List<PaymentEvent> events) {
     );
   }
 
+  // A reminder is placed among the payment events by time, so a decline
+  // before it and a payment after it both read in order.
+  final reminded = order.nudge.lastSentAt;
+  if (reminded != null) {
+    final label = order.nudge.count > 1 ? 'Second reminder sent' : 'Reminder sent';
+    var at = entries.length;
+    while (at > 0 &&
+        entries[at - 1].at != null &&
+        entries[at - 1].at!.isAfter(reminded) &&
+        entries[at - 1].label != 'Checkout link sent') {
+      at--;
+    }
+    entries.insert(at, TimelineEntry(label: label, at: reminded));
+  }
+
   if (order.status == 'paid' && order.paidAt != null && !sawReceived) {
     entries.add(
       TimelineEntry(
