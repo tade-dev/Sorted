@@ -94,7 +94,16 @@ export function createApp(deps: AppDeps): express.Express {
       baseUrl: deps.env.PUBLIC_BASE_URL,
     }),
   );
-  app.use('/v1', internalRouter({ env: deps.env, db: deps.db, paypal: deps.paypal }));
+  app.use(
+    '/v1',
+    internalRouter({
+      env: deps.env,
+      db: deps.db,
+      paypal: deps.paypal,
+      transport: deps.transport,
+      model: deps.env.OPENAI_VISION_MODEL,
+    }),
+  );
 
   app.use((_req, _res, next) => {
     next(new ApiError(404, 'NOT_FOUND', 'Route not found.'));

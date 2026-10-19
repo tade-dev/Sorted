@@ -50,4 +50,4 @@ services:
 # any external cron) at them:
 #   every 10 min  /v1/internal/workflows/reconcile     paid status a webhook missed
 #   hourly        /v1/internal/workflows/expire-sweep  unpaid links past ORDER_EXPIRY_HOURS
-#   hourly        /v1/internal/workflows/nudge-sweep   (not built yet)
+#   hourly        /v1/internal/workflows/nudge-sweep   drafts nudges that are due; sends nothing

@@ -8,7 +8,11 @@ import { paypalIssue } from '../paypal/events.js';
 import { OPEN_STATUSES as OPEN, reconcileOrder } from '../paypal/reconcile.js';
 import { EXPIRABLE_STATUSES, closeOrder, expiryDueMs } from '../domain/closing.js';
 import { DEFAULT_ORDER_EXPIRY_HOURS } from '../env.js';
-import type { OrderStatus } from '../domain/orders.js';
+import type { OrderDoc, OrderStatus } from '../domain/orders.js';
+import { millis, nudgeDue } from '../domain/nudge.js';
+import { draftNudge } from '../ai/draft_nudge.js';
+import type { ChatTransport } from '../ai/client.js';
+import { FieldValue } from 'firebase-admin/firestore';
 const TWO_MINUTES_MS = 2 * 60 * 1000;
 
 function authorised(provided: string, expected: string): boolean {
@@ -28,6 +32,9 @@ export function internalRouter(deps: {
   env: Env;
   db: Firestore;
   paypal: PayPalFetch;
+  /** For the nudge sweep's drafts. Without one, the sweep uses the template. */
+  transport?: ChatTransport;
+  model?: string;
   now?: () => number;
 }): Router {
   const router = Router();
@@ -134,6 +141,55 @@ export function internalRouter(deps: {
         }
       }
       res.json({ scanned, expired, kept, failed });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Finds unpaid links that are due a reminder and drafts one, so the nudge
+  // is already written when the seller opens it. It never sends anything:
+  // the seller copies it into the chat. Orders that already have a draft
+  // waiting are left alone, so an hourly run does not rewrite it under them.
+  router.post('/internal/workflows/nudge-sweep', internalOnly, async (_req, res, next) => {
+    const now = (deps.now ?? Date.now)();
+    let scanned = 0;
+    let nudged = 0;
+    let skipped = 0;
+    try {
+      const sellers = await deps.db.collection('sellers').get();
+      for (const seller of sellers.docs) {
+        const orders = await seller.ref.collection('orders').where('status', '==', 'link_sent').get();
+        for (const doc of orders.docs) {
+          const order = doc.data() as OrderDoc & { linkSentAt?: unknown };
+          if (!nudgeDue(order, now)) continue;
+          scanned += 1;
+          if (order.nudge && (order.nudge as { draftText?: unknown }).draftText) { skipped += 1; continue; }
+          const drafted = await draftNudge(
+            {
+              order,
+              approvalUrl: order.approvalUrl!,
+              personaTone: (seller.get('personaTone') as string | undefined) ?? '',
+              tone: 'friendly',
+              priorCount: order.nudge?.count ?? 0,
+              daysUnpaid: Math.floor((now - millis(order.linkSentAt)!) / (24 * 60 * 60 * 1000)),
+            },
+            deps.transport ?? (async () => { throw new Error('no model'); }),
+            deps.model ?? '',
+          );
+          // Here, unlike when the seller asks, the model may decline to chase.
+          if (drafted.shouldSkip) {
+            skipped += 1;
+            await doc.ref.update({ 'nudge.skipReason': drafted.skipReason ?? 'The assistant chose not to chase this one.' });
+            continue;
+          }
+          await doc.ref.update({
+            'nudge.draftText': drafted.text,
+            'nudge.draftedAt': FieldValue.serverTimestamp(),
+          });
+          nudged += 1;
+        }
+      }
+      res.json({ scanned, nudged, skipped });
     } catch (err) {
       next(err);
     }
