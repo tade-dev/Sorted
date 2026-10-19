@@ -30,6 +30,9 @@ class _FakeApi implements OrdersApi {
   Future<Map<String, dynamic>> refresh(String orderId) async => const {};
 
   @override
+  Future<Map<String, dynamic>> cancel(String orderId) async => const {};
+
+  @override
   Future<Map<String, dynamic>> thankYou(String orderId) async => {'message': 'Thanks!'};
 
   String? lastTone;

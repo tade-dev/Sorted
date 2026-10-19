@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/money.dart';
+import '../../core/api_client.dart' show describeApiError;
+import '../../core/motion/sorted_motion.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../models/order.dart';
@@ -182,6 +184,7 @@ class _DetailBody extends StatelessWidget {
     final link = order.approvalUrl?.trim() ?? '';
     final hasReply = reply.isNotEmpty;
     final hasLink = link.isNotEmpty;
+    final closed = isClosedStatus(order.status);
 
     return Column(
       children: [
@@ -252,7 +255,19 @@ class _DetailBody extends StatelessWidget {
                 ),
               ],
               if (order.status == 'paid') _InvoiceSection(orderId: order.id),
-              if (hasLink) ...[
+              if (closed) ...[
+                const SizedBox(height: 22),
+                // Arrives with the Cancelled pill's morph rather than
+                // replacing the link in a cut.
+                Reveal(
+                  key: ValueKey('closed-${order.status}'),
+                  child: Text(
+                    closedOrderNote(order),
+                    key: const Key('closed-note'),
+                    style: text.bodyMedium,
+                  ),
+                ),
+              ] else if (hasLink) ...[
                 const SizedBox(height: 22),
                 Text('Checkout link', style: text.labelMedium),
                 const SizedBox(height: 8),
@@ -265,7 +280,9 @@ class _DetailBody extends StatelessWidget {
                 const SizedBox(height: 22),
                 Text('No checkout link on this order.', style: text.bodyMedium),
               ],
-              if (hasReply) ...[
+              if (closed)
+                const SizedBox.shrink()
+              else if (hasReply) ...[
                 const SizedBox(height: 22),
                 Text('Reply', style: text.labelMedium),
                 const SizedBox(height: 8),
@@ -303,6 +320,10 @@ class _DetailBody extends StatelessWidget {
                 const SizedBox(height: 22),
                 Text('No reminder has been sent yet.', style: text.bodySmall),
               ],
+              if (cancellableOrderStatuses.contains(order.status)) ...[
+                const SizedBox(height: 12),
+                Center(child: _CancelOrderButton(order: order)),
+              ],
             ],
           ),
         ),
@@ -316,7 +337,7 @@ class _DetailBody extends StatelessWidget {
             ),
             child: _ThankYouButton(orderId: order.id),
           )
-        else if (hasReply)
+        else if (hasReply && !closed)
           Padding(
             padding: const EdgeInsets.fromLTRB(
               SortedShape.screenPadding,
@@ -711,6 +732,94 @@ class _ThankYouButtonState extends ConsumerState<_ThankYouButton> {
     icon: SortedIcons.copy,
     onPressed: _busy ? null : _run,
   );
+}
+
+/// Order detail's "Cancel order". A text link like "Edit order", in the
+/// warning ink so it reads as the one action here that cannot be taken back,
+/// and confirmed in a sheet first. The live order stream flips the pill.
+class _CancelOrderButton extends ConsumerStatefulWidget {
+  const _CancelOrderButton({required this.order});
+
+  final Order order;
+
+  @override
+  ConsumerState<_CancelOrderButton> createState() => _CancelOrderButtonState();
+}
+
+class _CancelOrderButtonState extends ConsumerState<_CancelOrderButton> {
+  bool _busy = false;
+
+  Future<void> _run() async {
+    final toast = SortedToast.of(context);
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => _CancelSheet(order: widget.order),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(ordersRepositoryProvider).cancel(widget.order.id);
+      toast.show('Order cancelled', kind: SortedToastKind.success);
+    } catch (e) {
+      toast.show(describeApiError(e), kind: SortedToastKind.error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SortedColors.of(context);
+    return TextButton(
+      key: const Key('cancel-order'),
+      style: TextButton.styleFrom(foregroundColor: c.warningText),
+      onPressed: _busy ? null : _run,
+      child: const Text('Cancel order'),
+    );
+  }
+}
+
+class _CancelSheet extends StatelessWidget {
+  const _CancelSheet({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          SortedShape.screenPadding,
+          0,
+          SortedShape.screenPadding,
+          SortedShape.screenPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Cancel this order?', style: text.titleLarge),
+            const SizedBox(height: 8),
+            Text(cancelOrderWarning(order), style: text.bodyMedium),
+            const SizedBox(height: 22),
+            PrimaryButton(
+              key: const Key('confirm-cancel-order'),
+              label: 'Cancel order',
+              onPressed: () => Navigator.pop(context, true),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              key: const Key('keep-order'),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep order'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _copy(BuildContext context, String value, String notice) async {
