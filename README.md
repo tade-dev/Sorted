@@ -1,6 +1,10 @@
-# Sorted
+<p align="center">
+  <img src="app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" alt="Sorted app icon" width="128" height="128" style="border-radius: 28px;">
+</p>
 
-> From DM to paid. Sorted.
+<h1 align="center">Sorted</h1>
+
+<p align="center">From DM to paid. Sorted.</p>
 
 Small sellers in the UK take orders through Instagram, TikTok and WhatsApp DMs. The order details are scattered across a chat, the seller types up a payment request by hand, and then has to remember who has paid and who to chase.
 
