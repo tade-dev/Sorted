@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/first_run.dart';
 import 'core/money.dart';
 import 'core/motion/sorted_motion.dart';
 import 'core/share_intake.dart';
@@ -15,6 +16,7 @@ import 'router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirstRun.load();
   runApp(const ProviderScope(child: SortedApp()));
 }
 
@@ -23,7 +25,11 @@ Future<void> main() async {
 final shareIntakeProvider = Provider<ShareIntake?>((ref) {
   final source = ref.watch(shareSourceProvider);
   if (source == null) return null;
-  final intake = ShareIntake(ref, source, openReading: () => appRouter.push('/order/reading?from=share'));
+  final intake = ShareIntake(
+    ref,
+    source,
+    openReading: () => appRouter.push('/order/reading?from=share'),
+  );
   ref.onDispose(intake.dispose);
   intake.start();
   return intake;

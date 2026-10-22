@@ -5,6 +5,7 @@ import '../../widgets/sorted_toast.dart';
 import '../../widgets/sorted_icon.dart';
 
 import '../../core/api_client.dart';
+import '../../core/first_run.dart';
 import '../../core/theme/sorted_colors.dart';
 import '../../core/theme/sorted_shape.dart';
 import '../../providers/seller_provider.dart';
@@ -18,6 +19,7 @@ Future<void> finishOnboarding(BuildContext context, WidgetRef ref) async {
     if (context.mounted) showOnboardingError(context, e);
     return;
   }
+  await FirstRun.markSeen();
   if (context.mounted) context.go('/');
 }
 
