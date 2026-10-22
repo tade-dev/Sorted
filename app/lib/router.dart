@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'widgets/sorted_icon.dart';
 
+import 'core/first_run.dart';
 import 'core/motion/sorted_motion.dart';
 import 'core/theme/sorted_colors.dart';
 import 'features/catalogue/catalogue_screen.dart';
@@ -28,6 +29,10 @@ import 'features/settings/settings_screen.dart';
 /// back to it: the camera, the intake, and the two edit screens.
 final appRouter = GoRouter(
   initialLocation: '/',
+  // First run lands on Welcome before Home ever builds. Only `/` is caught,
+  // so a deep link (a share, a notification) still opens where it points.
+  redirect: (_, s) =>
+      FirstRun.showWelcome && s.matchedLocation == '/' ? '/welcome' : null,
   routes: [
     ShellRoute(
       builder: (context, state, child) => _NavShell(child: child),
@@ -78,7 +83,9 @@ final appRouter = GoRouter(
       pageBuilder: (_, s) {
         final handedIn = s.uri.queryParameters['from'] == 'share';
         final screen = ReadingScreen(handedIn: handedIn);
-        return handedIn ? sortedSheetPage(s, screen) : sortedPushPage(s, screen);
+        return handedIn
+            ? sortedSheetPage(s, screen)
+            : sortedPushPage(s, screen);
       },
     ),
     GoRoute(

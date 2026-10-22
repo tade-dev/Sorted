@@ -24,8 +24,8 @@ import '../../core/motion/motion_access.dart';
 import '../../core/motion/reveal.dart';
 
 /// `Home.dc.html`: greeting, today's paid card, the oldest unpaid link, and
-/// collections coming up. A seller who has not onboarded yet is sent to the
-/// welcome screen once.
+/// collections coming up. First run goes to Welcome from the router, so Home
+/// never flashes first.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.now});
 
@@ -37,18 +37,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _redirected = false;
-
   @override
   Widget build(BuildContext context) {
     final seller = ref.watch(sellerProvider).value;
-    if (!_redirected && seller != null && !seller.onboarded) {
-      _redirected = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/welcome');
-      });
-    }
-
     final c = SortedColors.of(context);
     final text = Theme.of(context).textTheme;
     final now = (widget.now ?? DateTime.now)();
