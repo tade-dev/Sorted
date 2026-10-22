@@ -33,6 +33,18 @@ There is no web build.
 - **Reconcile.** A scheduled job re-checks open orders with PayPal, so a missed webhook is picked up within about 10 minutes.
 - **Cancel and expiry.** The seller can cancel an unpaid order (`POST /v1/orders/:orderId/cancel`), which checks PayPal first. Unpaid links close after `ORDER_EXPIRY_HOURS` (default 168, seven days). A capture that lands on an already-closed order is marked as needing a refund.
 
+## Built with
+
+| Tool | What it does in Sorted |
+|---|---|
+| **PayPal** (Orders v2, webhooks, sandbox) | Creates the payment link for each order, captures it when the buyer approves, and keeps the order status in step through verified webhooks and the reconcile job |
+| **OpenAI** (`gpt-5.5`) | Reads catalogue photos and DM screenshots into structured data, and drafts replies and nudges. All calls use a strict JSON schema with one corrective retry |
+| **Render** (sponsor) | Hosts the API as a web service, deployed from `api/render.yaml` as a Blueprint |
+| **Flutter** | The seller's iOS app. Uses Riverpod, go_router, flutter_animate and freezed, and receives screenshots from the share sheet |
+| **Firebase** | Auth, Firestore (live order status), and Storage (product photos) |
+| **Node.js, TypeScript, Express** | The API, with zod validating every request and model response |
+| **Vitest, Supertest, Firebase emulators** | API tests run offline against the Firestore and Auth emulators |
+
 ## Architecture
 
 ```mermaid
@@ -131,4 +143,4 @@ flutter test
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT, an OSI-approved licence. See [LICENSE](LICENSE).
