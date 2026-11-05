@@ -12,7 +12,7 @@ Sorted turns a screenshot of that chat into a structured order, gives the seller
 
 ## Try it
 
-- **iOS (TestFlight):** TESTFLIGHT_LINK_TBD
+- **iOS (TestFlight):** [TESTFLIGHT_LINK_TBD](https://testflight.apple.com/join/671qnKgK)
 - **Demo video:** DEMO_VIDEO_TBD — it walks through the whole flow, from catalogue snap to a paid order, so you can follow it without installing anything.
 
 There is no web build.
