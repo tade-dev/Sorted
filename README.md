@@ -19,6 +19,15 @@ Sorted turns a screenshot of that chat into a structured order, gives the seller
 
 There is no web build.
 
+### PayPal sandbox
+
+No real money moves. Pay as this sandbox buyer:
+
+| | |
+|---|---|
+| Email | `jeho@gmail.com` |
+| Password | `12345678` |
+
 ## How it uses AI and PayPal
 
 **AI**
